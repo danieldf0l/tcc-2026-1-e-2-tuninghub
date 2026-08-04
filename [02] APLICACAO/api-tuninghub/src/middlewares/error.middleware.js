@@ -1,13 +1,22 @@
-// Tratamento de Erro Centralizado
 export const errorHandler = (err, req, res, next) => {
-  console.error(`[Erro Crítico] ${err.message}`);
-  
-  // Resposta padrão
   const statusCode = err.statusCode || 500;
-  const message = err.message || 'Erro Interno do Servidor';
+  const isOperational = err.isOperational === true;
+
+  if (!isOperational) {
+    console.error('[Erro Crítico]', err);
+  } else {
+    console.warn(`[Erro] ${statusCode} - ${err.message}`);
+  }
 
   res.status(statusCode).json({
     status: 'error',
-    message: message
+    message: isOperational ? err.message : 'Erro interno do servidor.',
+  });
+};
+
+export const notFoundHandler = (req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: `Rota ${req.method} ${req.originalUrl} não encontrada.`,
   });
 };
