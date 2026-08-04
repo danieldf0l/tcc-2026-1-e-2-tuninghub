@@ -19,17 +19,18 @@ import projetoServicoRoute from './routes/projetoServico.routes.js';
 import logSistemaRoute from './routes/logSistema.routes.js';
 import oficinaServicoRoute from './routes/oficinaServico.routes.js';
 
-import { errorHandler } from './middlewares/error.middleware.js';
+import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
+import { authLimiter } from './middlewares/rateLimiter.middleware.js';
 
 const app = express();
 
 // Middlewares de Segurança e Configuração
 app.use(helmet()); // Protege cabeçalhos HTTP
 app.use(cors()); // Habilita Cross-Origin Resource Sharing
-app.use(express.json()); // Permite ler JSON no corpo da requisição (req.body)
+app.use(express.json({ limit: '10mb' })); // Permite ler JSON no corpo da requisição (req.body), com limite de tamanho
 
 // Rotas
-app.use('/api/auth', authRoute);
+app.use('/api/auth', authLimiter, authRoute); // rate limit aplicado só no login/registro
 
 app.use('/api/assinatura', assinaturaRoute);
 app.use('/api/usuario', usuarioRoute);
@@ -47,6 +48,8 @@ app.use('/api/projetoServico', projetoServicoRoute);
 app.use('/api/logSistema', logSistemaRoute);
 app.use('/api/oficinaServico', oficinaServicoRoute);
 
+// Rota não encontrada (404) — deve vir depois de todas as rotas
+app.use(notFoundHandler);
 
 // Middleware de Erros DEVE ser o último
 app.use(errorHandler);
