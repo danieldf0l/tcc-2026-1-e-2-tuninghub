@@ -1,20 +1,29 @@
 import jwt from 'jsonwebtoken';
+import { UnauthorizedError, ForbiddenError } from '../errors/AppError.js';
 
 export const verificarToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
-    return res.status(401).json({ status: 'error', message: 'Token não fornecido.' });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next(new UnauthorizedError('Token não fornecido.'));
   }
 
-  // Separa a palavra "Bearer" do token
-  const [, token] = authHeader.split(' ');
+  const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.usuarioLogado = decoded;
-    return next(); 
+    req.usuarioLogado = jwt.verify(token, process.env.JWT_SECRET);
+    return next();
   } catch (error) {
-    return res.status(401).json({ status: 'error', message: 'Token inválido ou expirado.' });
+    const message = error.name === 'TokenExpiredError' ? 'Token expirado.' : 'Token inválido.';
+    return next(new UnauthorizedError(message));
   }
+};
+
+// Uso: router.delete('/:id', verificarToken, checkRole('ADMIN_MASTER'), controller.remover)
+export const checkRole = (...papeisPermitidos) => (req, res, next) => {
+  const { role } = req.usuarioLogado || {};
+  if (!role || !papeisPermitidos.includes(role)) {
+    return next(new ForbiddenError('Você não tem permissão para acessar este recurso.'));
+  }
+  return next();
 };
