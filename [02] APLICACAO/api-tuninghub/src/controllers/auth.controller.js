@@ -10,7 +10,7 @@ class AuthController {
     return { email, senha };
   }
 
-  async loginUsuario(req, res, next) {
+  loginUsuario = async (req, res, next) => {
     try {
       const credenciais = this.#validarCredenciais(req, res);
       if (!credenciais) return;
@@ -19,9 +19,9 @@ class AuthController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  async loginOficina(req, res, next) {
+  loginOficina = async (req, res, next) => {
     try {
       const credenciais = this.#validarCredenciais(req, res);
       if (!credenciais) return;
@@ -30,9 +30,9 @@ class AuthController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  async loginAdmin(req, res, next) {
+  loginAdmin = async (req, res, next) => {
     try {
       const credenciais = this.#validarCredenciais(req, res);
       if (!credenciais) return;
@@ -41,7 +41,7 @@ class AuthController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }
 
 export default new AuthController();
