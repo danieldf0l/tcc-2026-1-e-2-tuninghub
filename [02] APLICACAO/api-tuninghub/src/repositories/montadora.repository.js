@@ -18,6 +18,12 @@ class MontadoraRepository {
     const [result] = await db.execute(query, [nome]);
     return result.insertId;
   }
+
+  async findById(idMontadora) {
+  const query = 'SELECT * FROM montadora WHERE IdMontadora = ?';
+  const [rows] = await db.execute(query, [idMontadora]);
+  return rows[0];
+}
 }
 
 export default new MontadoraRepository();

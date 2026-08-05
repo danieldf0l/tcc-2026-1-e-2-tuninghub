@@ -1,14 +1,13 @@
 import { Router } from 'express';
 import ModeloController from '../controllers/modelo.controller.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
+import { ROLES } from '../constants/roles.js';
 
 const router = Router();
 
-// Rotas Públicas: Clientes consultam o catálogo de veículos
 router.get('/', ModeloController.listar);
 router.get('/montadora/:idMontadora', ModeloController.listarPorMontadora);
 
-// Rota Protegida: Apenas administradores alimentam o sistema
-router.post('/', verificarToken, ModeloController.criar);
+router.post('/', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), ModeloController.criar);
 
 export default router;
