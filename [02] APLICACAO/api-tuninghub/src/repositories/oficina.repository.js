@@ -4,7 +4,7 @@ class OficinaRepository {
   async findAll() {
     const query = `
       SELECT IdOficina, NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Ativo, DataCriacao 
-      FROM Oficina 
+      FROM oficina 
       WHERE Ativo = 1
     `;
     const [rows] = await db.execute(query);
@@ -12,34 +12,34 @@ class OficinaRepository {
   }
 
   async findByEmail(email) {
-    const query = 'SELECT * FROM Oficina WHERE Email = ?';
+    const query = 'SELECT * FROM oficina WHERE Email = ? AND Ativo = 1';
     const [rows] = await db.execute(query, [email]);
     return rows[0];
   }
 
   async findByCnpj(cnpj) {
-    const query = 'SELECT * FROM Oficina WHERE CNPJ = ?';
+    const query = 'SELECT * FROM oficina WHERE CNPJ = ?';
     const [rows] = await db.execute(query, [cnpj]);
     return rows[0];
   }
 
   async create(dados) {
     const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada } = dados;
-    
+
     const query = `
-      INSERT INTO Oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha) 
+      INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha) 
       VALUES (?, ?, ?, ?, ?, ?)
     `;
-    
+
     const [result] = await db.execute(query, [
-      nomeOficina, 
-      cnpj, 
-      nomeProprietario || null, 
-      telefone || null, 
-      email, 
-      senhaHasheada
+      nomeOficina,
+      cnpj,
+      nomeProprietario || null,
+      telefone || null,
+      email,
+      senhaHasheada,
     ]);
-    
+
     return result.insertId;
   }
 }

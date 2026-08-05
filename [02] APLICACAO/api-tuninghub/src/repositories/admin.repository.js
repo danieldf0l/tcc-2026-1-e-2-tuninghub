@@ -4,7 +4,7 @@ class AdminRepository {
   async findAll() {
     const query = `
       SELECT IdAdmin, Nome, Email, NivelAcesso, Ativo, DataCriacao 
-      FROM Admin 
+      FROM admin 
       WHERE Ativo = 1
     `;
     const [rows] = await db.execute(query);
@@ -12,17 +12,16 @@ class AdminRepository {
   }
 
   async findByEmail(email) {
-    const query = 'SELECT * FROM Admin WHERE Email = ?';
+    const query = 'SELECT * FROM admin WHERE Email = ? AND Ativo = 1';
     const [rows] = await db.execute(query, [email]);
     return rows[0];
   }
 
   async create(nome, email, senhaHasheada, nivelAcesso) {
     const query = `
-      INSERT INTO Admin (Nome, Email, Senha, NivelAcesso) 
+      INSERT INTO admin (Nome, Email, Senha, NivelAcesso) 
       VALUES (?, ?, ?, ?)
     `;
-    // O nível de acesso padrão no BD é 'PADRAO', mas passamos o valor aqui
     const [result] = await db.execute(query, [nome, email, senhaHasheada, nivelAcesso || 'PADRAO']);
     return result.insertId;
   }
