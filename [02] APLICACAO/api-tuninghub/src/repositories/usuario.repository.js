@@ -12,6 +12,12 @@ class UsuarioRepository {
     return rows[0];
   }
 
+  async existsByEmail(email) {
+    const query = 'SELECT IdUsuario FROM usuario WHERE Email = ?';
+    const [rows] = await db.execute(query, [email]);
+    return rows.length > 0;
+  }
+
   async create(nome, email, senhaHasheada) {
     const query = 'INSERT INTO usuario (Nome, Email, Senha) VALUES (?, ?, ?)';
     const [result] = await db.execute(query, [nome, email, senhaHasheada]);
