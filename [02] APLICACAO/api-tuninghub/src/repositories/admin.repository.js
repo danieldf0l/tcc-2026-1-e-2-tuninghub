@@ -17,6 +17,12 @@ class AdminRepository {
     return rows[0];
   }
 
+  async existsByEmail(email) {
+    const query = 'SELECT IdAdmin FROM admin WHERE Email = ?';
+    const [rows] = await db.execute(query, [email]);
+    return rows.length > 0;
+  }
+
   async create(nome, email, senhaHasheada, nivelAcesso) {
     const query = `
       INSERT INTO admin (Nome, Email, Senha, NivelAcesso) 
