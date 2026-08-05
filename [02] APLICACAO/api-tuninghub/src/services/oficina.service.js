@@ -1,5 +1,7 @@
 import bcrypt from 'bcrypt';
 import OficinaRepository from '../repositories/oficina.repository.js';
+import { ValidationError, ConflictError } from '../errors/AppError.js';
+import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG, sanitizarCnpj, validarCnpjFormato } from '../utils/validators.js';
 
 class OficinaService {
   async listarOficinas() {
@@ -7,45 +9,48 @@ class OficinaService {
   }
 
   async criarOficina(dados) {
-    const { nomeOficina, cnpj, nomeProprietario, telefone, email, senha } = dados;
+    const { nomeOficina, nomeProprietario, telefone, email, senha } = dados;
+    const cnpj = sanitizarCnpj(dados.cnpj);
 
-    // 1. Validação de campos obrigatórios (baseado no NOT NULL do BD)
     if (!nomeOficina || !cnpj || !email || !senha) {
-      throw new Error('Os campos NomeOficina, CNPJ, Email e Senha são obrigatórios.');
+      throw new ValidationError('Os campos NomeOficina, CNPJ, Email e Senha são obrigatórios.');
     }
 
-    // 2. Verifica duplicidade de E-mail
-    const emailExistente = await OficinaRepository.findByEmail(email);
+    if (!validarEmail(email)) {
+      throw new ValidationError('E-mail inválido.');
+    }
+
+    if (!validarSenha(senha)) {
+      throw new ValidationError(SENHA_REQUISITOS_MSG);
+    }
+
+    if (!validarCnpjFormato(cnpj)) {
+      throw new ValidationError('CNPJ inválido.');
+    }
+
+    const emailExistente = await OficinaRepository.existsByEmail(email);
     if (emailExistente) {
-      throw new Error('Já existe uma oficina cadastrada com este e-mail.');
+      throw new ConflictError('Já existe uma oficina cadastrada com este e-mail.');
     }
 
-    // 3. Verifica duplicidade de CNPJ
     const cnpjExistente = await OficinaRepository.findByCnpj(cnpj);
     if (cnpjExistente) {
-      throw new Error('Já existe uma oficina cadastrada com este CNPJ.');
+      throw new ConflictError('Já existe uma oficina cadastrada com este CNPJ.');
     }
 
-    // 4. Criptografa a Senha
     const saltRounds = 10;
     const senhaHasheada = await bcrypt.hash(senha, saltRounds);
 
-    // 5. Salva no banco de dados
     const novoId = await OficinaRepository.create({
       nomeOficina,
       cnpj,
       nomeProprietario,
       telefone,
       email,
-      senhaHasheada
+      senhaHasheada,
     });
 
-    return {
-      id: novoId,
-      nomeOficina,
-      cnpj,
-      email
-    };
+    return { id: novoId, nomeOficina, cnpj, email };
   }
 }
 

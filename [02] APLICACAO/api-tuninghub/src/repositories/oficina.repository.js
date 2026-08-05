@@ -1,4 +1,4 @@
-import db from '../config/db.js';
+import db from "../config/db.js";
 
 class OficinaRepository {
   async findAll() {
@@ -12,19 +12,26 @@ class OficinaRepository {
   }
 
   async findByEmail(email) {
-    const query = 'SELECT * FROM oficina WHERE Email = ? AND Ativo = 1';
+    const query = "SELECT * FROM oficina WHERE Email = ? AND Ativo = 1";
     const [rows] = await db.execute(query, [email]);
     return rows[0];
   }
 
   async findByCnpj(cnpj) {
-    const query = 'SELECT * FROM oficina WHERE CNPJ = ?';
+    const query = "SELECT * FROM oficina WHERE CNPJ = ?";
     const [rows] = await db.execute(query, [cnpj]);
     return rows[0];
   }
 
   async create(dados) {
-    const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada } = dados;
+    const {
+      nomeOficina,
+      cnpj,
+      nomeProprietario,
+      telefone,
+      email,
+      senhaHasheada,
+    } = dados;
 
     const query = `
       INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha) 
@@ -41,6 +48,12 @@ class OficinaRepository {
     ]);
 
     return result.insertId;
+  }
+
+  async existsByEmail(email) {
+    const query = "SELECT IdOficina FROM oficina WHERE Email = ?";
+    const [rows] = await db.execute(query, [email]);
+    return rows.length > 0;
   }
 }
 
