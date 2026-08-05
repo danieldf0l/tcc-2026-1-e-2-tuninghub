@@ -3,8 +3,8 @@ import AuthController from '../controllers/auth.controller.js';
 
 const router = Router();
 
-// Rota: POST /api/auth/login
-router.post('/login', AuthController.login);
+router.post('/login/usuario', AuthController.loginUsuario);
+router.post('/login/oficina', AuthController.loginOficina);
+router.post('/login/admin', AuthController.loginAdmin);
 
-// 👇 ESTA É A LINHA QUE ESTÁ FALTANDO PARA RESOLVER O ERRO 👇
 export default router;
