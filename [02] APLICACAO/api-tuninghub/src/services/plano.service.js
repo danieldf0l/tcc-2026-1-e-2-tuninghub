@@ -1,4 +1,5 @@
 import PlanoRepository from '../repositories/plano.repository.js';
+import { ValidationError, ConflictError } from '../errors/AppError.js';
 
 class PlanoService {
   async listarPlanos() {
@@ -6,31 +7,29 @@ class PlanoService {
   }
 
   async criarPlano(dados) {
-    const { nome, valor, duracaoDias } = dados;
+    const nome = dados.nome?.trim();
+    const duracaoDias = Number(dados.duracaoDias);
+    const valor = dados.valor === undefined || dados.valor === null || dados.valor === ''
+      ? 0
+      : Number(dados.valor);
 
-    // 1. Validação de presença
-    if (!nome || !duracaoDias) {
-      throw new Error('Os campos Nome e DuracaoDias são obrigatórios.');
+    if (!nome || !dados.duracaoDias) {
+      throw new ValidationError('Os campos Nome e DuracaoDias são obrigatórios.');
+    }
+    if (Number.isNaN(duracaoDias) || duracaoDias <= 0) {
+      throw new ValidationError('A duração do plano deve ser um número de pelo menos 1 dia.');
+    }
+    if (Number.isNaN(valor) || valor < 0) {
+      throw new ValidationError('O valor do plano deve ser um número igual ou maior que zero.');
     }
 
-    // 2. Validação lógica de negócio
-    if (duracaoDias <= 0) {
-      throw new Error('A duração do plano deve ser de pelo menos 1 dia.');
+    const planoExistente = await PlanoRepository.findByNome(nome);
+    if (planoExistente) {
+      throw new ConflictError('Já existe um plano cadastrado com este nome.');
     }
 
-    if (valor < 0) {
-      throw new Error('O valor do plano não pode ser negativo.');
-    }
-
-    // 3. Persistência
     const novoId = await PlanoRepository.create(nome, valor, duracaoDias);
-
-    return {
-      id: novoId,
-      nome,
-      valor: valor || 0.00,
-      duracaoDias
-    };
+    return { id: novoId, nome, valor, duracaoDias };
   }
 }
 

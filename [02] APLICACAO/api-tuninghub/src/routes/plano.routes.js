@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import PlanoController from '../controllers/plano.controller.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
+import { ROLES } from '../constants/roles.js';
 
 const router = Router();
 
-// Rota GET: Pública (Oficinas não logadas podem ver a página de preços)
 router.get('/', PlanoController.listar);
-
-// Rota POST: Protegida (Somente usuários autenticados, idealmente ADMINs, podem criar)
-router.post('/', verificarToken, PlanoController.criar);
+router.post('/', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), PlanoController.criar);
 
 export default router;
