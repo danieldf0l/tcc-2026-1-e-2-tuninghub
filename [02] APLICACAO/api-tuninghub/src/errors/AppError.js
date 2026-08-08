@@ -22,3 +22,7 @@ export class ValidationError extends AppError {
 export class ConflictError extends AppError {
   constructor(message = 'Registro já existe.') { super(message, 409); }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message = 'Serviço temporariamente indisponível.') { super(message, 503); }
+}

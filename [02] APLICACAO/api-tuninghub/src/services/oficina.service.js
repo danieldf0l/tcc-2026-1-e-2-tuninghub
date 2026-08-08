@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import OficinaRepository from '../repositories/oficina.repository.js';
+import CnpjExternoService from './cnpjExterno.service.js';
 import { ValidationError, ConflictError } from '../errors/AppError.js';
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG, sanitizarCnpj, validarCnpjFormato } from '../utils/validators.js';
 
@@ -15,28 +16,29 @@ class OficinaService {
     if (!nomeOficina || !cnpj || !email || !senha) {
       throw new ValidationError('Os campos NomeOficina, CNPJ, Email e Senha são obrigatórios.');
     }
-
     if (!validarEmail(email)) {
       throw new ValidationError('E-mail inválido.');
     }
-
     if (!validarSenha(senha)) {
       throw new ValidationError(SENHA_REQUISITOS_MSG);
     }
-
     if (!validarCnpjFormato(cnpj)) {
       throw new ValidationError('CNPJ inválido.');
     }
 
+    // Checagens locais primeiro (rápidas, sem depender de API externa)
     const emailExistente = await OficinaRepository.existsByEmail(email);
     if (emailExistente) {
       throw new ConflictError('Já existe uma oficina cadastrada com este e-mail.');
     }
-
     const cnpjExistente = await OficinaRepository.findByCnpj(cnpj);
     if (cnpjExistente) {
       throw new ConflictError('Já existe uma oficina cadastrada com este CNPJ.');
     }
+
+    // RN16, RN23, RN24 — validação externa do CNPJ
+    const dadosCnpj = await CnpjExternoService.consultar(cnpj);
+    const cnaePrincipal = CnpjExternoService.validarSituacaoECnae(dadosCnpj);
 
     const saltRounds = 10;
     const senhaHasheada = await bcrypt.hash(senha, saltRounds);
@@ -48,9 +50,10 @@ class OficinaService {
       telefone,
       email,
       senhaHasheada,
+      cnae: cnaePrincipal,
     });
 
-    return { id: novoId, nomeOficina, cnpj, email };
+    return { id: novoId, nomeOficina, cnpj, email, cnae: cnaePrincipal };
   }
 }
 

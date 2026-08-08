@@ -24,31 +24,19 @@ class OficinaRepository {
   }
 
   async create(dados) {
-    const {
-      nomeOficina,
-      cnpj,
-      nomeProprietario,
-      telefone,
-      email,
-      senhaHasheada,
-    } = dados;
+  const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada, cnae } = dados;
 
-    const query = `
-      INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha) 
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
+  const query = `
+    INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha, CNAE) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
 
-    const [result] = await db.execute(query, [
-      nomeOficina,
-      cnpj,
-      nomeProprietario || null,
-      telefone || null,
-      email,
-      senhaHasheada,
-    ]);
+  const [result] = await db.execute(query, [
+    nomeOficina, cnpj, nomeProprietario || null, telefone || null, email, senhaHasheada, cnae || null,
+  ]);
 
-    return result.insertId;
-  }
+  return result.insertId;
+}
 
   async existsByEmail(email) {
     const query = "SELECT IdOficina FROM oficina WHERE Email = ?";
