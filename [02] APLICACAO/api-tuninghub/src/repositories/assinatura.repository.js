@@ -2,27 +2,44 @@ import db from '../config/db.js';
 
 class AssinaturaRepository {
   async findAll() {
-    // Busca todas as assinaturas, idealmente trazendo dados da Oficina e do Plano futuramente
-    const query = 'SELECT * FROM Assinatura';
+    const query = `
+      SELECT a.*, o.NomeOficina, p.Nome AS NomePlano
+      FROM assinatura a
+      INNER JOIN oficina o ON a.IdOficina = o.IdOficina
+      INNER JOIN plano p ON a.IdPlano = p.IdPlano
+      ORDER BY a.DataCriacao DESC
+    `;
     const [rows] = await db.execute(query);
     return rows;
   }
 
-  async findByOficina(idOficina) {
-    const query = 'SELECT * FROM Assinatura WHERE IdOficina = ? AND Status = "ATIVA"';
+  async findById(idAssinatura) {
+    const query = 'SELECT * FROM assinatura WHERE IdAssinatura = ?';
+    const [rows] = await db.execute(query, [idAssinatura]);
+    return rows[0];
+  }
+
+  async findAtivaOuPendentePorOficina(idOficina) {
+    const query = "SELECT * FROM assinatura WHERE IdOficina = ? AND Status IN ('ATIVA', 'PENDENTE')";
     const [rows] = await db.execute(query, [idOficina]);
     return rows;
   }
 
-  async create(idOficina, idPlano, dataInicio, dataFim) {
+  async create({ idOficina, idPlano, dataInicio, dataFim, status, idCobrancaExterna }) {
     const query = `
-      INSERT INTO Assinatura (IdOficina, IdPlano, DataInicio, DataFim) 
-      VALUES (?, ?, ?, ?)
+      INSERT INTO assinatura (IdOficina, IdPlano, DataInicio, DataFim, Status, IdCobrancaExterna)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
-    
-    // O status e a data de criação são definidos automaticamente pelo banco (DEFAULT)
-    const [result] = await db.execute(query, [idOficina, idPlano, dataInicio, dataFim || null]);
+    const [result] = await db.execute(query, [
+      idOficina, idPlano, dataInicio, dataFim || null, status, idCobrancaExterna || null,
+    ]);
     return result.insertId;
+  }
+
+  async ativar(idAssinatura, dataFim) {
+    const query = "UPDATE assinatura SET Status = 'ATIVA', DataFim = ? WHERE IdAssinatura = ?";
+    const [result] = await db.execute(query, [dataFim, idAssinatura]);
+    return result.affectedRows;
   }
 }
 

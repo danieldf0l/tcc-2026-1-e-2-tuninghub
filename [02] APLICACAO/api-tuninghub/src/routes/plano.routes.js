@@ -7,5 +7,6 @@ const router = Router();
 
 router.get('/', PlanoController.listar);
 router.post('/', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), PlanoController.criar);
+router.patch('/:id/produto-externo', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), PlanoController.vincularProdutoExterno);
 
 export default router;

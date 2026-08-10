@@ -1,5 +1,5 @@
 import PlanoRepository from '../repositories/plano.repository.js';
-import { ValidationError, ConflictError } from '../errors/AppError.js';
+import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 
 class PlanoService {
   async listarPlanos() {
@@ -31,6 +31,14 @@ class PlanoService {
     const novoId = await PlanoRepository.create(nome, valor, duracaoDias);
     return { id: novoId, nome, valor, duracaoDias };
   }
+
+  async vincularProdutoExterno(idPlano, idProdutoExterno) {
+  if (!idProdutoExterno) throw new ValidationError('idProdutoExterno é obrigatório.');
+  const plano = await PlanoRepository.findById(idPlano);
+  if (!plano) throw new NotFoundError('Plano não encontrado.');
+  await PlanoRepository.atualizarProdutoExterno(idPlano, idProdutoExterno);
+  return { idPlano, idProdutoExterno };
+}
 }
 
 export default new PlanoService();

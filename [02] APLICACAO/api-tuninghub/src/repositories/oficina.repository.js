@@ -43,6 +43,12 @@ class OficinaRepository {
     const [rows] = await db.execute(query, [email]);
     return rows.length > 0;
   }
+
+  async findById(idOficina) {
+  const query = 'SELECT * FROM oficina WHERE IdOficina = ? AND Ativo = 1';
+  const [rows] = await db.execute(query, [idOficina]);
+  return rows[0];
+}
 }
 
 export default new OficinaRepository();

@@ -1,31 +1,41 @@
 import AssinaturaService from '../services/assinatura.service.js';
 
 class AssinaturaController {
-  async listar(req, res, next) {
+  listar = async (req, res, next) => {
     try {
       const assinaturas = await AssinaturaService.listarAssinaturas();
       res.status(200).json(assinaturas);
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  async criar(req, res, next) {
+  criarGratuita = async (req, res, next) => {
     try {
-      const assinatura = await AssinaturaService.criarAssinatura(req.body);
-      
-      res.status(201).json({
-        message: 'Assinatura registrada com sucesso!',
-        assinatura
-      });
+      const assinatura = await AssinaturaService.criarAssinaturaGratuita(req.body, req.usuarioLogado);
+      res.status(201).json({ message: 'Assinatura gratuita ativada com sucesso!', assinatura });
     } catch (error) {
-      // Retorna 400 (Bad Request) para erros de validação ou regras de negócio
-      if (error.message.includes('obrigatórios') || error.message.includes('já possui')) {
-        return res.status(400).json({ status: 'error', message: error.message });
-      }
       next(error);
     }
-  }
+  };
+
+  checkout = async (req, res, next) => {
+    try {
+      const resultado = await AssinaturaService.iniciarCheckout(req.body, req.usuarioLogado);
+      res.status(201).json({ message: 'Checkout gerado com sucesso!', ...resultado });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  confirmarPagamento = async (req, res, next) => {
+    try {
+      const resultado = await AssinaturaService.confirmarPagamento(req.params.id, req.usuarioLogado);
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default new AssinaturaController();

@@ -24,6 +24,12 @@ class PlanoRepository {
     const [result] = await db.execute(query, [nome, valor ?? 0.0, duracaoDias]);
     return result.insertId;
   }
+
+  async atualizarProdutoExterno(idPlano, idProdutoExterno) {
+  const query = 'UPDATE plano SET IdProdutoExterno = ? WHERE IdPlano = ?';
+  const [result] = await db.execute(query, [idProdutoExterno, idPlano]);
+  return result.affectedRows;
+}
 }
 
 export default new PlanoRepository();
