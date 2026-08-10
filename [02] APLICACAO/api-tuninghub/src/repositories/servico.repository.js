@@ -18,6 +18,12 @@ class ServicoRepository {
     const [result] = await db.execute(query, [nome, descricao || null, categoria]);
     return result.insertId;
   }
+
+  async findById(idServico) {
+  const query = 'SELECT * FROM servico WHERE IdServico = ? AND Ativo = 1';
+  const [rows] = await db.execute(query, [idServico]);
+  return rows[0];
+}
 }
 
 export default new ServicoRepository();

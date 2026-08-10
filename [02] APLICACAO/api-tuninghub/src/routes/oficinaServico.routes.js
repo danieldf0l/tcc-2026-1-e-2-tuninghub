@@ -1,16 +1,12 @@
 import { Router } from 'express';
-import OficinaServicoController from '../controllers/oficinaservico.controller.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import OficinaServicoController from '../controllers/oficinaServico.controller.js';
+import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
+import { ROLES } from '../constants/roles.js';
 
 const router = Router();
 
-// Pública: Qualquer cliente vê o que a oficina faz
 router.get('/:idOficina', OficinaServicoController.listar);
-
-// Protegida: Oficina adiciona serviço
-router.post('/', verificarToken, OficinaServicoController.vincular);
-
-// Protegida: Oficina remove serviço
-router.delete('/:idOficina/:idServico', verificarToken, OficinaServicoController.desvincular);
+router.post('/', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MASTER, ROLES.ADMIN), OficinaServicoController.vincular);
+router.delete('/:idOficina/:idServico', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MASTER, ROLES.ADMIN), OficinaServicoController.desvincular);
 
 export default router;
