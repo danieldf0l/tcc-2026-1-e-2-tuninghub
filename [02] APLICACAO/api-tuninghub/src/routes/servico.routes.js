@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import ServicoController from '../controllers/servico.controller.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
+import { ROLES } from '../constants/roles.js';
 
 const router = Router();
 
-// Rota Pública: Listar o catálogo de serviços
 router.get('/', ServicoController.listar);
-
-// Rota Protegida: Adicionar um novo serviço ao catálogo (Idealmente feito por Admins)
-router.post('/', verificarToken, ServicoController.criar);
+router.post('/', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), ServicoController.criar);
 
 export default router;
