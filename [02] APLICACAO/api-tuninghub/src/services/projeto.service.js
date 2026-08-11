@@ -1,31 +1,71 @@
 import ProjetoRepository from '../repositories/projeto.repository.js';
+import ModeloRepository from '../repositories/modelo.repository.js';
+import EstiloServicoSugeridoRepository from '../repositories/estiloServicoSugerido.repository.js';
+import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
+import { ROLES } from '../constants/roles.js';
+import { ESTILOS } from '../constants/estilos.js';
+
+const LIMITE_PROJETOS_ATIVOS = 3;
+const TIPOS_CUSTOMIZACAO = ['ESTILO', 'PERSONALIZADA'];
+
+const resolverIdUsuario = (idUsuarioInformado, usuarioLogado) => {
+  const ehAdmin = usuarioLogado.role === ROLES.ADMIN_MASTER || usuarioLogado.role === ROLES.ADMIN;
+  return ehAdmin ? idUsuarioInformado : usuarioLogado.id;
+};
 
 class ProjetoService {
   async listarProjetos() {
     return await ProjetoRepository.findAll();
   }
 
-  async criarProjeto(dados) {
-    const { idUsuario, idModelo, descricao } = dados;
+  async listarMeusProjetos(usuarioLogado) {
+    return await ProjetoRepository.findByUsuario(usuarioLogado.id);
+  }
 
-    // Regras de negócio essenciais baseadas na restrição NOT NULL do BD
+  async criarProjeto(dados, usuarioLogado) {
+    const idUsuario = resolverIdUsuario(dados.idUsuario, usuarioLogado);
+    const { idModelo, descricao, tipoCustomizacao, estilo } = dados;
+
+    // RN08: marca + modelo obrigatórios (idModelo já carrega essa relação)
     if (!idUsuario || !idModelo) {
-      throw new Error('Os campos idUsuario e idModelo são obrigatórios para criar um projeto.');
+      throw new ValidationError('Os campos idUsuario e idModelo são obrigatórios.');
     }
 
-    /* NOTA DO MENTOR: Em uma versão mais avançada, aqui seria o local ideal para:
-      1. Verificar se o IdUsuario realmente existe chamando o UsuarioRepository.
-      2. Verificar se o IdModelo existe chamando um ModeloRepository.
-      3. Validar se o usuário não excedeu o limite de 3 projetos ativos (conforme seus requisitos anteriores).
-    */
+    // RN09: modo de customização obrigatório
+    if (!tipoCustomizacao || !TIPOS_CUSTOMIZACAO.includes(tipoCustomizacao)) {
+      throw new ValidationError(`tipoCustomizacao é obrigatório e deve ser um dos: ${TIPOS_CUSTOMIZACAO.join(', ')}.`);
+    }
+    if (tipoCustomizacao === 'ESTILO' && (!estilo || !ESTILOS.includes(estilo))) {
+      throw new ValidationError(`Para customização por estilo, informe um estilo válido: ${ESTILOS.join(', ')}.`);
+    }
 
-    const novoId = await ProjetoRepository.create(idUsuario, idModelo, descricao || null);
-    
-    return { 
-      id: novoId, 
-      idUsuario, 
-      idModelo, 
-      descricao 
+    const modelo = await ModeloRepository.findById(idModelo);
+    if (!modelo) throw new NotFoundError('Modelo não encontrado.');
+
+    // RN07: máximo 3 projetos ativos por usuário
+    const totalAtivos = await ProjetoRepository.countAtivosPorUsuario(idUsuario);
+    if (totalAtivos >= LIMITE_PROJETOS_ATIVOS) {
+      throw new ConflictError(`Limite de ${LIMITE_PROJETOS_ATIVOS} projetos ativos atingido.`);
+    }
+
+    const novoId = await ProjetoRepository.create({ idUsuario, idModelo, descricao, tipoCustomizacao, estilo });
+
+    // RN10: gera a To-do List automaticamente
+    let servicosSugeridos = [];
+    if (tipoCustomizacao === 'ESTILO') {
+      servicosSugeridos = await EstiloServicoSugeridoRepository.findByEstilo(estilo);
+      // TODO: inserir cada servicosSugeridos[i].IdServico em projetoservico vinculado a novoId.
+      // Vou fechar essa chamada assim que revisarmos projetoServico.repository.js (próxima mensagem).
+    }
+
+    return {
+      id: novoId,
+      idUsuario,
+      idModelo,
+      descricao,
+      tipoCustomizacao,
+      estilo,
+      servicosSugeridos, // já retorno a lista pro frontend saber o que vai popular
     };
   }
 }

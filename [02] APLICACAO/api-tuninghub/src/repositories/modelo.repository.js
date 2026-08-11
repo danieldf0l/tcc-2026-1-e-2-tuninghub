@@ -30,6 +30,12 @@ class ModeloRepository {
     return result.insertId;
   }
   
+  async findById(idModelo) {
+  const query = 'SELECT * FROM modelo WHERE IdModelo = ?';
+  const [rows] = await db.execute(query, [idModelo]);
+  return rows[0];
+}
+
 }
 
 export default new ModeloRepository();

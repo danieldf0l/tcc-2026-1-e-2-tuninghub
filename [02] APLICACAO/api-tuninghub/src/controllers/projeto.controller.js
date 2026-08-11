@@ -1,28 +1,32 @@
 import ProjetoService from '../services/projeto.service.js';
 
 class ProjetoController {
-  async listar(req, res, next) {
+  listar = async (req, res, next) => {
     try {
       const projetos = await ProjetoService.listarProjetos();
       res.status(200).json(projetos);
     } catch (error) {
-      next(error); // Encaminha para o middleware de erro global
+      next(error);
     }
-  }
+  };
 
-  async criar(req, res, next) {
+  listarMeus = async (req, res, next) => {
     try {
-      const dados = req.body;
-      const projeto = await ProjetoService.criarProjeto(dados);
-      
-      res.status(201).json({
-        message: 'Projeto criado com sucesso!',
-        projeto
-      });
+      const projetos = await ProjetoService.listarMeusProjetos(req.usuarioLogado);
+      res.status(200).json(projetos);
     } catch (error) {
       next(error);
     }
-  }
+  };
+
+  criar = async (req, res, next) => {
+    try {
+      const projeto = await ProjetoService.criarProjeto(req.body, req.usuarioLogado);
+      res.status(201).json({ message: 'Projeto criado com sucesso!', projeto });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default new ProjetoController();

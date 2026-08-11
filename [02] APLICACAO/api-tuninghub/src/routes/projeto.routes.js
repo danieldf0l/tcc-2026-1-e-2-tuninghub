@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import ProjetoController from '../controllers/projeto.controller.js';
-// Garanta que esta linha está exatamente assim (com a extensão .js no final):
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
+import { ROLES } from '../constants/roles.js';
 
 const router = Router();
 
-router.get('/', ProjetoController.listar);
-router.post('/', verificarToken, ProjetoController.criar);
+router.get('/', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), ProjetoController.listar);
+router.get('/meus', verificarToken, checkRole(ROLES.USUARIO), ProjetoController.listarMeus);
+router.post('/', verificarToken, checkRole(ROLES.USUARIO, ROLES.ADMIN_MASTER, ROLES.ADMIN), ProjetoController.criar);
 
 export default router;
