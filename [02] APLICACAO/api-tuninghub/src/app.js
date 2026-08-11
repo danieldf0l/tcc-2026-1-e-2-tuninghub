@@ -18,6 +18,7 @@ import montadoraRoute from './routes/montadora.routes.js';
 import projetoServicoRoute from './routes/projetoServico.routes.js';
 import logSistemaRoute from './routes/logSistema.routes.js';
 import oficinaServicoRoute from './routes/oficinaServico.routes.js';
+import estiloServicoSugeridoRoute from './routes/estiloServicoSugerido.routes.js';
 
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { authLimiter } from './middlewares/rateLimiter.middleware.js';
@@ -47,6 +48,7 @@ app.use('/api/modelo', modeloRoute);
 app.use('/api/projetoServico', projetoServicoRoute);
 app.use('/api/logSistema', logSistemaRoute);
 app.use('/api/oficinaServico', oficinaServicoRoute);
+app.use('/api/estiloservicosugerido', estiloServicoSugeridoRoute);
 
 // Rota não encontrada (404) — deve vir depois de todas as rotas
 app.use(notFoundHandler);
