@@ -18,6 +18,16 @@ class OficinaController {
       next(error);
     }
   };
+
+  buscar = async (req, res, next) => {
+  try {
+    const { idServico, lat, lng } = req.query;
+    const resultado = await OficinaService.buscarOficinas({ idServico, lat, lng });
+    res.status(200).json(resultado);
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new OficinaController();

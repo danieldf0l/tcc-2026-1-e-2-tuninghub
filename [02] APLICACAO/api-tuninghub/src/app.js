@@ -23,6 +23,8 @@ import estiloServicoSugeridoRoute from './routes/estiloServicoSugerido.routes.js
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { authLimiter } from './middlewares/rateLimiter.middleware.js';
 
+import geolocalizacaoRoute from './routes/geolocalizacao.routes.js';
+
 const app = express();
 
 // Middlewares de Segurança e Configuração
@@ -49,6 +51,8 @@ app.use('/api/projetoServico', projetoServicoRoute);
 app.use('/api/logSistema', logSistemaRoute);
 app.use('/api/oficinaServico', oficinaServicoRoute);
 app.use('/api/estiloservicosugerido', estiloServicoSugeridoRoute);
+
+app.use('/api/geolocalizacao', geolocalizacaoRoute);
 
 // Rota não encontrada (404) — deve vir depois de todas as rotas
 app.use(notFoundHandler);

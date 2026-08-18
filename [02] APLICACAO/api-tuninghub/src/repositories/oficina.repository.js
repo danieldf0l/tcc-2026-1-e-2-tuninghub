@@ -49,6 +49,26 @@ class OficinaRepository {
   const [rows] = await db.execute(query, [idOficina]);
   return rows[0];
 }
+
+async buscarComEndereco(idServico) {
+  let query = `
+    SELECT o.IdOficina, o.NomeOficina, o.Telefone, o.Email, o.FaixaPreco,
+           e.Latitude, e.Longitude, e.Cidade, e.Bairro
+    FROM oficina o
+    INNER JOIN endereco e ON e.IdOficina = o.IdOficina
+  `;
+  const params = [];
+
+  if (idServico) {
+    query += ' INNER JOIN oficinaservico os ON os.IdOficina = o.IdOficina AND os.IdServico = ? ';
+    params.push(idServico);
+  }
+
+  query += ' WHERE o.Ativo = 1 AND e.Latitude IS NOT NULL AND e.Longitude IS NOT NULL';
+
+  const [rows] = await db.execute(query, params);
+  return rows;
+}
 }
 
 export default new OficinaRepository();

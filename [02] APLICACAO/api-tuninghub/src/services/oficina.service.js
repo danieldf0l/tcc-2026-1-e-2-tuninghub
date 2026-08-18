@@ -1,3 +1,5 @@
+import { calcularDistanciaKm } from '../utils/geolocalizacao.js';
+import { SENAC_LATITUDE, SENAC_LONGITUDE } from '../constants/localizacaoSenac.js'; 
 import bcrypt from 'bcrypt';
 import OficinaRepository from '../repositories/oficina.repository.js';
 import CnpjExternoService from './cnpjExterno.service.js';
@@ -54,6 +56,28 @@ class OficinaService {
     });
 
     return { id: novoId, nomeOficina, cnpj, email, cnae: cnaePrincipal };
+  }
+
+  async buscarOficinas({ idServico, lat, lng }) {
+  if (idServico !== undefined && Number.isNaN(Number(idServico))) {
+    throw new ValidationError('idServico deve ser numérico.');
+  }
+
+  const latRef = lat !== undefined ? Number(lat) : SENAC_LATITUDE;
+  const lngRef = lng !== undefined ? Number(lng) : SENAC_LONGITUDE;
+
+  if (Number.isNaN(latRef) || Number.isNaN(lngRef)) {
+    throw new ValidationError('lat e lng devem ser números válidos.');
+  }
+
+  const oficinas = await OficinaRepository.buscarComEndereco(idServico);
+
+  return oficinas
+    .map((oficina) => ({
+      ...oficina,
+      distanciaKm: Number(calcularDistanciaKm(latRef, lngRef, oficina.Latitude, oficina.Longitude).toFixed(2)),
+    }))
+    .sort((a, b) => a.distanciaKm - b.distanciaKm);
   }
 }
 
