@@ -1,9 +1,11 @@
+import ProjetoServicoRepository from '../repositories/projetoServico.repository.js';
 import ProjetoRepository from '../repositories/projeto.repository.js';
 import ModeloRepository from '../repositories/modelo.repository.js';
 import EstiloServicoSugeridoRepository from '../repositories/estiloServicoSugerido.repository.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
 import { ESTILOS } from '../constants/estilos.js';
+
 
 const LIMITE_PROJETOS_ATIVOS = 3;
 const TIPOS_CUSTOMIZACAO = ['ESTILO', 'PERSONALIZADA'];
@@ -50,12 +52,11 @@ class ProjetoService {
 
     const novoId = await ProjetoRepository.create({ idUsuario, idModelo, descricao, tipoCustomizacao, estilo });
 
-    // RN10: gera a To-do List automaticamente
     let servicosSugeridos = [];
     if (tipoCustomizacao === 'ESTILO') {
       servicosSugeridos = await EstiloServicoSugeridoRepository.findByEstilo(estilo);
-      // TODO: inserir cada servicosSugeridos[i].IdServico em projetoservico vinculado a novoId.
-      // Vou fechar essa chamada assim que revisarmos projetoServico.repository.js (próxima mensagem).
+      const idsServicos = servicosSugeridos.map((s) => s.IdServico);
+      await ProjetoServicoRepository.vincularVarios(novoId, idsServicos);
     }
 
     return {
@@ -65,7 +66,7 @@ class ProjetoService {
       descricao,
       tipoCustomizacao,
       estilo,
-      servicosSugeridos, // já retorno a lista pro frontend saber o que vai popular
+      servicosSugeridos,
     };
   }
 }

@@ -27,6 +27,12 @@ class ProjetoRepository {
     const [result] = await db.execute(query, [idUsuario, idModelo, descricao || null, tipoCustomizacao, estilo || null]);
     return result.insertId;
   }
+
+  async findById(idProjeto) {
+  const query = 'SELECT * FROM projeto WHERE IdProjeto = ? AND Ativo = 1';
+  const [rows] = await db.execute(query, [idProjeto]);
+  return rows[0];
+}
 }
 
 export default new ProjetoRepository();
