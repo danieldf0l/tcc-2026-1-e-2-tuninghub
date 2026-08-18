@@ -1,0 +1,441 @@
+{
+  "info": {
+    "name": "TuningHub API",
+    "description": "Collection completa da API do TuningHub (TCC), organizada por módulo na mesma ordem em que foram revisados/testados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login - Usuário",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.environment.set('token', pm.response.json().data.token);",
+            "    console.log('Token de usuário salvo.');",
+            "}"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"teste@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}" },
+            "url": { "raw": "{{base_url}}/auth/login/usuario", "host": ["{{base_url}}"], "path": ["auth", "login", "usuario"] }
+          }
+        },
+        {
+          "name": "Login - Oficina",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.environment.set('token', pm.response.json().data.token);",
+            "    console.log('Token de oficina salvo.');",
+            "}"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"oficina1@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}" },
+            "url": { "raw": "{{base_url}}/auth/login/oficina", "host": ["{{base_url}}"], "path": ["auth", "login", "oficina"] }
+          }
+        },
+        {
+          "name": "Login - Admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "    pm.environment.set('token', pm.response.json().data.token);",
+            "    console.log('Token de admin salvo.');",
+            "}"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"master@tuninghub.com\",\n  \"senha\": \"SenhaForte@123\"\n}" },
+            "url": { "raw": "{{base_url}}/auth/login/admin", "host": ["{{base_url}}"], "path": ["auth", "login", "admin"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuario",
+      "item": [
+        {
+          "name": "Cadastrar Usuário",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Usuário Teste\",\n  \"email\": \"teste@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"confirmarSenha\": \"Senha@123\"\n}" },
+            "url": { "raw": "{{base_url}}/usuario", "host": ["{{base_url}}"], "path": ["usuario"] }
+          }
+        },
+        {
+          "name": "Listar Usuários (admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/usuario", "host": ["{{base_url}}"], "path": ["usuario"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Criar Admin (somente ADMIN_MASTER)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Admin Padrão\",\n  \"email\": \"moderador@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"nivelAcesso\": \"PADRAO\"\n}" },
+            "url": { "raw": "{{base_url}}/admin", "host": ["{{base_url}}"], "path": ["admin"] }
+          }
+        },
+        {
+          "name": "Listar Admins",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/admin", "host": ["{{base_url}}"], "path": ["admin"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Montadora",
+      "item": [
+        {
+          "name": "Listar Montadoras",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/montadora", "host": ["{{base_url}}"], "path": ["montadora"] }
+          }
+        },
+        {
+          "name": "Criar Montadora (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Montadora Teste\"\n}" },
+            "url": { "raw": "{{base_url}}/montadora", "host": ["{{base_url}}"], "path": ["montadora"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Modelo",
+      "item": [
+        {
+          "name": "Listar Modelos",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/modelo", "host": ["{{base_url}}"], "path": ["modelo"] }
+          }
+        },
+        {
+          "name": "Listar Modelos por Montadora",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/modelo/montadora/1", "host": ["{{base_url}}"], "path": ["modelo", "montadora", "1"] }
+          }
+        },
+        {
+          "name": "Criar Modelo (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idMontadora\": 1,\n  \"nome\": \"Modelo Teste\"\n}" },
+            "url": { "raw": "{{base_url}}/modelo", "host": ["{{base_url}}"], "path": ["modelo"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Oficina",
+      "item": [
+        {
+          "name": "Cadastrar Oficina",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nomeOficina\": \"Oficina Teste\",\n  \"cnpj\": \"11.222.333/0001-81\",\n  \"nomeProprietario\": \"Fulano\",\n  \"telefone\": \"11999999999\",\n  \"email\": \"oficina1@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}" },
+            "url": { "raw": "{{base_url}}/oficina", "host": ["{{base_url}}"], "path": ["oficina"] }
+          }
+        },
+        {
+          "name": "Listar Oficinas",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/oficina", "host": ["{{base_url}}"], "path": ["oficina"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Endereco",
+      "item": [
+        {
+          "name": "Salvar/Atualizar Endereço (dono ou admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"rua\": \"Av. Engenheiro Eusébio Stevaux\",\n  \"numero\": \"823\",\n  \"bairro\": \"Jurubatuba\",\n  \"cidade\": \"São Paulo\",\n  \"estado\": \"SP\",\n  \"cep\": \"04696-000\"\n}" },
+            "url": { "raw": "{{base_url}}/endereco/1", "host": ["{{base_url}}"], "path": ["endereco", "1"] }
+          }
+        },
+        {
+          "name": "Buscar Endereço da Oficina",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/endereco/1", "host": ["{{base_url}}"], "path": ["endereco", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Plano",
+      "item": [
+        {
+          "name": "Listar Planos",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/plano", "host": ["{{base_url}}"], "path": ["plano"] }
+          }
+        },
+        {
+          "name": "Criar Plano (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Pro Mensal\",\n  \"valor\": 49.90,\n  \"duracaoDias\": 30\n}" },
+            "url": { "raw": "{{base_url}}/plano", "host": ["{{base_url}}"], "path": ["plano"] }
+          }
+        },
+        {
+          "name": "Vincular Produto Externo (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idProdutoExterno\": \"prod_xxx\"\n}" },
+            "url": { "raw": "{{base_url}}/plano/2/produto-externo", "host": ["{{base_url}}"], "path": ["plano", "2", "produto-externo"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Assinatura",
+      "item": [
+        {
+          "name": "Assinar Plano Gratuito (oficina)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idPlano\": 1,\n  \"dataInicio\": \"2026-08-05\"\n}" },
+            "url": { "raw": "{{base_url}}/assinatura/gratuita", "host": ["{{base_url}}"], "path": ["assinatura", "gratuita"] }
+          }
+        },
+        {
+          "name": "Iniciar Checkout Plano Pro (oficina)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idPlano\": 3\n}" },
+            "url": { "raw": "{{base_url}}/assinatura/checkout", "host": ["{{base_url}}"], "path": ["assinatura", "checkout"] }
+          }
+        },
+        {
+          "name": "Confirmar Pagamento",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{base_url}}/assinatura/1/confirmar-pagamento", "host": ["{{base_url}}"], "path": ["assinatura", "1", "confirmar-pagamento"] }
+          }
+        },
+        {
+          "name": "Listar Assinaturas (admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/assinatura", "host": ["{{base_url}}"], "path": ["assinatura"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Servico",
+      "item": [
+        {
+          "name": "Listar Serviços",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/servico", "host": ["{{base_url}}"], "path": ["servico"] }
+          }
+        },
+        {
+          "name": "Criar Serviço (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Alinhamento e Balanceamento\",\n  \"descricao\": \"Ajuste da geometria de suspensão\",\n  \"categoria\": \"SUSPENSAO\"\n}" },
+            "url": { "raw": "{{base_url}}/servico", "host": ["{{base_url}}"], "path": ["servico"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "OficinaServico",
+      "item": [
+        {
+          "name": "Listar Serviços da Oficina",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/oficinaservico/1", "host": ["{{base_url}}"], "path": ["oficinaservico", "1"] }
+          }
+        },
+        {
+          "name": "Vincular Serviço à Oficina (dono ou admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idServico\": 1\n}" },
+            "url": { "raw": "{{base_url}}/oficinaservico", "host": ["{{base_url}}"], "path": ["oficinaservico"] }
+          }
+        },
+        {
+          "name": "Desvincular Serviço da Oficina (dono ou admin)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/oficinaservico/1/1", "host": ["{{base_url}}"], "path": ["oficinaservico", "1", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "EstiloServicoSugerido",
+      "item": [
+        {
+          "name": "Listar Kit Sugerido por Estilo",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/estiloservicosugerido/STANCE", "host": ["{{base_url}}"], "path": ["estiloservicosugerido", "STANCE"] }
+          }
+        },
+        {
+          "name": "Vincular Serviço a um Estilo (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estilo\": \"STANCE\",\n  \"idServico\": 1\n}" },
+            "url": { "raw": "{{base_url}}/estiloservicosugerido", "host": ["{{base_url}}"], "path": ["estiloservicosugerido"] }
+          }
+        },
+        {
+          "name": "Desvincular Serviço de um Estilo (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/estiloservicosugerido/STANCE/1", "host": ["{{base_url}}"], "path": ["estiloservicosugerido", "STANCE", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projeto",
+      "item": [
+        {
+          "name": "Criar Projeto por Estilo (usuário)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idModelo\": 1,\n  \"descricao\": \"Civic rebaixado\",\n  \"tipoCustomizacao\": \"ESTILO\",\n  \"estilo\": \"STANCE\"\n}" },
+            "url": { "raw": "{{base_url}}/projeto", "host": ["{{base_url}}"], "path": ["projeto"] }
+          }
+        },
+        {
+          "name": "Criar Projeto Personalizado (usuário)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idModelo\": 1,\n  \"descricao\": \"Projeto personalizado\",\n  \"tipoCustomizacao\": \"PERSONALIZADA\"\n}" },
+            "url": { "raw": "{{base_url}}/projeto", "host": ["{{base_url}}"], "path": ["projeto"] }
+          }
+        },
+        {
+          "name": "Meus Projetos (usuário)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/projeto/meus", "host": ["{{base_url}}"], "path": ["projeto", "meus"] }
+          }
+        },
+        {
+          "name": "Listar Todos os Projetos (admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/projeto", "host": ["{{base_url}}"], "path": ["projeto"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "ProjetoServico",
+      "item": [
+        {
+          "name": "Listar Serviços do Projeto",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/projetoservico/1", "host": ["{{base_url}}"], "path": ["projetoservico", "1"] }
+          }
+        },
+        {
+          "name": "Adicionar Serviço ao Projeto (dono ou admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"idProjeto\": 1,\n  \"idServico\": 1\n}" },
+            "url": { "raw": "{{base_url}}/projetoservico", "host": ["{{base_url}}"], "path": ["projetoservico"] }
+          }
+        },
+        {
+          "name": "Marcar Item como Concluído (dono ou admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"concluido\": true\n}" },
+            "url": { "raw": "{{base_url}}/projetoservico/1/1/concluido", "host": ["{{base_url}}"], "path": ["projetoservico", "1", "1", "concluido"] }
+          }
+        },
+        {
+          "name": "Remover Serviço do Projeto (dono ou admin)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{base_url}}/projetoservico/1/1", "host": ["{{base_url}}"], "path": ["projetoservico", "1", "1"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Utilitário",
+      "item": [
+        {
+          "name": "Rota Inexistente (teste 404)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/rota-que-nao-existe", "host": ["{{base_url}}"], "path": ["rota-que-nao-existe"] }
+          }
+        }
+      ]
+    }
+  ]
+}
