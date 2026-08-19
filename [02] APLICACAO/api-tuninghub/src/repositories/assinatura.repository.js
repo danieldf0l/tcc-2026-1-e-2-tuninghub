@@ -41,6 +41,17 @@ class AssinaturaRepository {
     const [result] = await db.execute(query, [dataFim, idAssinatura]);
     return result.affectedRows;
   }
+
+  async findAtivaPaga(idOficina) {
+  const query = `
+    SELECT a.*, p.Valor
+    FROM assinatura a
+    INNER JOIN plano p ON a.IdPlano = p.IdPlano
+    WHERE a.IdOficina = ? AND a.Status = 'ATIVA' AND p.Valor > 0
+  `;
+  const [rows] = await db.execute(query, [idOficina]);
+  return rows[0];
+}
 }
 
 export default new AssinaturaRepository();

@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import ImagemController from '../controllers/imagem.controller.js';
-import { verificarToken } from '../middlewares/auth.middleware.js';
+import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
+import { uploadImagemMiddleware } from '../middlewares/upload.middleware.js';
+import { ROLES } from '../constants/roles.js';
 
 const router = Router();
 
-// Listar imagens de uma oficina específica (Público)
 router.get('/oficina/:idOficina', ImagemController.listar);
-
-// Adicionar imagem (Protegido - Apenas a oficina logada deve poder postar)
-router.post('/', verificarToken, ImagemController.criar);
+router.post('/', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MASTER, ROLES.ADMIN), uploadImagemMiddleware, ImagemController.criar);
+router.delete('/:id', verificarToken, ImagemController.remover);
 
 export default router;
