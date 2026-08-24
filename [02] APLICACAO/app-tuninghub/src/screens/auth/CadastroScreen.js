@@ -2,15 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { cadastrarUsuario } from '../../api/usuario.api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import { getErrorMessage } from '../../utils/errorHandler';
 import BackButton from '../../components/BackButton';
 
 export default function CadastroScreen({ navigation }) {
   const { colors } = useTheme();
   const [form, setForm] = useState({ nome: '', email: '', senha: '', confirmarSenha: '' });
-  const [erro, setErro] = useState('');
+  const [erroGeral, setErroGeral] = useState('');
+  const [camposComErro, setCamposComErro] = useState([]); // ex: ['nome', 'email']
   const [loading, setLoading] = useState(false);
 
   const fade = useRef(new Animated.Value(0)).current;
@@ -22,24 +23,41 @@ export default function CadastroScreen({ navigation }) {
     setForm((prev) => ({ ...prev, [campo]: valor }));
   }
 
+  function limparErros() {
+    setErroGeral('');
+    setCamposComErro([]);
+  }
+
   async function handleCadastrar() {
+    limparErros();
     const { nome, email, senha, confirmarSenha } = form;
-    if (!nome || !email || !senha || !confirmarSenha) {
-      setErro('Preencha todos os campos.');
+
+    const vazios = [];
+    if (!nome) vazios.push('nome');
+    if (!email) vazios.push('email');
+    if (!senha) vazios.push('senha');
+    if (!confirmarSenha) vazios.push('confirmarSenha');
+
+    if (vazios.length > 0) {
+      setErroGeral('Preencha todos os campos.');
+      setCamposComErro(vazios);
       return;
     }
+
     if (senha !== confirmarSenha) {
-      setErro('As senhas não coincidem.');
+      setErroGeral('As senhas não coincidem.');
+      setCamposComErro(['senha', 'confirmarSenha']);
       return;
     }
-    setErro('');
+
     setLoading(true);
     try {
       await cadastrarUsuario(form);
       navigation.navigate('Login', { tipo: 'usuario' });
     } catch (e) {
-        setErro(getErrorMessage(e));
-        } finally {
+      setErroGeral(getErrorMessage(e));
+      // Backend não indica qual campo especificamente, então não destaca nenhum
+    } finally {
       setLoading(false);
     }
   }
@@ -51,21 +69,37 @@ export default function CadastroScreen({ navigation }) {
       <Animated.View style={{ opacity: fade }}>
         <Text style={[styles.title, { color: colors.text }]}>Cadastre-se</Text>
 
-        <Input placeholder="Nome" value={form.nome} onChangeText={(v) => atualizar('nome', v)} />
+        <Input
+          placeholder="Nome"
+          value={form.nome}
+          onChangeText={(v) => atualizar('nome', v)}
+          error={camposComErro.includes('nome')}
+        />
         <Input
           placeholder="Email"
           value={form.email}
           onChangeText={(v) => atualizar('email', v)}
           keyboardType="email-address"
+          error={camposComErro.includes('email')}
         />
-        <Input placeholder="Senha" value={form.senha} onChangeText={(v) => atualizar('senha', v)} secureText />
+        <Input
+          placeholder="Senha"
+          value={form.senha}
+          onChangeText={(v) => atualizar('senha', v)}
+          secureText
+          error={camposComErro.includes('senha')}
+        />
         <Input
           placeholder="Confirmar Senha"
           value={form.confirmarSenha}
           onChangeText={(v) => atualizar('confirmarSenha', v)}
           secureText
-          error={erro}
+          error={camposComErro.includes('confirmarSenha')}
         />
+
+        {erroGeral ? (
+          <Text style={[styles.erroGeral, { color: colors.danger }]}>{erroGeral}</Text>
+        ) : null}
 
         <View style={{ height: 8 }} />
         <Button title="Cadastrar" onPress={handleCadastrar} loading={loading} />
@@ -80,7 +114,7 @@ export default function CadastroScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  back: { marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 32, textAlign: 'center' },
+  title: { fontSize: 28, fontWeight: '800', marginBottom: 32, textAlign: 'center', marginTop: 16 },
+  erroGeral: { fontSize: 13, marginBottom: 8, textAlign: 'center' },
   footer: { marginTop: 20, alignItems: 'center' },
 });

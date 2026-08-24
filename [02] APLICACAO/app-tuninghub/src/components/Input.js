@@ -5,6 +5,8 @@ import { useTheme } from '../theme/ThemeContext';
 export default function Input({ label, secureText, error, ...props }) {
   const { colors } = useTheme();
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const temErro = !!error;
+  const mensagemErro = typeof error === 'string' ? error : null;
 
   return (
     <View style={styles.wrapper}>
@@ -12,7 +14,7 @@ export default function Input({ label, secureText, error, ...props }) {
       <View
         style={[
           styles.inputRow,
-          { borderColor: error ? colors.danger : colors.border, backgroundColor: colors.surface },
+          { borderColor: temErro ? colors.danger : colors.border, backgroundColor: colors.surface },
         ]}
       >
         <TextInput
@@ -30,7 +32,7 @@ export default function Input({ label, secureText, error, ...props }) {
           </Pressable>
         )}
       </View>
-      {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+      {mensagemErro ? <Text style={[styles.error, { color: colors.danger }]}>{mensagemErro}</Text> : null}
     </View>
   );
 }
