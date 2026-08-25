@@ -6,7 +6,7 @@ import { listarItensDoProjeto, marcarConcluido } from '../../api/projetoServico.
 import { getErrorMessage } from '../../utils/errorHandler';
 import BackButton from '../../components/BackButton';
 import ChecklistItem from '../../components/ChecklistItem';
-
+import Button from '../../components/Button';
 
 export default function ProjetoDetalheScreen({ route, navigation }) {
   const { idProjeto, nomeCarro } = route.params;
@@ -33,7 +33,6 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
   );
 
   async function alternarConcluido(idServico, valorAtual) {
-    // Atualização otimista: muda na tela antes da resposta, reverte se der erro
     setItens((prev) =>
       prev.map((i) => (i.IdServico === idServico ? { ...i, Concluido: !valorAtual } : i))
     );
@@ -45,6 +44,11 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
         prev.map((i) => (i.IdServico === idServico ? { ...i, Concluido: valorAtual } : i))
       );
     }
+  }
+
+  function irParaAdicionarServico() {
+    const idsJaAdicionados = itens.map((i) => i.IdServico);
+    navigation.navigate('AdicionarServico', { idProjeto, idsJaAdicionados });
   }
 
   return (
@@ -76,6 +80,8 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
       )}
 
       {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+
+      <Button title="+ Adicionar serviço" variant="outline" onPress={irParaAdicionarServico} />
     </View>
   );
 }

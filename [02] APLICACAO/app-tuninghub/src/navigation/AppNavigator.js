@@ -4,6 +4,7 @@ import ProjetosScreen from '../screens/projeto/ProjetosScreen';
 import EscolhaCarroScreen from '../screens/projeto/EscolhaCarroScreen';
 import EscolhaEstiloScreen from '../screens/projeto/EscolhaEstiloScreen';
 import ProjetoDetalheScreen from '../screens/projeto/ProjetoDetalheScreen';
+import AdicionarServicoScreen from '../screens/projeto/AdicionarServicoScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -15,6 +16,7 @@ export default function AppNavigator() {
       <Stack.Screen name="EscolhaCarro" component={EscolhaCarroScreen} />
       <Stack.Screen name="EscolhaEstilo" component={EscolhaEstiloScreen} />
       <Stack.Screen name="ProjetoDetalhe" component={ProjetoDetalheScreen} />
+      <Stack.Screen name="AdicionarServico" component={AdicionarServicoScreen} />
     </Stack.Navigator>
   );
 }

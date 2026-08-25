@@ -2,12 +2,16 @@ import api from './client';
 
 export async function listarItensDoProjeto(idProjeto) {
   const { data } = await api.get(`/projetoservico/${idProjeto}`);
-  return data; // array direto
+  return data;
 }
 
 export async function adicionarItem(idProjeto, idServico) {
   const { data } = await api.post('/projetoservico', { idProjeto, idServico });
-  return data.vinculo; // { message, vinculo }
+  return data.vinculo;
+}
+
+export async function adicionarVariosItens(idProjeto, idsServico) {
+  return Promise.all(idsServico.map((idServico) => adicionarItem(idProjeto, idServico)));
 }
 
 export async function removerItem(idProjeto, idServico) {
