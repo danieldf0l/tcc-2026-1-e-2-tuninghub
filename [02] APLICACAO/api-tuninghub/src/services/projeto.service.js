@@ -41,7 +41,7 @@ class ProjetoService {
       throw new ValidationError(`Para customização por estilo, informe um estilo válido: ${ESTILOS.join(', ')}.`);
     }
 
-    const modelo = await ModeloRepository.findById(idModelo);
+    const modelo = await ModeloRepository.findByIdAtivo(idModelo)
     if (!modelo) throw new NotFoundError('Modelo não encontrado.');
 
     // RN07: máximo 3 projetos ativos por usuário
