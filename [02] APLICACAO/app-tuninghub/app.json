@@ -26,7 +26,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O TuningHub usa sua localização para mostrar as oficinas mais próximas de você."
+        }
+      ]
     ]
   }
 }

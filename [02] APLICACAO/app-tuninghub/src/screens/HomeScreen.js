@@ -15,6 +15,7 @@ export default function HomeScreen({ navigation }) {
 
       <View style={{ height: 32 }} />
       <ProjetoCard titulo="Meus Projetos" subtitulo="Ver todos" onPress={() => navigation.navigate('Projetos')} />
+      <ProjetoCard titulo="Oficinas Próximas" subtitulo="Buscar" onPress={() => navigation.navigate('Oficinas')} />
 
       <View style={{ flex: 1 }} />
       <Button title="Sair" variant="outline" onPress={sair} />
