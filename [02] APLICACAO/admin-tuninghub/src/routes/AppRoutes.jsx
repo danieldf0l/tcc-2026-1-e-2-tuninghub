@@ -1,20 +1,23 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../pages/Login/Login';
+import Dashboard from '../pages/Dashboard/Dashboard';
+import Layout from '../components/Layout/Layout';
 import ProtectedRoute from './ProtectedRoute';
-
-const Dashboard = () => <div style={{ padding: 24 }}>Dashboard (em construção)</div>;
 
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+
     <Route
-      path="/dashboard"
       element={
         <ProtectedRoute>
-          <Dashboard />
+          <Layout />
         </ProtectedRoute>
       }
-    />
+    >
+      <Route path="/dashboard" element={<Dashboard />} />
+    </Route>
+
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>
 );
