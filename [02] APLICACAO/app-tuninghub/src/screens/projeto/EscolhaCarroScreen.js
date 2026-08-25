@@ -7,9 +7,11 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import SearchSelect from '../../components/SearchSelect';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EscolhaCarroScreen({ navigation }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [montadoras, setMontadoras] = useState([]);
   const [modelos, setModelos] = useState([]);
@@ -68,7 +70,7 @@ export default function EscolhaCarroScreen({ navigation }) {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
       <BackButton onPress={() => navigation.goBack()} />
       <Text style={[styles.title, { color: colors.text }]}>Qual é o seu carro?</Text>
 

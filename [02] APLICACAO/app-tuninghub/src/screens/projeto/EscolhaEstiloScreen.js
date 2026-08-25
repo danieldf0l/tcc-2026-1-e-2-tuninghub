@@ -8,10 +8,12 @@ import SelectableCard from '../../components/SelectableCard';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EscolhaEstiloScreen({ route, navigation }) {
   const { idModelo, nomeCarro } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [nomeProjeto, setNomeProjeto] = useState('');
   const [estiloSelecionado, setEstiloSelecionado] = useState(null);
@@ -40,7 +42,7 @@ export default function EscolhaEstiloScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
       <BackButton onPress={() => navigation.goBack()} />
       <Text style={[styles.title, { color: colors.text }]}>Escolha o estilo</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{nomeCarro}</Text>

@@ -6,9 +6,11 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CadastroScreen({ navigation }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [form, setForm] = useState({ nome: '', email: '', senha: '', confirmarSenha: '' });
   const [erroGeral, setErroGeral] = useState('');
   const [camposComErro, setCamposComErro] = useState([]); // ex: ['nome', 'email']
@@ -63,7 +65,7 @@ export default function CadastroScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
       <BackButton onPress={() => navigation.goBack()} />
 
       <Animated.View style={{ opacity: fade }}>

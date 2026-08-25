@@ -7,10 +7,12 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import BackButton from '../../components/BackButton';
 import ChecklistItem from '../../components/ChecklistItem';
 import Button from '../../components/Button';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProjetoDetalheScreen({ route, navigation }) {
   const { idProjeto, nomeCarro } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [itens, setItens] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
@@ -52,7 +54,7 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
       <BackButton onPress={() => navigation.goBack()} />
       <Text style={[styles.title, { color: colors.text }]}>{nomeCarro || 'Projeto'}</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Lista de serviços</Text>

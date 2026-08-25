@@ -11,9 +11,11 @@ import { useLocalizacao } from '../../utils/useLocalizacao';
 import OficinaCard from '../../components/OficinaCard';
 import FiltroServicoModal from '../../components/FiltroServicoModal';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function OficinasScreen({ navigation }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { coords, status: statusLocalizacao } = useLocalizacao();
 
   const [oficinas, setOficinas] = useState([]);
@@ -109,7 +111,7 @@ export default function OficinasScreen({ navigation }) {
         <FlatList
           data={oficinas}
           keyExtractor={(item) => String(item.IdOficina)}
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: insets.bottom + 24 }}
           ListEmptyComponent={
             <Text style={[styles.vazio, { color: colors.textSecondary }]}>
               Nenhuma oficina encontrada com esse filtro.

@@ -12,11 +12,13 @@ import StatCard from '../components/StatCard';
 import QuickActionCard from '../components/QuickActionCard';
 import ProjetoCard from '../components/ProjetoCard';
 import Button from '../components/Button';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const LIMITE_PROJETOS = 3;
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { usuario, sair } = useAuth();
 
   const [projetos, setProjetos] = useState([]);
@@ -84,9 +86,9 @@ export default function HomeScreen({ navigation }) {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={handleAtualizar} tintColor={colors.primary} />}
-    >
+      >
       <View style={styles.header}>
         <View>
           <Text style={[styles.saudacao, { color: colors.textSecondary }]}>{getSaudacao()},</Text>

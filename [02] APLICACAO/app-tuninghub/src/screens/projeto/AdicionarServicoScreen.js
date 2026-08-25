@@ -8,10 +8,12 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import ServicoCheckItem from '../../components/ServicoCheckItem';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AdicionarServicoScreen({ route, navigation }) {
   const { idProjeto, idsJaAdicionados = [] } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [servicos, setServicos] = useState([]);
   const [selecionados, setSelecionados] = useState([]);
@@ -71,7 +73,7 @@ export default function AdicionarServicoScreen({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
       <BackButton onPress={() => navigation.goBack()} />
       <Text style={[styles.title, { color: colors.text }]}>Adicionar serviços</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

@@ -9,11 +9,13 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import Button from '../../components/Button';
 import ProjetoCard from '../../components/ProjetoCard';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const LIMITE_PROJETOS = 3; // RN07
+const LIMITE_PROJETOS = 3;
 
 export default function ProjetosScreen({ navigation }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [projetos, setProjetos] = useState([]);
   const [nomesModelos, setNomesModelos] = useState({}); // { [idModelo]: nome }
   const [progressos, setProgressos] = useState({}); // { [idProjeto]: { concluidos, total } }
@@ -76,7 +78,7 @@ export default function ProjetosScreen({ navigation }) {
   const atingiuLimite = projetos.length >= LIMITE_PROJETOS;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
       <View style={styles.header}>
         <BackButton onPress={() => navigation.goBack()} />
         <Text style={[styles.contador, { color: colors.textSecondary }]}>

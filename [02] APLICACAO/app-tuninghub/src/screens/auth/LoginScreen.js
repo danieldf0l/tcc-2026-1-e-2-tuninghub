@@ -6,10 +6,12 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen({ route, navigation }) {
   const { tipo } = route.params; // 'usuario' | 'oficina'
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { entrar } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -57,7 +59,7 @@ export default function LoginScreen({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
       <BackButton onPress={() => navigation.goBack()} />
 
       <Animated.View style={{ opacity: fade }}>
