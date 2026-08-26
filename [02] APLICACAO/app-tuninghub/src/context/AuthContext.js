@@ -38,6 +38,14 @@ export function AuthProvider({ children }) {
     setUsuario(resposta.usuario);
   }
 
+  function atualizarAceiteTermos() {
+    setUsuario((prev) => {
+      const atualizado = { ...prev, TermosAceitos: 1 };
+      SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(atualizado));
+      return atualizado;
+    });
+  }
+
   async function sair() {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
     await SecureStore.deleteItemAsync(USUARIO_KEY);
@@ -47,7 +55,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ usuario, token, carregando, autenticado: !!token, entrar, sair }}
+    value={{ usuario, token, carregando, autenticado: !!token, entrar, sair, atualizarAceiteTermos }}
     >
       {children}
     </AuthContext.Provider>

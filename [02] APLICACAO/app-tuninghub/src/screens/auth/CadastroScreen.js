@@ -7,14 +7,17 @@ import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Checkbox from '../../components/Checkbox';
 
 export default function CadastroScreen({ navigation }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [form, setForm] = useState({ nome: '', email: '', senha: '', confirmarSenha: '' });
+  const [termosAceitos, setTermosAceitos] = useState(false);
   const [erroGeral, setErroGeral] = useState('');
-  const [camposComErro, setCamposComErro] = useState([]); // ex: ['nome', 'email']
+  const [camposComErro, setCamposComErro] = useState([]);
   const [loading, setLoading] = useState(false);
+  
 
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -47,18 +50,22 @@ export default function CadastroScreen({ navigation }) {
     }
 
     if (senha !== confirmarSenha) {
-      setErroGeral('As senhas não coincidem.');
+      setErroGeral('As senhas não coincidem.'); 
       setCamposComErro(['senha', 'confirmarSenha']);
+      return;
+    }
+
+    if (!termosAceitos) {
+      setErroGeral('Você precisa aceitar os Termos de Uso e a Política de Privacidade.');
       return;
     }
 
     setLoading(true);
     try {
-      await cadastrarUsuario(form);
+      await cadastrarUsuario({ ...form, termosAceitos });
       navigation.navigate('Login', { tipo: 'usuario' });
     } catch (e) {
       setErroGeral(getErrorMessage(e));
-      // Backend não indica qual campo especificamente, então não destaca nenhum
     } finally {
       setLoading(false);
     }
@@ -104,6 +111,20 @@ export default function CadastroScreen({ navigation }) {
         ) : null}
 
         <View style={{ height: 8 }} />
+        <Checkbox marcado={termosAceitos} onToggle={() => setTermosAceitos((v) => !v)}>
+          <Text style={{ color: colors.textSecondary, fontSize: 12.5, lineHeight: 18 }}>
+            Li e concordo com os{' '}
+            <Text style={{ color: colors.primary, fontWeight: '700' }} onPress={() => navigation.navigate('Termos')}>
+              Termos de Uso
+            </Text>{' '}
+            e a{' '}
+            <Text style={{ color: colors.primary, fontWeight: '700' }} onPress={() => navigation.navigate('Privacidade')}>
+              Política de Privacidade
+            </Text>
+          </Text>
+        </Checkbox>
+
+        <View style={{ height: 12 }} />
         <Button title="Cadastrar" onPress={handleCadastrar} loading={loading} />
 
         <Pressable onPress={() => navigation.navigate('Login', { tipo: 'usuario' })} style={styles.footer}>
