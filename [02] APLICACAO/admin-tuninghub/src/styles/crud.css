@@ -190,3 +190,130 @@
   padding: 24px;
   text-align: center;
 }
+
+.filtro-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filtro-busca {
+  flex: 1;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--color-gray-light);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.filtro-busca:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.filtro-status {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--color-gray-light);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.pagination button {
+  background: transparent;
+  border: 1px solid var(--color-gray-light);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.pagination button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.modal-texto {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 14px;
+}
+
+.lista-selecao {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 4px 0;
+  margin-bottom: 16px;
+}
+
+.lista-selecao-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.lista-selecao-item:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.lista-selecao-todos {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.crud-table-wrapper {
+  cursor: default;
+}
+
+.modal-content-wide {
+  max-width: 560px;
+}
+
+.lista-selecao {
+  max-height: 320px;
+}
+
+.lista-selecao-item {
+  padding: 10px 16px;
+  border-radius: 6px;
+  margin: 2px 6px;
+}
+
+.lista-selecao-item input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.lista-selecao-todos {
+  margin: 0 0 4px 0;
+  border-radius: 0;
+  padding: 12px 16px;
+}

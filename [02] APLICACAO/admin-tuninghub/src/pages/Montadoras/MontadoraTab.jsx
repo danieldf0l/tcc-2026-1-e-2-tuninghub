@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Modal from '../../components/ui/Modal';
+import Pagination from '../../components/ui/Pagination';
+import FiltroBar from '../../components/ui/FiltroBar';
+import ReativarMontadoraModal from './ReativarMontadoraModal';
 import {
   listarMontadorasAdmin,
   criarMontadora,
@@ -7,15 +10,29 @@ import {
   desativarMontadora,
   reativarMontadora,
 } from '../../api/montadoraService';
+import { listarModelosAdmin, reativarModelo } from '../../api/modeloService';
+
+const ITEMS_POR_PAGINA = 10;
 
 const MontadoraTab = () => {
   const [montadoras, setMontadoras] = useState([]);
   const [carregando, setCarregando] = useState(true);
+
+  const [busca, setBusca] = useState('');
+  const [statusFiltro, setStatusFiltro] = useState('todos');
+  const [pagina, setPagina] = useState(1);
+
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+
+  const [montadoraReativando, setMontadoraReativando] = useState(null);
+  const [modelosInativosDaMontadora, setModelosInativosDaMontadora] = useState([]);
+  const [carregandoModelos, setCarregandoModelos] = useState(false);
+
+  const ultimoScroll = useRef(0);
 
   const carregar = async () => {
     setCarregando(true);
@@ -27,6 +44,10 @@ const MontadoraTab = () => {
   useEffect(() => {
     carregar();
   }, []);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, statusFiltro]);
 
   const abrirCriar = () => {
     setEditando(null);
@@ -61,20 +82,65 @@ const MontadoraTab = () => {
     }
   };
 
-  const handleToggleStatus = async (montadora) => {
+  const handleDesativar = async (montadora) => {
     const confirmar = window.confirm(
-      montadora.Ativo
-        ? `Desativar "${montadora.Nome}"? Isso também desativa todos os modelos dessa montadora.`
-        : `Reativar "${montadora.Nome}"?`
+      `Desativar "${montadora.Nome}"? Isso também desativa todos os modelos dessa montadora.`
     );
     if (!confirmar) return;
-
-    if (montadora.Ativo) {
-      await desativarMontadora(montadora.IdMontadora);
-    } else {
-      await reativarMontadora(montadora.IdMontadora);
-    }
+    await desativarMontadora(montadora.IdMontadora);
     await carregar();
+  };
+
+  const abrirReativar = async (montadora) => {
+    setMontadoraReativando(montadora);
+    setCarregandoModelos(true);
+    const todosModelos = await listarModelosAdmin();
+    setModelosInativosDaMontadora(
+      todosModelos.filter((m) => m.IdMontadora === montadora.IdMontadora && !m.Ativo)
+    );
+    setCarregandoModelos(false);
+  };
+
+  const handleConfirmarReativar = async (idsModelosSelecionados) => {
+    setSalvando(true);
+    try {
+      await reativarMontadora(montadoraReativando.IdMontadora);
+      if (idsModelosSelecionados.length > 0) {
+        await Promise.all(idsModelosSelecionados.map((id) => reativarModelo(id)));
+      }
+      setMontadoraReativando(null);
+      await carregar();
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const filtradas = montadoras.filter((m) => {
+    const passaBusca = m.Nome.toLowerCase().includes(busca.toLowerCase());
+    const passaStatus =
+      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!m.Ativo : !m.Ativo;
+    return passaBusca && passaStatus;
+  });
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const itensPagina = filtradas.slice(
+    (paginaSegura - 1) * ITEMS_POR_PAGINA,
+    paginaSegura * ITEMS_POR_PAGINA
+  );
+
+  const handleScrollPagina = (e) => {
+    const agora = Date.now();
+    if (agora - ultimoScroll.current < 500) return;
+    if (Math.abs(e.deltaY) < 20) return;
+
+    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
+      ultimoScroll.current = agora;
+      setPagina(paginaSegura + 1);
+    } else if (e.deltaY < 0 && paginaSegura > 1) {
+      ultimoScroll.current = agora;
+      setPagina(paginaSegura - 1);
+    }
   };
 
   if (carregando) return <p className="empty-state">Carregando...</p>;
@@ -86,38 +152,51 @@ const MontadoraTab = () => {
         <button className="btn-primary" onClick={abrirCriar}>+ Nova Montadora</button>
       </div>
 
-      {montadoras.length === 0 ? (
-        <p className="empty-state">Nenhuma montadora cadastrada.</p>
+      <FiltroBar
+        busca={busca}
+        onBuscaChange={setBusca}
+        status={statusFiltro}
+        onStatusChange={setStatusFiltro}
+        placeholder="Buscar montadora..."
+      />
+
+      {filtradas.length === 0 ? (
+        <p className="empty-state">Nenhuma montadora encontrada.</p>
       ) : (
-        <table className="crud-table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {montadoras.map((m) => (
-              <tr key={m.IdMontadora} className={!m.Ativo ? 'inativo' : ''}>
-                <td>{m.Nome}</td>
-                <td>
-                  <span className={`status-badge ${m.Ativo ? 'ativo' : 'inativo'}`}>
-                    {m.Ativo ? 'Ativa' : 'Inativa'}
-                  </span>
-                </td>
-                <td>
-                  <div className="crud-actions">
-                    <button className="link-action" onClick={() => abrirEditar(m)}>Editar</button>
-                    <button className="link-action" onClick={() => handleToggleStatus(m)}>
-                      {m.Ativo ? 'Desativar' : 'Reativar'}
-                    </button>
-                  </div>
-                </td>
+        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
+          <table className="crud-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {itensPagina.map((m) => (
+                <tr key={m.IdMontadora} className={!m.Ativo ? 'inativo' : ''}>
+                  <td>{m.Nome}</td>
+                  <td>
+                    <span className={`status-badge ${m.Ativo ? 'ativo' : 'inativo'}`}>
+                      {m.Ativo ? 'Ativa' : 'Inativa'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="crud-actions">
+                      <button className="link-action" onClick={() => abrirEditar(m)}>Editar</button>
+                      {m.Ativo ? (
+                        <button className="link-action" onClick={() => handleDesativar(m)}>Desativar</button>
+                      ) : (
+                        <button className="link-action" onClick={() => abrirReativar(m)}>Reativar</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
+        </div>
       )}
 
       {modalAberto && (
@@ -145,6 +224,17 @@ const MontadoraTab = () => {
             </div>
           </form>
         </Modal>
+      )}
+
+      {montadoraReativando && (
+        <ReativarMontadoraModal
+          montadora={montadoraReativando}
+          modelosInativos={modelosInativosDaMontadora}
+          carregandoModelos={carregandoModelos}
+          onConfirm={handleConfirmarReativar}
+          onClose={() => setMontadoraReativando(null)}
+          salvando={salvando}
+        />
       )}
     </div>
   );

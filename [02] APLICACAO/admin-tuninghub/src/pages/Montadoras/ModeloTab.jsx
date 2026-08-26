@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Modal from '../../components/ui/Modal';
+import Pagination from '../../components/ui/Pagination';
+import FiltroBar from '../../components/ui/FiltroBar';
 import { listarMontadorasAtivas } from '../../api/montadoraService';
 import {
   listarModelosAdmin,
@@ -9,16 +11,25 @@ import {
   reativarModelo,
 } from '../../api/modeloService';
 
+const ITEMS_POR_PAGINA = 10;
+
 const ModeloTab = () => {
   const [modelos, setModelos] = useState([]);
   const [montadorasAtivas, setMontadorasAtivas] = useState([]);
   const [carregando, setCarregando] = useState(true);
+
+  const [busca, setBusca] = useState('');
+  const [statusFiltro, setStatusFiltro] = useState('todos');
+  const [pagina, setPagina] = useState(1);
+
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
   const [nome, setNome] = useState('');
   const [idMontadora, setIdMontadora] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+
+  const ultimoScroll = useRef(0);
 
   const carregar = async () => {
     setCarregando(true);
@@ -34,6 +45,10 @@ const ModeloTab = () => {
   useEffect(() => {
     carregar();
   }, []);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, statusFiltro]);
 
   const abrirCriar = () => {
     setEditando(null);
@@ -57,7 +72,6 @@ const ModeloTab = () => {
     setSalvando(true);
     try {
       if (editando) {
-        // Backend só permite alterar o nome do modelo, a montadora vinculada é fixa
         await atualizarModelo(editando.IdModelo, nome);
       } else {
         await criarModelo(idMontadora, nome);
@@ -85,6 +99,35 @@ const ModeloTab = () => {
     await carregar();
   };
 
+  const filtrados = modelos.filter((m) => {
+    const termo = busca.toLowerCase();
+    const passaBusca = m.Modelo.toLowerCase().includes(termo) || m.Montadora.toLowerCase().includes(termo);
+    const passaStatus =
+      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!m.Ativo : !m.Ativo;
+    return passaBusca && passaStatus;
+  });
+
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / ITEMS_POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const itensPagina = filtrados.slice(
+    (paginaSegura - 1) * ITEMS_POR_PAGINA,
+    paginaSegura * ITEMS_POR_PAGINA
+  );
+
+  const handleScrollPagina = (e) => {
+    const agora = Date.now();
+    if (agora - ultimoScroll.current < 500) return;
+    if (Math.abs(e.deltaY) < 20) return;
+
+    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
+      ultimoScroll.current = agora;
+      setPagina(paginaSegura + 1);
+    } else if (e.deltaY < 0 && paginaSegura > 1) {
+      ultimoScroll.current = agora;
+      setPagina(paginaSegura - 1);
+    }
+  };
+
   if (carregando) return <p className="empty-state">Carregando...</p>;
 
   return (
@@ -100,40 +143,51 @@ const ModeloTab = () => {
         <p className="empty-state">Cadastre uma montadora ativa antes de criar modelos.</p>
       )}
 
-      {modelos.length === 0 ? (
-        <p className="empty-state">Nenhum modelo cadastrado.</p>
+      <FiltroBar
+        busca={busca}
+        onBuscaChange={setBusca}
+        status={statusFiltro}
+        onStatusChange={setStatusFiltro}
+        placeholder="Buscar modelo ou montadora..."
+      />
+
+      {filtrados.length === 0 ? (
+        <p className="empty-state">Nenhum modelo encontrado.</p>
       ) : (
-        <table className="crud-table">
-          <thead>
-            <tr>
-              <th>Modelo</th>
-              <th>Montadora</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {modelos.map((m) => (
-              <tr key={m.IdModelo} className={!m.Ativo ? 'inativo' : ''}>
-                <td>{m.Modelo}</td>
-                <td>{m.Montadora}</td>
-                <td>
-                  <span className={`status-badge ${m.Ativo ? 'ativo' : 'inativo'}`}>
-                    {m.Ativo ? 'Ativo' : 'Inativo'}
-                  </span>
-                </td>
-                <td>
-                  <div className="crud-actions">
-                    <button className="link-action" onClick={() => abrirEditar(m)}>Editar</button>
-                    <button className="link-action" onClick={() => handleToggleStatus(m)}>
-                      {m.Ativo ? 'Desativar' : 'Reativar'}
-                    </button>
-                  </div>
-                </td>
+        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
+          <table className="crud-table">
+            <thead>
+              <tr>
+                <th>Modelo</th>
+                <th>Montadora</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {itensPagina.map((m) => (
+                <tr key={m.IdModelo} className={!m.Ativo ? 'inativo' : ''}>
+                  <td>{m.Modelo}</td>
+                  <td>{m.Montadora}</td>
+                  <td>
+                    <span className={`status-badge ${m.Ativo ? 'ativo' : 'inativo'}`}>
+                      {m.Ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="crud-actions">
+                      <button className="link-action" onClick={() => abrirEditar(m)}>Editar</button>
+                      <button className="link-action" onClick={() => handleToggleStatus(m)}>
+                        {m.Ativo ? 'Desativar' : 'Reativar'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
+        </div>
       )}
 
       {modalAberto && (
