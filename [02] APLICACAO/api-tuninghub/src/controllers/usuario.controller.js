@@ -19,6 +19,15 @@ class UsuarioController {
       next(error);
     }
   };
+
+  aceitarTermos = async (req, res, next) => {
+  try {
+    const resultado = await UsuarioService.aceitarTermos(req.usuarioLogado.id);
+    res.status(200).json(resultado);
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new UsuarioController();

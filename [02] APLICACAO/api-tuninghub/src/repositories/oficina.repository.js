@@ -24,19 +24,25 @@ class OficinaRepository {
   }
 
   async create(dados) {
-  const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada, cnae } = dados;
+    const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada, cnae, dataAceiteTermos } = dados;
 
-  const query = `
-    INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha, CNAE) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
+    const query = `
+      INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha, CNAE, TermosAceitos, DataAceiteTermos) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+    `;
 
-  const [result] = await db.execute(query, [
-    nomeOficina, cnpj, nomeProprietario || null, telefone || null, email, senhaHasheada, cnae || null,
-  ]);
+    const [result] = await db.execute(query, [
+      nomeOficina, cnpj, nomeProprietario || null, telefone || null, email, senhaHasheada, cnae || null, dataAceiteTermos,
+    ]);
 
-  return result.insertId;
-}
+    return result.insertId;
+  }
+
+  async aceitarTermos(idOficina) {
+    const query = 'UPDATE oficina SET TermosAceitos = 1, DataAceiteTermos = ? WHERE IdOficina = ?';
+    const [result] = await db.execute(query, [new Date(), idOficina]);
+    return result.affectedRows;
+  }
 
   async existsByEmail(email) {
     const query = "SELECT IdOficina FROM oficina WHERE Email = ?";

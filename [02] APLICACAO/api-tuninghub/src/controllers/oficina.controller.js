@@ -28,6 +28,15 @@ class OficinaController {
     next(error);
   }
 };
+
+aceitarTermos = async (req, res, next) => {
+  try {
+    const resultado = await OficinaService.aceitarTermos(req.usuarioLogado.id);
+    res.status(200).json(resultado);
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new OficinaController();

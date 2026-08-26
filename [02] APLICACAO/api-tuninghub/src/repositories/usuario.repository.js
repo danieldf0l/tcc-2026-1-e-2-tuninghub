@@ -18,10 +18,19 @@ class UsuarioRepository {
     return rows.length > 0;
   }
 
-  async create(nome, email, senhaHasheada) {
-    const query = 'INSERT INTO usuario (Nome, Email, Senha) VALUES (?, ?, ?)';
-    const [result] = await db.execute(query, [nome, email, senhaHasheada]);
+  async create(nome, email, senhaHasheada, dataAceiteTermos) {
+    const query = `
+      INSERT INTO usuario (Nome, Email, Senha, TermosAceitos, DataAceiteTermos) 
+      VALUES (?, ?, ?, 1, ?)
+    `;
+    const [result] = await db.execute(query, [nome, email, senhaHasheada, dataAceiteTermos]);
     return result.insertId;
+  }
+
+  async aceitarTermos(idUsuario) {
+    const query = 'UPDATE usuario SET TermosAceitos = 1, DataAceiteTermos = ? WHERE IdUsuario = ?';
+    const [result] = await db.execute(query, [new Date(), idUsuario]);
+    return result.affectedRows;
   }
 }
 
