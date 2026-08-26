@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../pages/Login/Login';
 import Dashboard from '../pages/Dashboard/Dashboard';
+import MontadorasPage from '../pages/Montadoras/MontadorasPage';
 import Layout from '../components/Layout/Layout';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -16,10 +17,11 @@ const AppRoutes = () => (
       }
     >
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/montadoras" element={<MontadorasPage />} />
     </Route>
 
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>
 );
 
-export default AppRoutes;
+export default AppRoutes; 

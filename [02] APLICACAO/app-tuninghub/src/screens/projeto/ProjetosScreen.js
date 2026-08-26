@@ -8,17 +8,14 @@ import { listarItensDoProjeto } from '../../api/projetoServico.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import Button from '../../components/Button';
 import ProjetoCard from '../../components/ProjetoCard';
-import BackButton from '../../components/BackButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const LIMITE_PROJETOS = 3;
 
 export default function ProjetosScreen({ navigation }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const [projetos, setProjetos] = useState([]);
-  const [nomesModelos, setNomesModelos] = useState({}); // { [idModelo]: nome }
-  const [progressos, setProgressos] = useState({}); // { [idProjeto]: { concluidos, total } }
+  const [nomesModelos, setNomesModelos] = useState({});
+  const [progressos, setProgressos] = useState({});
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
   const [erro, setErro] = useState('');
@@ -39,7 +36,6 @@ export default function ProjetosScreen({ navigation }) {
       });
       setNomesModelos(mapaModelos);
 
-      // Busca progresso de cada projeto em paralelo
       const entradas = await Promise.all(
         listaProjetos.map(async (p) => {
           const idProjeto = p.IdProjeto ?? p.id;
@@ -78,15 +74,14 @@ export default function ProjetosScreen({ navigation }) {
   const atingiuLimite = projetos.length >= LIMITE_PROJETOS;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <BackButton onPress={() => navigation.goBack()} />
+        <Text style={[styles.title, { color: colors.text }]}>Projetos</Text>
         <Text style={[styles.contador, { color: colors.textSecondary }]}>
           {projetos.length}/{LIMITE_PROJETOS}
         </Text>
       </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>Projetos</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {projetos.length === 0
           ? 'Nenhum projeto criado ainda'
@@ -149,8 +144,8 @@ export default function ProjetosScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 56, paddingBottom: 24 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 28, fontWeight: '800' },
   contador: { fontSize: 13, fontWeight: '700' },
-  title: { fontSize: 28, fontWeight: '800', marginTop: 20 },
   subtitle: { fontSize: 14, marginTop: 4, marginBottom: 4 },
   vazioContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   vazioIcone: {

@@ -11,15 +11,12 @@ import { getSaudacao } from '../utils/saudacao';
 import StatCard from '../components/StatCard';
 import QuickActionCard from '../components/QuickActionCard';
 import ProjetoCard from '../components/ProjetoCard';
-import Button from '../components/Button';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const LIMITE_PROJETOS = 3;
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-  const { usuario, sair } = useAuth();
+  const { usuario } = useAuth();
 
   const [projetos, setProjetos] = useState([]);
   const [nomesModelos, setNomesModelos] = useState({});
@@ -86,9 +83,9 @@ export default function HomeScreen({ navigation }) {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+      contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={handleAtualizar} tintColor={colors.primary} />}
-      >
+    >
       <View style={styles.header}>
         <View>
           <Text style={[styles.saudacao, { color: colors.textSecondary }]}>{getSaudacao()},</Text>
@@ -104,18 +101,9 @@ export default function HomeScreen({ navigation }) {
       ) : (
         <>
           <View style={styles.statsRow}>
-            <StatCard
-              valor={`${projetos.length}/${LIMITE_PROJETOS}`}
-              rotulo="Projetos ativos"
-              Icone={Car}
-            />
+            <StatCard valor={`${projetos.length}/${LIMITE_PROJETOS}`} rotulo="Projetos ativos" Icone={Car} />
             <View style={{ width: 12 }} />
-            <StatCard
-              valor={totalPendentes}
-              rotulo="Itens pendentes"
-              destaque={totalPendentes > 0}
-              Icone={ListTodo}
-            />
+            <StatCard valor={totalPendentes} rotulo="Itens pendentes" destaque={totalPendentes > 0} Icone={ListTodo} />
           </View>
 
           {projetoMaisRecente ? (
@@ -156,25 +144,23 @@ export default function HomeScreen({ navigation }) {
           titulo="Meus Projetos"
           subtitulo="Veja e gerencie suas customizações"
           corFundo={colors.primary}
-          onPress={() => navigation.navigate('Projetos')}
+          onPress={() => navigation.navigate('ProjetosTab')}
         />
         <QuickActionCard
           Icone={MapPin}
           titulo="Oficinas Próximas"
           subtitulo="Encontre onde executar seus serviços"
           corFundo={colors.secondary}
-          onPress={() => navigation.navigate('Oficinas')}
+          onPress={() => navigation.navigate('OficinasTab')}
         />
       </View>
-
-      <Button title="Sair" variant="outline" onPress={sair} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 64, paddingBottom: 40 },
+  content: { paddingHorizontal: 24, paddingTop: 64, paddingBottom: 24 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   saudacao: { fontSize: 15, fontWeight: '500' },
   nome: { fontSize: 26, fontWeight: '800', marginTop: 2 },

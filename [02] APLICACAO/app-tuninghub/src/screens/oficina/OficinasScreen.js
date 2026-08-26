@@ -10,12 +10,9 @@ import { getUrlImagem } from '../../utils/media';
 import { useLocalizacao } from '../../utils/useLocalizacao';
 import OficinaCard from '../../components/OficinaCard';
 import FiltroServicoModal from '../../components/FiltroServicoModal';
-import BackButton from '../../components/BackButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function OficinasScreen({ navigation }) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const { coords, status: statusLocalizacao } = useLocalizacao();
 
   const [oficinas, setOficinas] = useState([]);
@@ -62,8 +59,6 @@ export default function OficinasScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      // Só busca quando a permissão de localização já foi resolvida
-      // (concedida com coords, ou negada/erro -> cai no fallback do SENAC)
       if (statusLocalizacao !== 'carregando') {
         carregar(idServicoFiltro);
       }
@@ -78,7 +73,7 @@ export default function OficinasScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <BackButton onPress={() => navigation.goBack()} />
+        <Text style={[styles.title, { color: colors.text }]}>Oficinas</Text>
         <Pressable
           onPress={() => setFiltroAberto(true)}
           style={[styles.filtroBotao, { borderColor: colors.border, backgroundColor: colors.surface }]}
@@ -90,7 +85,6 @@ export default function OficinasScreen({ navigation }) {
         </Pressable>
       </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>Oficinas</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {carregando
           ? 'Buscando...'
@@ -111,7 +105,7 @@ export default function OficinasScreen({ navigation }) {
         <FlatList
           data={oficinas}
           keyExtractor={(item) => String(item.IdOficina)}
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 24 }}
           ListEmptyComponent={
             <Text style={[styles.vazio, { color: colors.textSecondary }]}>
               Nenhuma oficina encontrada com esse filtro.
@@ -143,8 +137,8 @@ export default function OficinasScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 56 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 28, fontWeight: '800' },
   filtroBotao: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, maxWidth: 160 },
-  title: { fontSize: 28, fontWeight: '800', marginTop: 20 },
   subtitle: { fontSize: 14, marginTop: 4 },
   avisoLocalizacao: { fontSize: 12, marginTop: 6, fontStyle: 'italic' },
   vazio: { textAlign: 'center', marginTop: 40 },
