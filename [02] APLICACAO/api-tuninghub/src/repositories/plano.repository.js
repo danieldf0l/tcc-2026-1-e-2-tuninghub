@@ -48,6 +48,12 @@ async atualizarStatus(idPlano, ativo) {
   const [result] = await db.execute(query, [ativo ? 1 : 0, idPlano]);
   return result.affectedRows;
 }
+
+async findAllAdmin() {
+  const query = 'SELECT * FROM plano ORDER BY Ativo DESC, Nome ASC';
+  const [rows] = await db.execute(query);
+  return rows;
+}
 }
 
 export default new PlanoRepository();

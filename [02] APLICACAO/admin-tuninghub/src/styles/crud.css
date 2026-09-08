@@ -343,3 +343,24 @@
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-secondary);
 }
+
+.status-badge.pendente {
+  background: rgba(233, 48, 46, 0.15);
+  color: var(--color-red-vivid);
+}
+
+.form-field-readonly {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 10px 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.form-hint {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  margin-top: -10px;
+  margin-bottom: 14px;
+}

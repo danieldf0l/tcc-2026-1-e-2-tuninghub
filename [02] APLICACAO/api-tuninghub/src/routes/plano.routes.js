@@ -11,5 +11,6 @@ router.patch('/:id/produto-externo', verificarToken, checkRole(ROLES.ADMIN_MASTE
 router.put('/:id', verificarToken, checkRole(ROLES.ADMIN_MASTER), PlanoController.atualizar);
 router.delete('/:id', verificarToken, checkRole(ROLES.ADMIN_MASTER), PlanoController.desativar);
 router.patch('/:id/reativar', verificarToken, checkRole(ROLES.ADMIN_MASTER), PlanoController.reativar);
+router.get('/admin', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), PlanoController.listarAdmin);
 
 export default router;

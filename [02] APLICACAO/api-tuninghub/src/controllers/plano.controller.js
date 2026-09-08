@@ -54,6 +54,15 @@ reativar = async (req, res, next) => {
     next(error);
   }
 };
+
+listarAdmin = async (req, res, next) => {
+  try {
+    const planos = await PlanoService.listarPlanosAdmin();
+    res.status(200).json(planos);
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new PlanoController();
