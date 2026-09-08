@@ -2,15 +2,16 @@ import db from '../config/db.js';
 
 class EstiloServicoSugeridoRepository {
   async findByEstilo(estilo) {
-    const query = `
-      SELECT ess.IdEstiloServico, s.IdServico, s.Nome, s.Descricao, s.Categoria
-      FROM estiloservicosugerido ess
-      INNER JOIN servico s ON ess.IdServico = s.IdServico
-      WHERE ess.Estilo = ?
-    `;
-    const [rows] = await db.execute(query, [estilo]);
-    return rows;
-  }
+  const query = `
+    SELECT ess.IdEstiloServico, s.IdServico, s.Nome, s.Descricao, c.Nome AS Categoria
+    FROM estiloservicosugerido ess
+    INNER JOIN servico s ON ess.IdServico = s.IdServico
+    INNER JOIN categoriaservico c ON c.IdCategoria = s.IdCategoria
+    WHERE ess.Estilo = ?
+  `;
+  const [rows] = await db.execute(query, [estilo]);
+  return rows;
+}
 
   async checkVinculo(estilo, idServico) {
     const query = 'SELECT * FROM estiloservicosugerido WHERE Estilo = ? AND IdServico = ?';

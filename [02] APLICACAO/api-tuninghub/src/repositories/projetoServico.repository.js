@@ -2,16 +2,17 @@ import db from '../config/db.js';
 
 class ProjetoServicoRepository {
   async findByProjeto(idProjeto) {
-    const query = `
-      SELECT ps.IdProjetoServico, s.IdServico, s.Nome, s.Categoria, s.Descricao, ps.Concluido
-      FROM projetoservico ps
-      INNER JOIN servico s ON ps.IdServico = s.IdServico
-      WHERE ps.IdProjeto = ?
-      ORDER BY s.Categoria, s.Nome
-    `;
-    const [rows] = await db.execute(query, [idProjeto]);
-    return rows;
-  }
+  const query = `
+    SELECT ps.IdProjetoServico, s.IdServico, s.Nome, s.Descricao, c.Nome AS Categoria, ps.Concluido
+    FROM projetoservico ps
+    INNER JOIN servico s ON ps.IdServico = s.IdServico
+    INNER JOIN categoriaservico c ON c.IdCategoria = s.IdCategoria
+    WHERE ps.IdProjeto = ?
+    ORDER BY c.Nome, s.Nome
+  `;
+  const [rows] = await db.execute(query, [idProjeto]);
+  return rows;
+}
 
   async checkVinculo(idProjeto, idServico) {
     const query = 'SELECT * FROM projetoservico WHERE IdProjeto = ? AND IdServico = ?';

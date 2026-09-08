@@ -2,13 +2,23 @@ import db from '../config/db.js';
 
 class ServicoRepository {
   async findAll() {
-    const query = 'SELECT IdServico, Nome, Descricao, Categoria FROM servico WHERE Ativo = 1';
+    const query = `
+      SELECT s.IdServico, s.Nome, s.Descricao, s.IdCategoria, c.Nome AS Categoria
+      FROM servico s
+      INNER JOIN categoriaservico c ON c.IdCategoria = s.IdCategoria
+      WHERE s.Ativo = 1
+    `;
     const [rows] = await db.execute(query);
     return rows;
   }
 
   async findAllAdmin() {
-    const query = 'SELECT * FROM servico ORDER BY Ativo DESC, Nome ASC';
+    const query = `
+      SELECT s.*, c.Nome AS Categoria
+      FROM servico s
+      INNER JOIN categoriaservico c ON c.IdCategoria = s.IdCategoria
+      ORDER BY s.Ativo DESC, s.Nome ASC
+    `;
     const [rows] = await db.execute(query);
     return rows;
   }
@@ -19,31 +29,27 @@ class ServicoRepository {
     return rows[0];
   }
 
-  // Usado nos vínculos (oficinaServico, estiloServicoSugerido, projetoServico) --
-  // só encontra serviço ativo, para impedir novos vínculos com item desativado.
   async findById(idServico) {
     const query = 'SELECT * FROM servico WHERE IdServico = ? AND Ativo = 1';
     const [rows] = await db.execute(query, [idServico]);
     return rows[0];
   }
 
-  // Usado pelo admin (editar/desativar/reativar) -- não filtra por Ativo,
-  // senão seria impossível reativar um serviço já desativado.
   async findByIdAdmin(idServico) {
     const query = 'SELECT * FROM servico WHERE IdServico = ?';
     const [rows] = await db.execute(query, [idServico]);
     return rows[0];
   }
 
-  async create(nome, descricao, categoria) {
-    const query = 'INSERT INTO servico (Nome, Descricao, Categoria) VALUES (?, ?, ?)';
-    const [result] = await db.execute(query, [nome, descricao || null, categoria]);
+  async create(nome, descricao, idCategoria) {
+    const query = 'INSERT INTO servico (Nome, Descricao, IdCategoria) VALUES (?, ?, ?)';
+    const [result] = await db.execute(query, [nome, descricao || null, idCategoria]);
     return result.insertId;
   }
 
-  async update(idServico, nome, descricao, categoria) {
-    const query = 'UPDATE servico SET Nome = ?, Descricao = ?, Categoria = ? WHERE IdServico = ?';
-    const [result] = await db.execute(query, [nome, descricao || null, categoria, idServico]);
+  async update(idServico, nome, descricao, idCategoria) {
+    const query = 'UPDATE servico SET Nome = ?, Descricao = ?, IdCategoria = ? WHERE IdServico = ?';
+    const [result] = await db.execute(query, [nome, descricao || null, idCategoria, idServico]);
     return result.affectedRows;
   }
 

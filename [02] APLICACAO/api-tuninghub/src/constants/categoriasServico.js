@@ -1,8 +1,0 @@
-export const CATEGORIAS_SERVICO = [
-  'MOTOR',
-  'SUSPENSAO',
-  'RODAS',
-  'ESTETICA',
-  'INTERIOR',
-  'ESCAPAMENTO',
-];  
