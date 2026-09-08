@@ -27,6 +27,33 @@ class PlanoController {
     next(error);
   }
 };
+
+atualizar = async (req, res, next) => {
+  try {
+    const plano = await PlanoService.atualizarPlano(req.params.id, req.body);
+    res.status(200).json({ message: 'Plano atualizado com sucesso!', plano });
+  } catch (error) {
+    next(error);
+  }
+};
+
+desativar = async (req, res, next) => {
+  try {
+    const resultado = await PlanoService.atualizarStatus(req.params.id, false);
+    res.status(200).json({ message: 'Plano desativado com sucesso!', ...resultado });
+  } catch (error) {
+    next(error);
+  }
+};
+
+reativar = async (req, res, next) => {
+  try {
+    const resultado = await PlanoService.atualizarStatus(req.params.id, true);
+    res.status(200).json({ message: 'Plano reativado com sucesso!', ...resultado });
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new PlanoController();
