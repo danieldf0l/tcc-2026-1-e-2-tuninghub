@@ -32,7 +32,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "O TuningHub usa sua localização para mostrar as oficinas mais próximas de você."
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }
