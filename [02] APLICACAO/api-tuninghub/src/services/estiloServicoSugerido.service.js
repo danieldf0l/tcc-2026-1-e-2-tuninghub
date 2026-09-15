@@ -1,25 +1,22 @@
 import EstiloServicoSugeridoRepository from '../repositories/estiloServicoSugerido.repository.js';
 import ServicoRepository from '../repositories/servico.repository.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
-import { ESTILOS } from '../constants/estilos.js';
+import EstiloRepository from '../repositories/estilo.repository.js';
 
 class EstiloServicoSugeridoService {
   async listarPorEstilo(estilo) {
-    if (!ESTILOS.includes(estilo)) {
-      throw new ValidationError(`Estilo inválido. Use um dos: ${ESTILOS.join(', ')}.`);
-    }
+    const estiloValido = await EstiloRepository.findByCodigoAtivo(estilo);
+    if (!estiloValido) throw new ValidationError('Estilo inválido ou inativo.');
     return await EstiloServicoSugeridoRepository.findByEstilo(estilo);
   }
 
   async vincular(dados) {
     const { estilo, idServico } = dados;
-
     if (!estilo || !idServico) {
       throw new ValidationError('Os campos estilo e idServico são obrigatórios.');
     }
-    if (!ESTILOS.includes(estilo)) {
-      throw new ValidationError(`Estilo inválido. Use um dos: ${ESTILOS.join(', ')}.`);
-    }
+    const estiloValido = await EstiloRepository.findByCodigoAtivo(estilo);
+    if (!estiloValido) throw new ValidationError('Estilo inválido ou inativo.');
 
     const servico = await ServicoRepository.findById(idServico);
     if (!servico) throw new NotFoundError('Serviço não encontrado.');

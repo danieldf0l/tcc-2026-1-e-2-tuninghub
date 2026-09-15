@@ -22,6 +22,7 @@ import logSistemaRoute from './routes/logSistema.routes.js';
 import oficinaServicoRoute from './routes/oficinaServico.routes.js';
 import estiloServicoSugeridoRoute from './routes/estiloServicoSugerido.routes.js';
 import categoriaServicoRoute from './routes/categoriaServico.routes.js';
+import estiloRoute from './routes/estilo.routes.js';
 
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { authLimiter } from './middlewares/rateLimiter.middleware.js';
@@ -58,6 +59,7 @@ app.use('/api/oficinaServico', oficinaServicoRoute);
 app.use('/api/estiloservicosugerido', estiloServicoSugeridoRoute);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/categoriaservico', categoriaServicoRoute);
+app.use('/api/estilo', estiloRoute);
 
 app.use('/api/geolocalizacao', geolocalizacaoRoute);
 

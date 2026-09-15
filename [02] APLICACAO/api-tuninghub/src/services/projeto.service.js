@@ -1,10 +1,10 @@
-import ProjetoServicoRepository from '../repositories/projetoServico.repository.js';
 import ProjetoRepository from '../repositories/projeto.repository.js';
 import ModeloRepository from '../repositories/modelo.repository.js';
+import EstiloRepository from '../repositories/estilo.repository.js';
 import EstiloServicoSugeridoRepository from '../repositories/estiloServicoSugerido.repository.js';
+import ProjetoServicoRepository from '../repositories/projetoServico.repository.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
-import { ESTILOS } from '../constants/estilos.js';
 
 
 const LIMITE_PROJETOS_ATIVOS = 3;
@@ -37,11 +37,14 @@ class ProjetoService {
     if (!tipoCustomizacao || !TIPOS_CUSTOMIZACAO.includes(tipoCustomizacao)) {
       throw new ValidationError(`tipoCustomizacao é obrigatório e deve ser um dos: ${TIPOS_CUSTOMIZACAO.join(', ')}.`);
     }
-    if (tipoCustomizacao === 'ESTILO' && (!estilo || !ESTILOS.includes(estilo))) {
-      throw new ValidationError(`Para customização por estilo, informe um estilo válido: ${ESTILOS.join(', ')}.`);
+
+    if (tipoCustomizacao === 'ESTILO') {
+      if (!estilo) throw new ValidationError('Para customização por estilo, informe um estilo.');
+      const estiloValido = await EstiloRepository.findByCodigoAtivo(estilo);
+      if (!estiloValido) throw new ValidationError('Estilo inválido ou inativo.');
     }
 
-    const modelo = await ModeloRepository.findByIdAtivo(idModelo)
+    const modelo = await ModeloRepository.findById(idModelo);
     if (!modelo) throw new NotFoundError('Modelo não encontrado.');
 
     // RN07: máximo 3 projetos ativos por usuário
@@ -52,6 +55,7 @@ class ProjetoService {
 
     const novoId = await ProjetoRepository.create({ idUsuario, idModelo, descricao, tipoCustomizacao, estilo });
 
+    // RN10: gera a To-do List automaticamente
     let servicosSugeridos = [];
     if (tipoCustomizacao === 'ESTILO') {
       servicosSugeridos = await EstiloServicoSugeridoRepository.findByEstilo(estilo);
