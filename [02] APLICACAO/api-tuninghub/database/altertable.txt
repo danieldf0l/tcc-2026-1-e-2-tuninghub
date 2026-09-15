@@ -1,0 +1,26 @@
+CREATE TABLE estilo (
+  IdEstilo INT NOT NULL AUTO_INCREMENT,
+  Codigo VARCHAR(30) NOT NULL,
+  Nome VARCHAR(60) NOT NULL,
+  Ativo TINYINT(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (IdEstilo),
+  UNIQUE KEY Codigo (Codigo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO estilo (Codigo, Nome) VALUES
+  ('STANCE', 'Stance'),
+  ('OFF_ROAD', 'Off-Road'),
+  ('TRACK_RACING', 'Track/Racing'),
+  ('SLEEPER', 'Sleeper'),
+  ('CLASSIC_RETRO', 'Classic/Retro'),
+  ('JDM', 'JDM');
+
+-- Converte de ENUM fixo para VARCHAR livre (os valores existentes são preservados)
+ALTER TABLE projeto MODIFY COLUMN Estilo VARCHAR(30) NULL;
+ALTER TABLE estiloservicosugerido MODIFY COLUMN Estilo VARCHAR(30) NOT NULL;
+
+-- Integridade referencial de verdade (a proposta deixou como opcional, mas eu recomendo aplicar)
+ALTER TABLE projeto
+  ADD CONSTRAINT projeto_estilo_fk FOREIGN KEY (Estilo) REFERENCES estilo (Codigo);
+ALTER TABLE estiloservicosugerido
+  ADD CONSTRAINT esugerido_estilo_fk FOREIGN KEY (Estilo) REFERENCES estilo (Codigo);
