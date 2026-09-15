@@ -1,17 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { EstilosProvider } from './src/context/EstilosContext';
 import RootNavigator from './src/navigation';
 
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <EstilosProvider>
+          <AppContent />
+        </EstilosProvider>
       </AuthProvider>
     </ThemeProvider>
   );
-  
 }
 
 function AppContent() {

@@ -1,10 +1,14 @@
 import { Pressable, View, Text, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
-import { getEstiloInfo } from '../constants/estilos';
+import { getEstiloVisual } from '../constants/estilos';
+import { useEstilos } from '../context/EstilosContext';
 
 export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPress }) {
   const { colors, isDark } = useTheme();
-  const estiloInfo = getEstiloInfo(estilo);
+  const { getNomeEstilo } = useEstilos();
+
+  const visual = getEstiloVisual(estilo);
+  const nomeEstiloExibicao = estilo ? getNomeEstilo(estilo) : 'Personalizado';
 
   const total = progresso?.total ?? 0;
   const concluidos = progresso?.concluidos ?? 0;
@@ -22,11 +26,11 @@ export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPres
         !isDark && styles.sombra,
       ]}
     >
-      <View style={[styles.banner, { backgroundColor: `${estiloInfo.cor}` }]}>
+      <View style={[styles.banner, { backgroundColor: visual.cor }]}>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{estiloInfo.rotulo}</Text>
+          <Text style={styles.badgeText}>{nomeEstiloExibicao}</Text>
         </View>
-        <Text style={styles.iconeGrande}>{estiloInfo.icone}</Text>
+        <Text style={styles.iconeGrande}>{visual.icone}</Text>
       </View>
 
       <View style={styles.corpo}>
@@ -51,7 +55,7 @@ export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPres
               <View
                 style={[
                   styles.barraPreenchida,
-                  { width: `${percentual * 100}%`, backgroundColor: estiloInfo.cor },
+                  { width: `${percentual * 100}%`, backgroundColor: visual.cor },
                 ]}
               />
             </View>
@@ -70,12 +74,7 @@ const styles = StyleSheet.create({
       android: { elevation: 3 },
     }),
   },
-  banner: {
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
+  banner: { height: 100, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   badge: {
     position: 'absolute',
     top: 10,

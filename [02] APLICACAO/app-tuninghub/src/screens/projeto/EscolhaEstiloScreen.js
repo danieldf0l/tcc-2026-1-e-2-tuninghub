@@ -1,24 +1,37 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
-import { ESTILOS, TIPO_CUSTOMIZACAO } from '../../constants/estilos';
+import { useEstilos } from '../../context/EstilosContext';
+import { TIPO_CUSTOMIZACAO } from '../../constants/estilos';
 import { criarProjeto } from '../../api/projeto.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import SelectableCard from '../../components/SelectableCard';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EscolhaEstiloScreen({ route, navigation }) {
   const { idModelo, nomeCarro } = route.params;
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { estilos, refetch } = useEstilos();
 
+  const [carregandoEstilos, setCarregandoEstilos] = useState(true);
   const [nomeProjeto, setNomeProjeto] = useState('');
   const [estiloSelecionado, setEstiloSelecionado] = useState(null);
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function atualizar() {
+        setCarregandoEstilos(true);
+        await refetch();
+        setCarregandoEstilos(false);
+      }
+      atualizar();
+    }, [refetch])
+  );
 
   async function confirmar(tipoCustomizacao, estilo) {
     setErro('');
@@ -42,7 +55,7 @@ export default function EscolhaEstiloScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
       <BackButton onPress={() => navigation.goBack()} />
       <Text style={[styles.title, { color: colors.text }]}>Escolha o estilo</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{nomeCarro}</Text>
@@ -53,15 +66,22 @@ export default function EscolhaEstiloScreen({ route, navigation }) {
         onChangeText={setNomeProjeto}
       />
 
-      {ESTILOS.map((estilo) => (
-        <SelectableCard
-          key={estilo.valor}
-          title={estilo.rotulo}
-          subtitle={estilo.descricao}
-          selected={estiloSelecionado === estilo.valor}
-          onPress={() => setEstiloSelecionado(estilo.valor)}
-        />
-      ))}
+      {carregandoEstilos ? (
+        <ActivityIndicator color={colors.primary} style={{ marginVertical: 30 }} />
+      ) : estilos.length === 0 ? (
+        <Text style={[styles.erro, { color: colors.textSecondary }]}>
+          Nenhum estilo disponível no momento.
+        </Text>
+      ) : (
+        estilos.map((estilo) => (
+          <SelectableCard
+            key={estilo.IdEstilo}
+            title={estilo.Nome}
+            selected={estiloSelecionado === estilo.Codigo}
+            onPress={() => setEstiloSelecionado(estilo.Codigo)}
+          />
+        ))
+      )}
 
       {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
 
@@ -90,4 +110,4 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: '800', marginTop: 16, marginBottom: 4 },
   subtitle: { fontSize: 14, marginBottom: 20 },
   erro: { fontSize: 13, textAlign: 'center', marginBottom: 8 },
-}); 
+});
