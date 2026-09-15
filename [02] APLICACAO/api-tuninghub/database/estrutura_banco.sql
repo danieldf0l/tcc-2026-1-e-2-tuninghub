@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.46, for Linux (x86_64)
 --
--- Host: localhost    Database: script_bd
+-- Host: localhost    Database: tuninghub_teste
 -- ------------------------------------------------------
 -- Server version	8.0.46-0ubuntu0.24.04.4
 
@@ -110,6 +110,23 @@ CREATE TABLE `endereco` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `estilo`
+--
+
+DROP TABLE IF EXISTS `estilo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `estilo` (
+  `IdEstilo` int NOT NULL AUTO_INCREMENT,
+  `Codigo` varchar(30) NOT NULL,
+  `Nome` varchar(60) NOT NULL,
+  `Ativo` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`IdEstilo`),
+  UNIQUE KEY `Codigo` (`Codigo`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `estiloservicosugerido`
 --
 
@@ -118,12 +135,13 @@ DROP TABLE IF EXISTS `estiloservicosugerido`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `estiloservicosugerido` (
   `IdEstiloServico` int NOT NULL AUTO_INCREMENT,
-  `Estilo` enum('STANCE','OFF_ROAD','TRACK_RACING','SLEEPER','CLASSIC_RETRO','JDM') NOT NULL,
+  `Estilo` varchar(30) NOT NULL,
   `IdServico` int NOT NULL,
   PRIMARY KEY (`IdEstiloServico`),
   UNIQUE KEY `uk_estilo_servico` (`Estilo`,`IdServico`),
   KEY `IdServico` (`IdServico`),
-  CONSTRAINT `estiloservicosugerido_ibfk_1` FOREIGN KEY (`IdServico`) REFERENCES `servico` (`IdServico`)
+  CONSTRAINT `estiloservicosugerido_ibfk_1` FOREIGN KEY (`IdServico`) REFERENCES `servico` (`IdServico`),
+  CONSTRAINT `esugerido_estilo_fk` FOREIGN KEY (`Estilo`) REFERENCES `estilo` (`Codigo`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -279,16 +297,18 @@ CREATE TABLE `projeto` (
   `IdModelo` int NOT NULL,
   `Descricao` varchar(255) DEFAULT NULL,
   `TipoCustomizacao` enum('ESTILO','PERSONALIZADA') NOT NULL DEFAULT 'PERSONALIZADA',
-  `Estilo` enum('STANCE','OFF_ROAD','TRACK_RACING','SLEEPER','CLASSIC_RETRO','JDM') DEFAULT NULL,
+  `Estilo` varchar(30) DEFAULT NULL,
   `DataCriacao` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `DataAtualizacao` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `Ativo` tinyint(1) DEFAULT '1',
   PRIMARY KEY (`IdProjeto`),
   KEY `IdUsuario` (`IdUsuario`),
   KEY `IdModelo` (`IdModelo`),
+  KEY `projeto_estilo_fk` (`Estilo`),
+  CONSTRAINT `projeto_estilo_fk` FOREIGN KEY (`Estilo`) REFERENCES `estilo` (`Codigo`),
   CONSTRAINT `projeto_ibfk_1` FOREIGN KEY (`IdUsuario`) REFERENCES `usuario` (`IdUsuario`),
   CONSTRAINT `projeto_ibfk_2` FOREIGN KEY (`IdModelo`) REFERENCES `modelo` (`IdModelo`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -308,7 +328,7 @@ CREATE TABLE `projetoservico` (
   KEY `IdServico` (`IdServico`),
   CONSTRAINT `projetoservico_ibfk_1` FOREIGN KEY (`IdProjeto`) REFERENCES `projeto` (`IdProjeto`),
   CONSTRAINT `projetoservico_ibfk_2` FOREIGN KEY (`IdServico`) REFERENCES `servico` (`IdServico`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -369,7 +389,7 @@ CREATE TABLE `usuario` (
   `DataAceiteTermos` datetime DEFAULT NULL,
   PRIMARY KEY (`IdUsuario`),
   UNIQUE KEY `Email` (`Email`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -381,4 +401,4 @@ CREATE TABLE `usuario` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-12 14:19:50
+-- Dump completed on 2026-09-14 23:44:07
