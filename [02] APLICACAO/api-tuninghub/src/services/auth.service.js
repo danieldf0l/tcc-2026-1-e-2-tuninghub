@@ -14,33 +14,25 @@ class AuthService {
     });
   }
 
-  async #autenticar({ email, senhaPlain, repository, campoSenha, role }) {
-    const registro = await repository.findByEmail(email);
-    if (!registro) {
+  async loginUsuario(email, senha) {
+    const usuario = await UsuarioRepository.findByEmailQualquerStatus(email);
+    if (!usuario) {
       throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
 
-    const senhaValida = await bcrypt.compare(senhaPlain, registro[campoSenha]);
+    const senhaValida = await bcrypt.compare(senha, usuario.Senha);
     if (!senhaValida) {
       throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
 
-    const { [campoSenha]: _senha, ...dados } = registro;
-    const id = registro.IdUsuario ?? registro.IdOficina ?? registro.IdAdmin;
+    if (!usuario.Ativo) {
+      throw new ForbiddenError('Conta desativada. Contate o suporte.');
+    }
 
-    const token = this.#gerarToken({ id, email: registro.Email, role });
+    const { Senha: _senha, ...dados } = usuario;
+    const token = this.#gerarToken({ id: usuario.IdUsuario, email: usuario.Email, role: ROLES.USUARIO });
 
     return { usuario: dados, token };
-  }
-
-  async loginUsuario(email, senha) {
-    return this.#autenticar({
-      email,
-      senhaPlain: senha,
-      repository: UsuarioRepository,
-      campoSenha: 'Senha',
-      role: ROLES.USUARIO,
-    });
   }
 
   async loginOficina(email, senha) {

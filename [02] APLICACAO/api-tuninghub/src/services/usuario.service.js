@@ -44,6 +44,20 @@ class UsuarioService {
     if (linhasAfetadas === 0) throw new NotFoundError('Usuário não encontrado.');
     return { message: 'Termos aceitos com sucesso.' };
   }
+
+  async listarUsuariosAdmin() {
+  return await UsuarioRepository.findAllAdmin();
+}
+
+  async atualizarStatus(idUsuario, ativo) {
+    if (typeof ativo !== 'boolean') throw new ValidationError('O campo ativo deve ser true ou false.');
+
+    const usuario = await UsuarioRepository.findByIdAdmin(idUsuario);
+    if (!usuario) throw new NotFoundError('Usuário não encontrado.');
+
+    await UsuarioRepository.atualizarStatus(idUsuario, ativo);
+    return { idUsuario: Number(idUsuario), ativo };
+  }
 }
 
 export default new UsuarioService();
