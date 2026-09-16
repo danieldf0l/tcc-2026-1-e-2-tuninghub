@@ -8,6 +8,7 @@ const links = [
   { to: '/usuarios', label: 'Usuários' },
   { to: '/montadoras', label: 'Montadoras e Modelos' },
   { to: '/servicos', label: 'Serviços' },
+  { to: '/estilos', label: 'Estilos de Customização' },
   { to: '/planos', label: 'Planos e Assinaturas' },
 ];
 
