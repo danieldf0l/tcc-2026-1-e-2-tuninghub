@@ -9,6 +9,7 @@ import PlanosPage from '../pages/Planos/PlanosPage';
 import EstilosPage from '../pages/Estilos/EstilosPage';
 import OficinasPage from '../pages/Oficinas/OficinasPage';
 import AdminsPage from '../pages/Admins/AdminsPage';
+import UsuariosPage from '../pages/Usuarios/UsuariosPage';
 
 const AppRoutes = () => (
   <Routes>
@@ -28,6 +29,7 @@ const AppRoutes = () => (
       <Route path="/estilos" element={<EstilosPage />} />
       <Route path="/oficinas" element={<OficinasPage />} />
       <Route path="/admins" element={<AdminsPage />} />
+      <Route path="/usuarios" element={<UsuariosPage />} />
     </Route>
 
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
