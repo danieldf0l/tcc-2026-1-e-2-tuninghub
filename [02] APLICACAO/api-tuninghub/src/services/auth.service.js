@@ -5,6 +5,7 @@ import OficinaRepository from '../repositories/oficina.repository.js';
 import AdminRepository from '../repositories/admin.repository.js';
 import { UnauthorizedError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
+import { ForbiddenError } from '../errors/AppError.js';
 
 class AuthService {
   #gerarToken(payload) {
@@ -43,13 +44,24 @@ class AuthService {
   }
 
   async loginOficina(email, senha) {
-    return this.#autenticar({
-      email,
-      senhaPlain: senha,
-      repository: OficinaRepository,
-      campoSenha: 'Senha',
-      role: ROLES.OFICINA,
-    });
+    const oficina = await OficinaRepository.findByEmailQualquerStatus(email);
+    if (!oficina) {
+      throw new UnauthorizedError('E-mail ou senha inválidos.');
+    }
+
+    const senhaValida = await bcrypt.compare(senha, oficina.Senha);
+    if (!senhaValida) {
+      throw new UnauthorizedError('E-mail ou senha inválidos.');
+    }
+
+    if (!oficina.Ativo) {
+      throw new ForbiddenError('Conta desativada. Contate o suporte.');
+    }
+
+    const { Senha: _senha, ...dados } = oficina;
+    const token = this.#gerarToken({ id: oficina.IdOficina, email: oficina.Email, role: ROLES.OFICINA });
+
+    return { usuario: dados, token };
   }
 
   async loginAdmin(email, senha) {

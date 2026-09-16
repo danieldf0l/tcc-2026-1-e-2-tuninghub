@@ -37,6 +37,42 @@ aceitarTermos = async (req, res, next) => {
     next(error);
   }
 };
+
+listarAdmin = async (req, res, next) => {
+  try {
+    const oficinas = await OficinaService.listarOficinasAdmin();
+    res.status(200).json(oficinas);
+  } catch (error) {
+    next(error);
+  }
+};
+
+atualizarFaixaPreco = async (req, res, next) => {
+  try {
+    const resultado = await OficinaService.atualizarFaixaPreco(req.params.id, req.body.faixaPreco);
+    res.status(200).json({ message: 'Faixa de preço atualizada com sucesso!', ...resultado });
+  } catch (error) {
+    next(error);
+  }
+};
+
+desativar = async (req, res, next) => {
+  try {
+    const resultado = await OficinaService.atualizarStatus(req.params.id, false);
+    res.status(200).json({ message: 'Oficina desativada com sucesso!', ...resultado });
+  } catch (error) {
+    next(error);
+  }
+};
+
+reativar = async (req, res, next) => {
+  try {
+    const resultado = await OficinaService.atualizarStatus(req.params.id, true);
+    res.status(200).json({ message: 'Oficina reativada com sucesso!', ...resultado });
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new OficinaController();

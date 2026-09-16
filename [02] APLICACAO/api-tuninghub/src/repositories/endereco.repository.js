@@ -7,14 +7,14 @@ class EnderecoRepository {
     return rows[0];
   }
 
-  async create(dados) {
+  async create(dados, executor = db) {
     const { idOficina, rua, numero, bairro, cidade, estado, cep, latitude, longitude } = dados;
     const query = `
       INSERT INTO endereco 
       (IdOficina, Rua, Numero, Bairro, Cidade, Estado, CEP, Latitude, Longitude) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await db.execute(query, [
+    const [result] = await executor.execute(query, [
       idOficina, rua, numero || null, bairro || null, cidade, estado, cep,
       latitude || null, longitude || null,
     ]);

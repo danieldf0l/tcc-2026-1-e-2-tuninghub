@@ -23,7 +23,7 @@ class OficinaRepository {
     return rows[0];
   }
 
-  async create(dados) {
+  async create(dados, executor = db) {
     const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada, cnae, dataAceiteTermos } = dados;
 
     const query = `
@@ -31,7 +31,20 @@ class OficinaRepository {
       VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
     `;
 
-    const [result] = await db.execute(query, [
+    const [result] = await executor.execute(query, [
+      nomeOficina, cnpj, nomeProprietario || null, telefone || null, email, senhaHasheada, cnae || null, dataAceiteTermos,
+    ]);
+
+    return result.insertId;
+  }async create(dados, executor = db) {
+    const { nomeOficina, cnpj, nomeProprietario, telefone, email, senhaHasheada, cnae, dataAceiteTermos } = dados;
+
+    const query = `
+      INSERT INTO oficina (NomeOficina, CNPJ, NomeProprietario, Telefone, Email, Senha, CNAE, TermosAceitos, DataAceiteTermos) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)
+    `;
+
+    const [result] = await executor.execute(query, [
       nomeOficina, cnpj, nomeProprietario || null, telefone || null, email, senhaHasheada, cnae || null, dataAceiteTermos,
     ]);
 
@@ -74,6 +87,36 @@ async buscarComEndereco(idServico) {
 
   const [rows] = await db.execute(query, params);
   return rows;
+}
+
+async findByEmailQualquerStatus(email) {
+  const query = 'SELECT * FROM oficina WHERE Email = ?';
+  const [rows] = await db.execute(query, [email]);
+  return rows[0];
+}
+
+async findAllAdmin() {
+  const query = 'SELECT * FROM oficina ORDER BY Ativo DESC, NomeOficina ASC';
+  const [rows] = await db.execute(query);
+  return rows;
+}
+
+async findByIdAdmin(idOficina) {
+  const query = 'SELECT * FROM oficina WHERE IdOficina = ?';
+  const [rows] = await db.execute(query, [idOficina]);
+  return rows[0];
+}
+
+async atualizarFaixaPreco(idOficina, faixaPreco) {
+  const query = 'UPDATE oficina SET FaixaPreco = ? WHERE IdOficina = ?';
+  const [result] = await db.execute(query, [faixaPreco, idOficina]);
+  return result.affectedRows;
+}
+
+async atualizarStatus(idOficina, ativo) {
+  const query = 'UPDATE oficina SET Ativo = ? WHERE IdOficina = ?';
+  const [result] = await db.execute(query, [ativo ? 1 : 0, idOficina]);
+  return result.affectedRows;
 }
 }
 
