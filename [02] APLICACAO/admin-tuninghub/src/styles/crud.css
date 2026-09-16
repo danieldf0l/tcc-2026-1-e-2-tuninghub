@@ -364,3 +364,32 @@
   margin-top: -10px;
   margin-bottom: 14px;
 }
+
+.detalhe-info {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px 16px;
+  margin-bottom: 20px;
+}
+
+.detalhe-info dt {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.detalhe-info dd {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.faixa-preco-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.faixa-preco-form .form-field {
+  margin-bottom: 0;
+  flex: 1;
+}

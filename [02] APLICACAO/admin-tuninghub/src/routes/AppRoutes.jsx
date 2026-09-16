@@ -7,6 +7,7 @@ import ProtectedRoute from './ProtectedRoute';
 import ServicosPage from '../pages/Servicos/ServicosPage';
 import PlanosPage from '../pages/Planos/PlanosPage';
 import EstilosPage from '../pages/Estilos/EstilosPage';
+import OficinasPage from '../pages/Oficinas/OficinasPage';
 
 const AppRoutes = () => (
   <Routes>
@@ -24,6 +25,7 @@ const AppRoutes = () => (
       <Route path="/servicos" element={<ServicosPage />} />
       <Route path="/planos" element={<PlanosPage />} />
       <Route path="/estilos" element={<EstilosPage />} />
+      <Route path="/oficinas" element={<OficinasPage />} />
     </Route>
 
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
