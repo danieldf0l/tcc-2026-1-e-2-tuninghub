@@ -10,6 +10,7 @@ import EstilosPage from '../pages/Estilos/EstilosPage';
 import OficinasPage from '../pages/Oficinas/OficinasPage';
 import AdminsPage from '../pages/Admins/AdminsPage';
 import UsuariosPage from '../pages/Usuarios/UsuariosPage';
+import AssinaturasPage from '../pages/Assinaturas/AssinaturasPage';
 
 const AppRoutes = () => (
   <Routes>
@@ -30,6 +31,7 @@ const AppRoutes = () => (
       <Route path="/oficinas" element={<OficinasPage />} />
       <Route path="/admins" element={<AdminsPage />} />
       <Route path="/usuarios" element={<UsuariosPage />} />
+      <Route path="/assinaturas" element={<AssinaturasPage />} />
     </Route>
 
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -393,3 +393,15 @@
   margin-bottom: 0;
   flex: 1;
 }
+
+.filtro-bar-larga {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.filtro-bar-larga .filtro-busca {
+  flex: 1;
+  min-width: 200px;
+}
