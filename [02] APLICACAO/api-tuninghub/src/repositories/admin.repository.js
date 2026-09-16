@@ -31,6 +31,12 @@ class AdminRepository {
     const [result] = await db.execute(query, [nome, email, senhaHasheada, nivelAcesso || 'PADRAO']);
     return result.insertId;
   }
+
+  async findByIdAdmin(idAdmin) {
+    const query = 'SELECT * FROM admin WHERE IdAdmin = ?';
+    const [rows] = await db.execute(query, [idAdmin]);
+    return rows[0];
+  }
 }
 
 export default new AdminRepository();
