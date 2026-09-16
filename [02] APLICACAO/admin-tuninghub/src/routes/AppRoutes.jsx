@@ -8,6 +8,7 @@ import ServicosPage from '../pages/Servicos/ServicosPage';
 import PlanosPage from '../pages/Planos/PlanosPage';
 import EstilosPage from '../pages/Estilos/EstilosPage';
 import OficinasPage from '../pages/Oficinas/OficinasPage';
+import AdminsPage from '../pages/Admins/AdminsPage';
 
 const AppRoutes = () => (
   <Routes>
@@ -26,6 +27,7 @@ const AppRoutes = () => (
       <Route path="/planos" element={<PlanosPage />} />
       <Route path="/estilos" element={<EstilosPage />} />
       <Route path="/oficinas" element={<OficinasPage />} />
+      <Route path="/admins" element={<AdminsPage />} />
     </Route>
 
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
