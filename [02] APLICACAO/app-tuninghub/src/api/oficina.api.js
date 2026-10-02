@@ -9,3 +9,13 @@ export async function buscarOficinas({ idServico, lat, lng } = {}) {
   const { data } = await api.get('/oficina/buscar', { params });
   return data;
 }
+
+export async function cadastrarOficina(dados) {
+  const { data } = await api.post('/oficina', dados);
+  return data.oficina; // { message, oficina }
+}
+
+export async function aceitarTermosOficina() {
+  const { data } = await api.patch('/oficina/aceitar-termos');
+  return data;
+}

@@ -4,24 +4,28 @@ import { login as loginApi } from '../api/auth.api';
 
 const TOKEN_KEY = 'tuninghub_token';
 const USUARIO_KEY = 'tuninghub_usuario';
+const TIPO_CONTA_KEY = 'tuninghub_tipo_conta';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
+  const [tipoConta, setTipoConta] = useState(null); // 'usuario' | 'oficina'
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     async function restaurarSessao() {
       try {
-        const [tokenSalvo, usuarioSalvo] = await Promise.all([
+        const [tokenSalvo, usuarioSalvo, tipoSalvo] = await Promise.all([
           SecureStore.getItemAsync(TOKEN_KEY),
           SecureStore.getItemAsync(USUARIO_KEY),
+          SecureStore.getItemAsync(TIPO_CONTA_KEY),
         ]);
         if (tokenSalvo && usuarioSalvo) {
           setToken(tokenSalvo);
           setUsuario(JSON.parse(usuarioSalvo));
+          setTipoConta(tipoSalvo || 'usuario');
         }
       } finally {
         setCarregando(false);
@@ -34,8 +38,19 @@ export function AuthProvider({ children }) {
     const resposta = await loginApi(tipo, email, senha);
     await SecureStore.setItemAsync(TOKEN_KEY, resposta.token);
     await SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(resposta.usuario));
+    await SecureStore.setItemAsync(TIPO_CONTA_KEY, tipo);
     setToken(resposta.token);
     setUsuario(resposta.usuario);
+    setTipoConta(tipo);
+  }
+
+  async function sair() {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(USUARIO_KEY);
+    await SecureStore.deleteItemAsync(TIPO_CONTA_KEY);
+    setToken(null);
+    setUsuario(null);
+    setTipoConta(null);
   }
 
   function atualizarAceiteTermos() {
@@ -46,16 +61,18 @@ export function AuthProvider({ children }) {
     });
   }
 
-  async function sair() {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(USUARIO_KEY);
-    setToken(null);
-    setUsuario(null);
-  }
-
   return (
     <AuthContext.Provider
-    value={{ usuario, token, carregando, autenticado: !!token, entrar, sair, atualizarAceiteTermos }}
+      value={{
+        usuario,
+        token,
+        tipoConta,
+        carregando,
+        autenticado: !!token,
+        entrar,
+        sair,
+        atualizarAceiteTermos,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { aceitarTermos } from '../../api/usuario.api';
+import { aceitarTermos as aceitarTermosUsuario } from '../../api/usuario.api';
+import { aceitarTermosOficina } from '../../api/oficina.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { TERMOS_DE_USO, DATA_ATUALIZACAO } from '../../constants/textosLegais';
 import DocumentoLegal from '../../components/DocumentoLegal';
@@ -11,7 +12,7 @@ import Button from '../../components/Button';
 
 export default function AceiteTermosScreen() {
   const { colors } = useTheme();
-  const { atualizarAceiteTermos, sair } = useAuth();
+  const { tipoConta, atualizarAceiteTermos, sair } = useAuth();
   const [marcado, setMarcado] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
@@ -24,7 +25,11 @@ export default function AceiteTermosScreen() {
     setErro('');
     setLoading(true);
     try {
-      await aceitarTermos();
+      if (tipoConta === 'oficina') {
+        await aceitarTermosOficina();
+      } else {
+        await aceitarTermosUsuario();
+      }
       atualizarAceiteTermos();
     } catch (e) {
       setErro(getErrorMessage(e));

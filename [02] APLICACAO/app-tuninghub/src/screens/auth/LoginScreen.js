@@ -1,18 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Alert, Animated, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage } from '../../utils/errorHandler';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen({ route, navigation }) {
   const { tipo } = route.params; // 'usuario' | 'oficina'
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const { entrar } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -52,7 +52,7 @@ export default function LoginScreen({ route, navigation }) {
 
   function handleCriarConta() {
     if (tipo === 'oficina') {
-      Alert.alert('Em breve', 'O cadastro de oficinas ainda está em desenvolvimento.');
+      navigation.navigate('CadastroOficinaAcesso');
       return;
     }
     navigation.navigate('Cadastro', { tipo });

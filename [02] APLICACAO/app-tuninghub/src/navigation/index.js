@@ -3,17 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
+import OficinaNavigator from './OficinaNavigator';
 import AceiteTermosScreen from '../screens/auth/AceiteTermosScreen';
 
 export default function RootNavigator() {
-  const { carregando, autenticado, usuario } = useAuth();
+  const { carregando, autenticado, usuario, tipoConta } = useAuth();
   const { colors, isDark } = useTheme();
-  const precisaAceitarTermos = autenticado && usuario && usuario.TermosAceitos === 0;
 
   if (carregando) return null;
 
   const baseTheme = isDark ? DarkTheme : DefaultTheme;
-
   const navTheme = {
     ...baseTheme,
     dark: isDark,
@@ -28,15 +27,14 @@ export default function RootNavigator() {
     },
   };
 
-  return (
-    <NavigationContainer theme={navTheme}>
-      {!autenticado ? (
-        <AuthNavigator />
-      ) : precisaAceitarTermos ? (
-        <AceiteTermosScreen />
-      ) : (
-        <AppNavigator />
-      )}
-    </NavigationContainer>
-  );
+  const precisaAceitarTermos = autenticado && usuario && usuario.TermosAceitos === 0;
+
+  function renderNavegacao() {
+    if (!autenticado) return <AuthNavigator />;
+    if (precisaAceitarTermos) return <AceiteTermosScreen />;
+    if (tipoConta === 'oficina') return <OficinaNavigator />;
+    return <AppNavigator />;
+  }
+
+  return <NavigationContainer theme={navTheme}>{renderNavegacao()}</NavigationContainer>;
 }
