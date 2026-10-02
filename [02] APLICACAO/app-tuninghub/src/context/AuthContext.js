@@ -11,7 +11,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
-  const [tipoConta, setTipoConta] = useState(null); // 'usuario' | 'oficina'
+  const [tipoConta, setTipoConta] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -61,6 +61,14 @@ export function AuthProvider({ children }) {
     });
   }
 
+  function atualizarUsuario(camposNovos) {
+    setUsuario((prev) => {
+      const atualizado = { ...prev, ...camposNovos };
+      SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(atualizado));
+      return atualizado;
+    });
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -72,6 +80,7 @@ export function AuthProvider({ children }) {
         entrar,
         sair,
         atualizarAceiteTermos,
+        atualizarUsuario,
       }}
     >
       {children}
