@@ -9,5 +9,6 @@ router.get('/', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), Assi
 router.post('/gratuita', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MASTER, ROLES.ADMIN), AssinaturaController.criarGratuita);
 router.post('/checkout', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MASTER, ROLES.ADMIN), AssinaturaController.checkout);
 router.post('/:id/confirmar-pagamento', verificarToken, AssinaturaController.confirmarPagamento);
+router.get('/minha', verificarToken, checkRole(ROLES.OFICINA), AssinaturaController.minhaAssinatura);
 
 export default router;

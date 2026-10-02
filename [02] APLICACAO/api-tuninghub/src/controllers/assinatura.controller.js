@@ -36,6 +36,15 @@ class AssinaturaController {
       next(error);
     }
   };
+
+  minhaAssinatura = async (req, res, next) => {
+  try {
+    const assinatura = await AssinaturaService.buscarPorOficina(req.usuarioLogado.id);
+    res.status(200).json(assinatura); // null se a oficina nunca assinou nada
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new AssinaturaController();

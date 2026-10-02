@@ -115,6 +115,11 @@ class AssinaturaService {
 
     return { status: 'ATIVA', dataFim };
   }
+
+  async buscarPorOficina(idOficina) {
+  const [assinatura] = await AssinaturaRepository.findAtivaOuPendentePorOficinaDetalhada(idOficina);
+  return assinatura || null;
+}
 }
 
 export default new AssinaturaService();

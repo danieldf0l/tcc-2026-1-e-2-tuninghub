@@ -52,6 +52,17 @@ class AssinaturaRepository {
   const [rows] = await db.execute(query, [idOficina]);
   return rows[0];
 }
+
+async findAtivaOuPendentePorOficinaDetalhada(idOficina) {
+  const query = `
+    SELECT a.*, p.Nome AS NomePlano, p.Valor AS ValorPlano, p.DuracaoDias
+    FROM assinatura a
+    INNER JOIN plano p ON a.IdPlano = p.IdPlano
+    WHERE a.IdOficina = ? AND a.Status IN ('ATIVA', 'PENDENTE')
+  `;
+  const [rows] = await db.execute(query, [idOficina]);
+  return rows;
+}
 }
 
 export default new AssinaturaRepository();
