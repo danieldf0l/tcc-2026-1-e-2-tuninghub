@@ -73,6 +73,15 @@ reativar = async (req, res, next) => {
     next(error);
   }
 };
+
+atualizarMinhaFaixaPreco = async (req, res, next) => {
+  try {
+    const resultado = await OficinaService.atualizarFaixaPreco(req.usuarioLogado.id, req.body.faixaPreco);
+    res.status(200).json({ message: 'Faixa de preço atualizada com sucesso!', ...resultado });
+  } catch (error) {
+    next(error);
+  }
+};
 }
 
 export default new OficinaController();
