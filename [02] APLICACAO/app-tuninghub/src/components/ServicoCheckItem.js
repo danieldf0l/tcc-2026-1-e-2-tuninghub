@@ -1,20 +1,20 @@
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
-export default function ServicoCheckItem({ nome, selecionado, jaAdicionado, onToggle }) {
+export default function ServicoCheckItem({ nome, selecionado, jaAdicionado, desabilitado, onToggle }) {
   const { colors } = useTheme();
-  const desabilitado = jaAdicionado;
+  const bloqueado = jaAdicionado || desabilitado;
 
   return (
     <Pressable
-      onPress={desabilitado ? undefined : onToggle}
+      onPress={bloqueado ? undefined : onToggle}
       style={({ pressed }) => [
         styles.row,
         {
           backgroundColor: colors.surface,
           borderColor: selecionado ? colors.primary : colors.border,
           borderWidth: selecionado ? 2 : 1,
-          opacity: desabilitado ? 0.5 : pressed ? 0.85 : 1,
+          opacity: bloqueado ? 0.5 : pressed ? 0.85 : 1,
         },
       ]}
     >

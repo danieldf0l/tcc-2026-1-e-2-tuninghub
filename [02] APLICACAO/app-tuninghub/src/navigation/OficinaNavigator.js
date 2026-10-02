@@ -1,7 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, User } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import AnimatedTabIcon from '../components/AnimatedTabIcon';
 import OficinaHomeScreen from '../screens/oficina/OficinaHomeScreen';
@@ -11,6 +10,8 @@ import EnderecoOficinaScreen from '../screens/oficina/perfil/EnderecoOficinaScre
 import PrivacidadeScreen from '../screens/perfil/PrivacidadeScreen';
 import TermosScreen from '../screens/perfil/TermosScreen';
 import AjudaScreen from '../screens/perfil/AjudaScreen';
+import { Home, Wrench, User } from 'lucide-react-native';
+import MeusServicosScreen from '../screens/oficina/servicos/MeusServicosScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -44,6 +45,16 @@ function OficinaTabs() {
           title: 'Início',
           tabBarIcon: ({ color, size, focused }) => (
             <AnimatedTabIcon Icone={Home} color={color} size={size} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="ServicosOficinaTab"
+        component={MeusServicosScreen}
+        options={{
+          title: 'Serviços',
+          tabBarIcon: ({ color, size, focused }) => (
+            <AnimatedTabIcon Icone={Wrench} color={color} size={size} focused={focused} />
           ),
         }}
       />
