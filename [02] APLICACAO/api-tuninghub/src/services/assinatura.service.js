@@ -21,7 +21,11 @@ class AssinaturaService {
     return await AssinaturaRepository.findAll();
   }
 
-  // Fluxo do Plano Gratuito -- ativa na hora, sem pagamento
+  async buscarPorOficina(idOficina) {
+    const [assinatura] = await AssinaturaRepository.findAtivaOuPendentePorOficinaDetalhada(idOficina);
+    return assinatura || null;
+  }
+
   async criarAssinaturaGratuita(dados, usuarioLogado) {
     const idOficina = resolverIdOficina(dados, usuarioLogado);
     const { idPlano, dataInicio } = dados;
@@ -52,7 +56,6 @@ class AssinaturaService {
     return { id: novoId, idOficina, idPlano, dataInicio, dataFim, status: 'ATIVA' };
   }
 
-  // Fluxo do Plano Pro -- gera checkout no AbacatePay
   async iniciarCheckout(dados, usuarioLogado) {
     const idOficina = resolverIdOficina(dados, usuarioLogado);
     const { idPlano } = dados;
@@ -70,7 +73,7 @@ class AssinaturaService {
       throw new ValidationError('Este plano é gratuito e não precisa de checkout.');
     }
 
-    const existente = await AssinaturaRepository.findAtivaOuPendentePorOficina(idOficina);
+    const existente = await AssinaturaRepository.findBloqueiaCheckoutPorOficina(idOficina);
     if (existente.length > 0) {
       throw new ConflictError('Esta oficina já possui uma assinatura ativa ou pendente.');
     }
@@ -88,7 +91,6 @@ class AssinaturaService {
     return { idAssinatura, checkoutUrl: checkout.url };
   }
 
-  // Confirma o pagamento consultando o status real no AbacatePay
   async confirmarPagamento(idAssinatura, usuarioLogado) {
     const assinatura = await AssinaturaRepository.findById(idAssinatura);
     if (!assinatura) throw new NotFoundError('Assinatura não encontrada.');
@@ -104,22 +106,17 @@ class AssinaturaService {
 
     const checkout = await AbacatePayService.obterCheckout(assinatura.IdCobrancaExterna);
 
-    // NOTA: confirmar o valor exato de "status pago" no primeiro teste real (ver comentário no abacatePay.service.js)
     if (checkout.status !== 'PAID' && checkout.status !== 'COMPLETED') {
       return { status: checkout.status, message: 'Pagamento ainda não confirmado.' };
     }
 
     const plano = await PlanoRepository.findById(assinatura.IdPlano);
     const dataFim = somarDias(assinatura.DataInicio, plano.DuracaoDias);
-    await AssinaturaRepository.ativar(idAssinatura, dataFim);
+
+    await AssinaturaRepository.ativarCancelandoAnteriores(idAssinatura, assinatura.IdOficina, dataFim);
 
     return { status: 'ATIVA', dataFim };
   }
-
-  async buscarPorOficina(idOficina) {
-  const [assinatura] = await AssinaturaRepository.findAtivaOuPendentePorOficinaDetalhada(idOficina);
-  return assinatura || null;
-}
 }
 
 export default new AssinaturaService();
