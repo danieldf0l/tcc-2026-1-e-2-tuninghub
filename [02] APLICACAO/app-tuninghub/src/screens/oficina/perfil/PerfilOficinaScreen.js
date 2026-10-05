@@ -1,10 +1,10 @@
 import { View, Text, ScrollView, StyleSheet, Linking, Alert } from 'react-native';
 import Constants from 'expo-constants';
-import { User, MapPin, ShieldCheck, FileText, Info, HelpCircle, MessageSquareWarning, LogOut } from 'lucide-react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 import MenuSection from '../../../components/MenuSection';
 import MenuListItem from '../../../components/MenuListItem';
+import { User, MapPin, CreditCard, ShieldCheck, FileText, Info, HelpCircle, MessageSquareWarning, LogOut } from 'lucide-react-native';
 
 const EMAIL_SUPORTE = 'suporte@tuninghub.com';
 
@@ -95,6 +95,25 @@ export default function PerfilOficinaScreen({ navigation }) {
           titulo="Sobre o aplicativo"
           subtitulo={`Versão ${versao}`}
           chevron={false}
+          ultimo
+        />
+        <MenuListItem
+          Icone={User}
+          titulo="Meus dados"
+          subtitulo="Nome, CNPJ, faixa de preço..."
+          onPress={() => navigation.navigate('MeusDadosOficina')}
+        />
+        <MenuListItem
+          Icone={CreditCard}
+          titulo="Meu plano"
+          subtitulo="Assinatura e pagamento"
+          onPress={() => navigation.navigate('MinhaAssinatura')}
+        />
+        <MenuListItem
+          Icone={MapPin}
+          titulo="Endereço"
+          subtitulo="Localização e raio de atuação"
+          onPress={() => navigation.navigate('EnderecoOficina')}
           ultimo
         />
       </MenuSection>

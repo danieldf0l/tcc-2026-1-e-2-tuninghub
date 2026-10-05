@@ -5,9 +5,10 @@ import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
 import OficinaNavigator from './OficinaNavigator';
 import AceiteTermosScreen from '../screens/auth/AceiteTermosScreen';
+import EscolhaPlanoGateScreen from '../screens/oficina/assinatura/EscolhaPlanoGateScreen';
 
 export default function RootNavigator() {
-  const { carregando, autenticado, usuario, tipoConta } = useAuth();
+  const { carregando, autenticado, usuario, tipoConta, assinatura } = useAuth();
   const { colors, isDark } = useTheme();
 
   if (carregando) return null;
@@ -28,11 +29,14 @@ export default function RootNavigator() {
   };
 
   const precisaAceitarTermos = autenticado && usuario && usuario.TermosAceitos === 0;
+  const ehOficina = autenticado && tipoConta === 'oficina';
+  const precisaEscolherPlano = ehOficina && !assinatura;
 
   function renderNavegacao() {
     if (!autenticado) return <AuthNavigator />;
     if (precisaAceitarTermos) return <AceiteTermosScreen />;
-    if (tipoConta === 'oficina') return <OficinaNavigator />;
+    if (precisaEscolherPlano) return <EscolhaPlanoGateScreen />;
+    if (ehOficina) return <OficinaNavigator />;
     return <AppNavigator />;
   }
 

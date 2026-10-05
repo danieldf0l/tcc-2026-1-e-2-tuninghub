@@ -72,7 +72,8 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
 
       // Oficina criada com sucesso (transação atômica) — autentica automaticamente
       await entrar('oficina', email, senha);
-      // Navegação pós-login é tratada automaticamente pelo RootNavigator
+      // A navegação para a escolha de plano é tratada automaticamente pelo RootNavigator
+      // (toda oficina sem assinatura cai direto na tela MinhaAssinatura, sem acesso ao resto do app)
     } catch (e) {
       setErro(getErrorMessage(e));
     } finally {

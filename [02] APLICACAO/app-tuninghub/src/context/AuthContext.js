@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { login as loginApi } from '../api/auth.api';
+import { buscarMinhaAssinatura } from '../api/assinatura.api';
 
 const TOKEN_KEY = 'tuninghub_token';
 const USUARIO_KEY = 'tuninghub_usuario';
@@ -8,10 +9,19 @@ const TIPO_CONTA_KEY = 'tuninghub_tipo_conta';
 
 const AuthContext = createContext(null);
 
+async function buscarAssinaturaSegura() {
+  try {
+    return await buscarMinhaAssinatura();
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
   const [tipoConta, setTipoConta] = useState(null);
+  const [assinatura, setAssinatura] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
@@ -23,9 +33,13 @@ export function AuthProvider({ children }) {
           SecureStore.getItemAsync(TIPO_CONTA_KEY),
         ]);
         if (tokenSalvo && usuarioSalvo) {
+          const tipo = tipoSalvo || 'usuario';
+          if (tipo === 'oficina') {
+            setAssinatura(await buscarAssinaturaSegura());
+          }
           setToken(tokenSalvo);
           setUsuario(JSON.parse(usuarioSalvo));
-          setTipoConta(tipoSalvo || 'usuario');
+          setTipoConta(tipo);
         }
       } finally {
         setCarregando(false);
@@ -39,6 +53,11 @@ export function AuthProvider({ children }) {
     await SecureStore.setItemAsync(TOKEN_KEY, resposta.token);
     await SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(resposta.usuario));
     await SecureStore.setItemAsync(TIPO_CONTA_KEY, tipo);
+
+    // O interceptor do axios lê o token do SecureStore, então já dá para consultar a assinatura aqui
+    const assinaturaAtual = tipo === 'oficina' ? await buscarAssinaturaSegura() : null;
+
+    setAssinatura(assinaturaAtual);
     setToken(resposta.token);
     setUsuario(resposta.usuario);
     setTipoConta(tipo);
@@ -51,6 +70,13 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUsuario(null);
     setTipoConta(null);
+    setAssinatura(null);
+  }
+
+  async function verificarAssinatura() {
+    const atual = await buscarAssinaturaSegura();
+    setAssinatura(atual);
+    return atual;
   }
 
   function atualizarAceiteTermos() {
@@ -75,10 +101,12 @@ export function AuthProvider({ children }) {
         usuario,
         token,
         tipoConta,
+        assinatura,
         carregando,
         autenticado: !!token,
         entrar,
         sair,
+        verificarAssinatura,
         atualizarAceiteTermos,
         atualizarUsuario,
       }}
