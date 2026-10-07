@@ -8,6 +8,7 @@ import MeusDadosScreen from '../screens/perfil/MeusDadosScreen';
 import PrivacidadeScreen from '../screens/perfil/PrivacidadeScreen';
 import TermosScreen from '../screens/perfil/TermosScreen';
 import AjudaScreen from '../screens/perfil/AjudaScreen';
+import OficinaPerfilScreen from '../screens/oficina/OficinaPerfilScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Privacidade" component={PrivacidadeScreen} />
       <Stack.Screen name="Termos" component={TermosScreen} />
       <Stack.Screen name="Ajuda" component={AjudaScreen} />
+      <Stack.Screen name="OficinaPerfil" component={OficinaPerfilScreen} />
     </Stack.Navigator>
   );
 }

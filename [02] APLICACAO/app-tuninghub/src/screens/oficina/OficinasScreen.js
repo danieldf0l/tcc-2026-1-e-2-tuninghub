@@ -114,9 +114,7 @@ export default function OficinasScreen({ navigation }) {
           renderItem={({ item }) => (
             <OficinaCard
               oficina={item}
-              fotoUrl={extras[item.IdOficina]?.fotoUrl}
-              servicos={extras[item.IdOficina]?.servicos || []}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('OficinaPerfil', { oficina: item })}
             />
           )}
         />
