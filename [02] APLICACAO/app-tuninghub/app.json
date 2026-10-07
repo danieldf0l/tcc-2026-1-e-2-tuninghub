@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "app-tuninghub",
+    "name": "TuningHub",
     "slug": "app-tuninghub",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#050505"
     },
     "ios": {
       "supportsTablet": true
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#050505"
       },
       "edgeToEdgeEnabled": true
     },
@@ -28,9 +28,9 @@
     "plugins": [
       "expo-secure-store",
       [
-        "expo-location",
+        "expo-image-picker",
         {
-          "locationAlwaysAndWhenInUsePermission": "O TuningHub usa sua localização para mostrar as oficinas mais próximas de você."
+          "photosPermission": "O TuningHub precisa acessar suas fotos para você enviar a logo e as imagens da sua oficina."
         }
       ],
       "expo-status-bar"
