@@ -14,6 +14,7 @@ import { Home, Wrench, User } from 'lucide-react-native';
 import MeusServicosScreen from '../screens/oficina/servicos/MeusServicosScreen';
 import MinhaAssinaturaScreen from '../screens/oficina/assinatura/MinhaAssinaturaScreen';
 import FotosOficinaScreen from '../screens/oficina/imagens/FotosOficinaScreen';
+import OficinaPerfilScreen from '../screens/oficina/OficinaPerfilScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -85,6 +86,7 @@ export default function OficinaNavigator() {
       <Stack.Screen name="Ajuda" component={AjudaScreen} />
       <Stack.Screen name="MinhaAssinatura" component={MinhaAssinaturaScreen} />
       <Stack.Screen name="FotosOficina" component={FotosOficinaScreen} />
+      <Stack.Screen name="OficinaPerfil" component={OficinaPerfilScreen} />
     </Stack.Navigator>
   );
 }
