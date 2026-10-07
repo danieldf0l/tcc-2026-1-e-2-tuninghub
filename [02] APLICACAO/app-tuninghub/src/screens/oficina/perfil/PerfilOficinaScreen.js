@@ -4,7 +4,7 @@ import { useTheme } from '../../../theme/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 import MenuSection from '../../../components/MenuSection';
 import MenuListItem from '../../../components/MenuListItem';
-import { User, MapPin, CreditCard, ShieldCheck, FileText, Info, HelpCircle, MessageSquareWarning, LogOut } from 'lucide-react-native';
+import { User, MapPin, CreditCard, Camera, ShieldCheck, FileText, Info, HelpCircle, MessageSquareWarning, LogOut } from 'lucide-react-native';
 
 const EMAIL_SUPORTE = 'suporte@tuninghub.com';
 
@@ -91,29 +91,28 @@ export default function PerfilOficinaScreen({ navigation }) {
           onPress={() => navigation.navigate('Termos')}
         />
         <MenuListItem
-          Icone={Info}
-          titulo="Sobre o aplicativo"
-          subtitulo={`Versão ${versao}`}
-          chevron={false}
-          ultimo
-        />
-        <MenuListItem
-          Icone={User}
-          titulo="Meus dados"
-          subtitulo="Nome, CNPJ, faixa de preço..."
-          onPress={() => navigation.navigate('MeusDadosOficina')}
-        />
-        <MenuListItem
           Icone={CreditCard}
           titulo="Meu plano"
           subtitulo="Assinatura e pagamento"
           onPress={() => navigation.navigate('MinhaAssinatura')}
         />
         <MenuListItem
+          Icone={Camera}
+          titulo="Fotos da oficina"
+          subtitulo="Logo e galeria"
+          onPress={() => navigation.navigate('FotosOficina')}
+        />
+        <MenuListItem
           Icone={MapPin}
           titulo="Endereço"
           subtitulo="Localização e raio de atuação"
           onPress={() => navigation.navigate('EnderecoOficina')}
+        />
+        <MenuListItem
+          Icone={Info}
+          titulo="Sobre o aplicativo"
+          subtitulo={`Versão ${versao}`}
+          chevron={false}
           ultimo
         />
       </MenuSection>
