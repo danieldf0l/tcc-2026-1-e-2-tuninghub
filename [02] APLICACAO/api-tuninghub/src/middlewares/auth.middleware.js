@@ -43,6 +43,9 @@ export const verificarToken = async (req, res, next) => {
       if (senhaAlteradaEm && decoded.iat < senhaAlteradaEm) {
         return next(new UnauthorizedError('Sessão expirada. Faça login novamente.'));
       }
+      if (decoded.role === ROLES.ADMIN || decoded.role === ROLES.ADMIN_MASTER) {
+        decoded.role = conta.NivelAcesso === 'SUPER' ? ROLES.ADMIN_MASTER : ROLES.ADMIN;
+      }
     }
 
     req.usuarioLogado = decoded;

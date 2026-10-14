@@ -9,6 +9,7 @@ import EmailService from './email.service.js';
 import { UnauthorizedError, ForbiddenError, ValidationError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG } from '../utils/validators.js';
+import LogSistemaService from './logSistema.service.js';
 
 // Recuperação de senha (RN05): usuário e oficina; admin fica de fora.
 const TIPOS_RECUPERACAO = {
@@ -77,7 +78,7 @@ class AuthService {
   }
 
   async loginAdmin(email, senha) {
-    const admin = await AdminRepository.findByEmail(email);
+    const admin = await AdminRepository.findByEmailQualquerStatus(email);
     if (!admin) {
       throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
@@ -86,9 +87,16 @@ class AuthService {
       throw new UnauthorizedError('E-mail ou senha inválidos.');
     }
 
+    if (!admin.Ativo) {
+      throw new ForbiddenError('Conta desativada. Contate o suporte.');
+    }
+
     const role = admin.NivelAcesso === 'SUPER' ? ROLES.ADMIN_MASTER : ROLES.ADMIN;
     const { Senha: _senha, ...dados } = admin;
     const token = this.#gerarToken({ id: admin.IdAdmin, email: admin.Email, role });
+
+    // sem await de propósito: o log nunca atrasa nem derruba o login
+    LogSistemaService.registrar({ idAdmin: admin.IdAdmin, acao: 'LOGIN', entidade: 'admin', idReferencia: admin.IdAdmin });
 
     return { usuario: dados, token };
   }

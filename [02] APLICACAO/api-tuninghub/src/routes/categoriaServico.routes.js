@@ -2,6 +2,7 @@ import { Router } from 'express';
 import CategoriaServicoController from '../controllers/categoriaServico.controller.js';
 import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
 import { ROLES } from '../constants/roles.js';
+import { registrarAcao } from '../middlewares/registrarAcao.middleware.js';
 
 const router = Router();
 

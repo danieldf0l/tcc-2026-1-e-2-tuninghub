@@ -1,18 +1,91 @@
 {
   "info": {
-    "_postman_id": "4ed4d507-2619-40fa-aacb-98b5a42041e1",
     "name": "TuningHub API",
-    "description": "Collection completa da API do TuningHub (TCC), organizada por módulo na mesma ordem em que foram revisados/testados.",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "50555061",
-    "_collection_link": "https://go.postman.co/collection/50555061-4ed4d507-2619-40fa-aacb-98b5a42041e1?source=collection_link"
+    "description": "Collection completa da API do TuningHub (TCC). Use o environment 'TuningHub Local' (base_url, token). Os logins salvam o token automaticamente. IDs de exemplo ficam nas variáveis da collection (aba Variables).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "id",
+      "value": "1"
+    },
+    {
+      "key": "idUsuario",
+      "value": "1"
+    },
+    {
+      "key": "idOficina",
+      "value": "1"
+    },
+    {
+      "key": "idMontadora",
+      "value": "1"
+    },
+    {
+      "key": "idPlano",
+      "value": "1"
+    },
+    {
+      "key": "idAssinatura",
+      "value": "1"
+    },
+    {
+      "key": "idServico",
+      "value": "1"
+    },
+    {
+      "key": "idProjeto",
+      "value": "1"
+    },
+    {
+      "key": "idImagem",
+      "value": "1"
+    }
+  ],
   "item": [
     {
       "name": "Auth",
       "item": [
         {
           "name": "Login - Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login/usuario",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                "usuario"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}"
+            },
+            "description": "200 e salva o token. 401 credenciais inválidas; 403 conta desativada. Limite de 10 req/15min por IP em /auth."
+          },
           "event": [
             {
               "listen": "test",
@@ -26,11 +99,11 @@
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Login - Oficina",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
@@ -38,26 +111,25 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"teste@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/auth/login/usuario",
+              "raw": "{{base_url}}/auth/login/oficina",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "auth",
                 "login",
-                "usuario"
+                "oficina"
               ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"oficina1@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}"
             }
           },
-          "response": []
-        },
-        {
-          "name": "Login - Oficina",
           "event": [
             {
               "listen": "test",
@@ -71,11 +143,11 @@
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Login - Admin",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
@@ -83,26 +155,25 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"oficina1@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/auth/login/oficina",
+              "raw": "{{base_url}}/auth/login/admin",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "auth",
                 "login",
-                "oficina"
+                "admin"
               ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"master@tuninghub.com\",\n  \"senha\": \"SenhaForte@123\"\n}"
             }
           },
-          "response": []
-        },
-        {
-          "name": "Login - Admin",
           "event": [
             {
               "listen": "test",
@@ -116,11 +187,11 @@
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Esqueci minha senha - Usuário",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
@@ -128,23 +199,113 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"master@tuninghub.com\",\n  \"senha\": \"SenhaForte@123\"\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/auth/login/admin",
+              "raw": "{{base_url}}/auth/esqueci-senha",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "auth",
-                "login",
-                "admin"
+                "esqueci-senha"
               ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@tuninghub.com\",\n  \"tipo\": \"usuario\"\n}"
+            },
+            "description": "Sempre 200 com mensagem genérica (não revela se o e-mail existe). Envia código de 6 dígitos (15 min). 1 e-mail/minuto por conta. 422 se e-mail/tipo inválidos."
+          }
+        },
+        {
+          "name": "Esqueci minha senha - Oficina",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/esqueci-senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "esqueci-senha"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"oficina1@tuninghub.com\",\n  \"tipo\": \"oficina\"\n}"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Redefinir senha - Usuário",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/redefinir-senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "redefinir-senha"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@tuninghub.com\",\n  \"tipo\": \"usuario\",\n  \"codigo\": \"123456\",\n  \"novaSenha\": \"NovaSenha@456\",\n  \"confirmarNovaSenha\": \"NovaSenha@456\"\n}"
+            },
+            "description": "200 e derruba as sessões abertas. 422 'Código inválido ou expirado.' (código errado, expirado, já usado ou 5 erros). Senha fraca/divergente = 422 sem gastar tentativa."
+          }
+        },
+        {
+          "name": "Redefinir senha - Oficina",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/redefinir-senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "redefinir-senha"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"oficina1@tuninghub.com\",\n  \"tipo\": \"oficina\",\n  \"codigo\": \"123456\",\n  \"novaSenha\": \"NovaSenha@456\",\n  \"confirmarNovaSenha\": \"NovaSenha@456\"\n}"
+            }
+          }
         }
       ]
     },
@@ -154,9 +315,6 @@
         {
           "name": "Cadastrar Usuário",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
@@ -164,10 +322,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Usuário Teste\",\n  \"email\": \"teste@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"confirmarSenha\": \"Senha@123\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/usuario",
               "host": [
@@ -176,9 +330,16 @@
               "path": [
                 "usuario"
               ]
-            }
-          },
-          "response": []
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Usuário Teste\",\n  \"email\": \"teste@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"confirmarSenha\": \"Senha@123\",\n  \"termosAceitos\": true\n}"
+            },
+            "description": "Senha: mínimo 8, com maiúscula, número e caractere especial. termosAceitos obrigatório."
+          }
         },
         {
           "name": "Listar Usuários (admin)",
@@ -194,8 +355,202 @@
                 "usuario"
               ]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Listar Usuários - painel admin (ativos e inativos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuario/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "admin"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Desativar Usuário (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuario/{{idUsuario}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "{{idUsuario}}"
+              ]
+            },
+            "description": "Soft delete (pausa a conta)."
+          }
+        },
+        {
+          "name": "Reativar Usuário (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuario/{{idUsuario}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "{{idUsuario}}",
+                "reativar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aceitar Termos (usuário)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuario/aceitar-termos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "aceitar-termos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Meus Dados (usuário)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usuario/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Editar Meus Dados - nome (usuário)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuario/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Nome Novo\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Editar Meus Dados - e-mail (exige senhaAtual)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuario/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo_email@tuninghub.com\",\n  \"senhaAtual\": \"Senha@123\"\n}"
+            },
+            "description": "Trocar e-mail exige senhaAtual (422 se faltar ou errada). 409 se o e-mail já está em uso. Limite: 5 erros/15min."
+          }
+        },
+        {
+          "name": "Trocar Senha (usuário)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuario/me/senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "me",
+                "senha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"Senha@123\",\n  \"novaSenha\": \"NovaSenha@456\",\n  \"confirmarNovaSenha\": \"NovaSenha@456\"\n}"
+            },
+            "description": "200 e derruba TODAS as sessões abertas (inclusive esta): fazer login de novo. Limite: 5 erros/15min."
+          }
+        },
+        {
+          "name": "Excluir Minha Conta - LGPD (usuário)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/usuario/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usuario",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"Senha@123\",\n  \"confirmacao\": \"EXCLUIR\"\n}"
+            },
+            "description": "IRREVERSÍVEL. Apaga projetos, To-do Lists, tokens e a conta. Limite: 5 erros/15min."
+          }
         }
       ]
     },
@@ -212,10 +567,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Admin Padrão\",\n  \"email\": \"moderador@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"nivelAcesso\": \"PADRAO\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/admin",
               "host": [
@@ -224,9 +575,12 @@
               "path": [
                 "admin"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Admin Padrão\",\n  \"email\": \"moderador@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"nivelAcesso\": \"PADRAO\"\n}"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Listar Admins",
@@ -242,8 +596,7 @@
                 "admin"
               ]
             }
-          },
-          "response": []
+          }
         }
       ]
     },
@@ -251,11 +604,8 @@
       "name": "Montadora",
       "item": [
         {
-          "name": "Listar Montadoras",
+          "name": "Listar Montadora (público, só ativos)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -266,9 +616,28 @@
               "path": [
                 "montadora"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Listar Montadora - admin (todos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/montadora/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "montadora",
+                "admin"
+              ]
+            }
+          }
         },
         {
           "name": "Criar Montadora (admin)",
@@ -280,10 +649,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Montadora Teste\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/montadora",
               "host": [
@@ -292,21 +657,83 @@
               "path": [
                 "montadora"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Montadora Teste\"\n}"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Editar Montadora (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/montadora/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "montadora",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Montadora Renomeada\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Montadora (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/montadora/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "montadora",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Montadora (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/montadora/{{id}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "montadora",
+                "{{id}}",
+                "reativar"
+              ]
+            }
+          }
         }
-      ]
+      ],
+      "description": "Desativar uma montadora desativa em cascata todos os modelos dela."
     },
     {
       "name": "Modelo",
       "item": [
         {
-          "name": "Listar Modelos",
+          "name": "Listar Modelo (público, só ativos)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -317,31 +744,49 @@
               "path": [
                 "modelo"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Listar Modelo - admin (todos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/modelo/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "modelo",
+                "admin"
+              ]
+            }
+          }
         },
         {
           "name": "Listar Modelos por Montadora",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/modelo/montadora/1",
+              "raw": "{{base_url}}/modelo/montadora/{{idMontadora}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "modelo",
                 "montadora",
-                "1"
+                "{{idMontadora}}"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Criar Modelo (admin)",
@@ -353,10 +798,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idMontadora\": 1,\n  \"nome\": \"Modelo Teste\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/modelo",
               "host": [
@@ -365,9 +806,73 @@
               "path": [
                 "modelo"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idMontadora\": 1,\n  \"nome\": \"Modelo Teste\"\n}"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Editar Modelo (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/modelo/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "modelo",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Modelo Renomeado\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Modelo (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/modelo/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "modelo",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Modelo (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/modelo/{{id}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "modelo",
+                "{{id}}",
+                "reativar"
+              ]
+            }
+          }
         }
       ]
     },
@@ -375,11 +880,8 @@
       "name": "Oficina",
       "item": [
         {
-          "name": "Cadastrar Oficina",
+          "name": "Cadastrar Oficina (atômico, com endereço)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "POST",
             "header": [
               {
@@ -387,10 +889,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nomeOficina\": \"Oficina Teste\",\n  \"cnpj\": \"11.222.333/0001-81\",\n  \"nomeProprietario\": \"Fulano\",\n  \"telefone\": \"11999999999\",\n  \"email\": \"oficina1@tuninghub.com\",\n  \"senha\": \"Senha@123\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/oficina",
               "host": [
@@ -399,16 +897,20 @@
               "path": [
                 "oficina"
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Listar Oficinas",
-          "request": {
+            },
             "auth": {
               "type": "noauth"
             },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeOficina\": \"Oficina Teste\",\n  \"cnpj\": \"11.222.333/0001-81\",\n  \"nomeProprietario\": \"Fulano\",\n  \"telefone\": \"11999999999\",\n  \"email\": \"oficina1@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"termosAceitos\": true,\n  \"endereco\": {\n    \"rua\": \"Av. Engenheiro Eusébio Stevaux\",\n    \"numero\": \"823\",\n    \"bairro\": \"Jurubatuba\",\n    \"cidade\": \"São Paulo\",\n    \"estado\": \"SP\",\n    \"cep\": \"04696-000\"\n  }\n}"
+            },
+            "description": "Valida CNPJ na Receita (situação ativa + CNAE automotivo), geocodifica e exige raio de 4 km do SENAC. Oficina + endereço em transação. Use um CNPJ real e ativo."
+          }
+        },
+        {
+          "name": "Listar Oficinas (público)",
+          "request": {
             "method": "GET",
             "header": [],
             "url": {
@@ -419,9 +921,296 @@
               "path": [
                 "oficina"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Listar Oficinas - painel admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficina/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "admin"
+              ]
+            },
+            "description": "Não devolve o hash da senha."
+          }
+        },
+        {
+          "name": "Buscar Oficinas por proximidade (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficina/buscar?idServico=1&lat=-23.6519&lng=-46.7121",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "idServico",
+                  "value": "1"
+                },
+                {
+                  "key": "lat",
+                  "value": "-23.6519"
+                },
+                {
+                  "key": "lng",
+                  "value": "-46.7121"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Sem lat/lng usa o SENAC como referência; idServico é opcional; ordena por distância."
+          }
+        },
+        {
+          "name": "Meus Dados (oficina)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficina/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Editar Meus Dados (oficina)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficina/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeOficina\": \"Oficina Nome Novo\",\n  \"nomeProprietario\": \"João Silva\",\n  \"telefone\": \"11999998888\"\n}"
+            },
+            "description": "Editáveis: nomeOficina, nomeProprietario, telefone, email. CNPJ/CNAE não são editáveis. Endereço: POST /endereco/:idOficina. Proprietário/telefone: \"\" limpa o campo."
+          }
+        },
+        {
+          "name": "Editar Meus Dados - e-mail (exige senhaAtual)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficina/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"novo_oficina@tuninghub.com\",\n  \"senhaAtual\": \"Senha@123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Trocar Senha (oficina)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficina/me/senha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "me",
+                "senha"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senhaAtual\": \"Senha@123\",\n  \"novaSenha\": \"NovaSenha@456\",\n  \"confirmarNovaSenha\": \"NovaSenha@456\"\n}"
+            },
+            "description": "200 e derruba TODAS as sessões abertas: fazer login de novo."
+          }
+        },
+        {
+          "name": "Definir Minha Faixa de Preço (oficina)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficina/me/faixa-preco",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "me",
+                "faixa-preco"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"faixaPreco\": \"$$\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Definir Faixa de Preço (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficina/{{idOficina}}/faixa-preco",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "{{idOficina}}",
+                "faixa-preco"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"faixaPreco\": \"$$$\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Aceitar Termos (oficina)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficina/aceitar-termos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "aceitar-termos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Desativar Oficina (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficina/{{idOficina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "{{idOficina}}"
+              ]
+            },
+            "description": "Soft delete (pausa a conta)."
+          }
+        },
+        {
+          "name": "Reativar Oficina (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficina/{{idOficina}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "{{idOficina}}",
+                "reativar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Excluir Minha Conta - LGPD (oficina)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficina/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficina",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"Senha@123\",\n  \"confirmacao\": \"EXCLUIR\"\n}"
+            },
+            "description": "IRREVERSÍVEL. Apaga imagens (banco + arquivos), serviços, endereço, assinaturas, tokens e a conta."
+          }
         }
       ]
     },
@@ -429,7 +1218,27 @@
       "name": "Endereco",
       "item": [
         {
-          "name": "Salvar/Atualizar Endereço (dono ou admin)",
+          "name": "Buscar Endereço da Oficina (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/endereco/{{idOficina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "endereco",
+                "{{idOficina}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Editar Endereço (dono ou admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -438,43 +1247,73 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{base_url}}/endereco/{{idOficina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "endereco",
+                "{{idOficina}}"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"rua\": \"Av. Engenheiro Eusébio Stevaux\",\n  \"numero\": \"823\",\n  \"bairro\": \"Jurubatuba\",\n  \"cidade\": \"São Paulo\",\n  \"estado\": \"SP\",\n  \"cep\": \"04696-000\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/endereco/1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "endereco",
-                "1"
-              ]
-            }
-          },
-          "response": []
-        },
+            "description": "Somente edição (o endereço nasce no cadastro da oficina). Geocodifica e bloqueia se > 4 km do SENAC."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Geolocalizacao",
+      "item": [
         {
-          "name": "Buscar Endereço da Oficina",
+          "name": "Geocodificar endereço (público)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/endereco/1",
+              "raw": "{{base_url}}/geolocalizacao/geocodificar?rua=Av. Engenheiro Eusébio Stevaux&numero=823&bairro=Jurubatuba&cidade=São Paulo&estado=SP&cep=04696-000",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "endereco",
-                "1"
+                "geolocalizacao",
+                "geocodificar"
+              ],
+              "query": [
+                {
+                  "key": "rua",
+                  "value": "Av. Engenheiro Eusébio Stevaux"
+                },
+                {
+                  "key": "numero",
+                  "value": "823"
+                },
+                {
+                  "key": "bairro",
+                  "value": "Jurubatuba"
+                },
+                {
+                  "key": "cidade",
+                  "value": "São Paulo"
+                },
+                {
+                  "key": "estado",
+                  "value": "SP"
+                },
+                {
+                  "key": "cep",
+                  "value": "04696-000"
+                }
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
         }
       ]
     },
@@ -482,11 +1321,8 @@
       "name": "Plano",
       "item": [
         {
-          "name": "Listar Planos",
+          "name": "Listar Planos (público, só ativos)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -497,9 +1333,28 @@
               "path": [
                 "plano"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Listar Planos - admin (todos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/plano/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plano",
+                "admin"
+              ]
+            }
+          }
         },
         {
           "name": "Criar Plano (admin)",
@@ -511,10 +1366,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Pro Mensal\",\n  \"valor\": 49.90,\n  \"duracaoDias\": 30\n}"
-            },
             "url": {
               "raw": "{{base_url}}/plano",
               "host": [
@@ -523,12 +1374,77 @@
               "path": [
                 "plano"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Pro Mensal\",\n  \"valor\": 49.9,\n  \"duracaoDias\": 30\n}"
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Vincular Produto Externo (admin)",
+          "name": "Editar Plano (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/plano/{{idPlano}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plano",
+                "{{idPlano}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Pro Mensal\",\n  \"duracaoDias\": 30\n}"
+            },
+            "description": "'valor' é rejeitado (422): o preço cobrado vem do produto no AbacatePay."
+          }
+        },
+        {
+          "name": "Desativar Plano (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/plano/{{idPlano}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plano",
+                "{{idPlano}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Plano (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/plano/{{idPlano}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "plano",
+                "{{idPlano}}",
+                "reativar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Vincular Produto Externo - AbacatePay (admin)",
           "request": {
             "method": "PATCH",
             "header": [
@@ -537,23 +1453,22 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idProdutoExterno\": \"prod_xxx\"\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/plano/2/produto-externo",
+              "raw": "{{base_url}}/plano/{{idPlano}}/produto-externo",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "plano",
-                "2",
+                "{{idPlano}}",
                 "produto-externo"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idProdutoExterno\": \"prod_xxx\"\n}"
             }
-          },
-          "response": []
+          }
         }
       ]
     },
@@ -570,10 +1485,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idPlano\": 1,\n  \"dataInicio\": \"2026-08-05\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/assinatura/gratuita",
               "host": [
@@ -583,9 +1494,12 @@
                 "assinatura",
                 "gratuita"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPlano\": 1,\n  \"dataInicio\": \"2026-10-14\"\n}"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Iniciar Checkout Plano Pro (oficina)",
@@ -597,10 +1511,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idPlano\": 3\n}"
-            },
             "url": {
               "raw": "{{base_url}}/assinatura/checkout",
               "host": [
@@ -610,28 +1520,64 @@
                 "assinatura",
                 "checkout"
               ]
-            }
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPlano\": 3\n}"
+            },
+            "description": "201 com checkoutUrl. Checkout pendente do mesmo plano é reaproveitado (reaproveitado: true). 409 se já tem plano pago ativo ou se o pagamento anterior já foi confirmado."
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const r = pm.response.json();",
+                  "    pm.collectionVariables.set('idAssinatura', r.idAssinatura);",
+                  "    console.log('Checkout:', r.checkoutUrl, r.reaproveitado ? '(reaproveitado)' : '');",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Confirmar Pagamento",
+          "name": "Confirmar Pagamento (dono ou admin)",
           "request": {
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/assinatura/1/confirmar-pagamento",
+              "raw": "{{base_url}}/assinatura/{{idAssinatura}}/confirmar-pagamento",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "assinatura",
-                "1",
+                "{{idAssinatura}}",
                 "confirmar-pagamento"
               ]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Minha Assinatura (oficina)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/assinatura/minha",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "assinatura",
+                "minha"
+              ]
+            },
+            "description": "null se não há assinatura vigente (inclui vencida → EXPIRADA)."
+          }
         },
         {
           "name": "Listar Assinaturas (admin)",
@@ -647,8 +1593,7 @@
                 "assinatura"
               ]
             }
-          },
-          "response": []
+          }
         }
       ]
     },
@@ -656,11 +1601,8 @@
       "name": "Servico",
       "item": [
         {
-          "name": "Listar Serviços",
+          "name": "Listar Serviço (público, só ativos)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -671,9 +1613,28 @@
               "path": [
                 "servico"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Listar Serviço - admin (todos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/servico/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "servico",
+                "admin"
+              ]
+            }
+          }
         },
         {
           "name": "Criar Serviço (admin)",
@@ -685,10 +1646,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Alinhamento e Balanceamento\",\n  \"descricao\": \"Ajuste da geometria de suspensão\",\n  \"categoria\": \"SUSPENSAO\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/servico",
               "host": [
@@ -697,38 +1654,117 @@
               "path": [
                 "servico"
               ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "OficinaServico",
-      "item": [
-        {
-          "name": "Listar Serviços da Oficina",
-          "request": {
-            "auth": {
-              "type": "noauth"
             },
-            "method": "GET",
-            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Alinhamento e Balanceamento\",\n  \"descricao\": \"Ajuste da geometria de suspensão\",\n  \"idCategoria\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Editar Serviço (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{base_url}}/oficinaservico/1",
+              "raw": "{{base_url}}/servico/{{id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "oficinaservico",
-                "1"
+                "servico",
+                "{{id}}"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Alinhamento e Balanceamento\",\n  \"descricao\": \"Descrição nova\",\n  \"idCategoria\": 1\n}"
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Vincular Serviço à Oficina (dono ou admin)",
+          "name": "Desativar Serviço (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/servico/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "servico",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Serviço (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/servico/{{id}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "servico",
+                "{{id}}",
+                "reativar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "CategoriaServico",
+      "item": [
+        {
+          "name": "Listar Categoria de Serviço (público, só ativos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categoriaservico",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categoriaservico"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Listar Categoria de Serviço - admin (todos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categoriaservico/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categoriaservico",
+                "admin"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Categoria de Serviço (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -737,52 +1773,218 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idServico\": 1\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/oficinaservico",
+              "raw": "{{base_url}}/categoriaservico",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "oficinaservico"
+                "categoriaservico"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Suspensão\"\n}"
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Desvincular Serviço da Oficina (dono ou admin)",
+          "name": "Editar Categoria de Serviço (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/categoriaservico/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categoriaservico",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Suspensão e Direção\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Categoria de Serviço (ADMIN_MASTER)",
           "request": {
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/oficinaservico/1/1",
+              "raw": "{{base_url}}/categoriaservico/{{id}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
-                "oficinaservico",
-                "1",
-                "1"
+                "categoriaservico",
+                "{{id}}"
               ]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Reativar Categoria de Serviço (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categoriaservico/{{id}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categoriaservico",
+                "{{id}}",
+                "reativar"
+              ]
+            }
+          }
         }
       ]
+    },
+    {
+      "name": "Estilo",
+      "item": [
+        {
+          "name": "Listar Estilo (público, só ativos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/estilo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estilo"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Listar Estilo - admin (todos)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/estilo/admin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estilo",
+                "admin"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Criar Estilo (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estilo",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estilo"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Stance\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Editar Estilo (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/estilo/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estilo",
+                "{{id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Stance Rebaixado\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Estilo (ADMIN_MASTER)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/estilo/{{id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estilo",
+                "{{id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reativar Estilo (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/estilo/{{id}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "estilo",
+                "{{id}}",
+                "reativar"
+              ]
+            }
+          }
+        }
+      ],
+      "description": "Codigo é gerado do nome no cadastro e nunca muda; só o nome é editável."
     },
     {
       "name": "EstiloServicoSugerido",
       "item": [
         {
-          "name": "Listar Kit Sugerido por Estilo",
+          "name": "Listar Kit Sugerido por Estilo (público)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -794,9 +1996,11 @@
                 "estiloservicosugerido",
                 "STANCE"
               ]
+            },
+            "auth": {
+              "type": "noauth"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Vincular Serviço a um Estilo (admin)",
@@ -808,10 +2012,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"estilo\": \"STANCE\",\n  \"idServico\": 1\n}"
-            },
             "url": {
               "raw": "{{base_url}}/estiloservicosugerido",
               "host": [
@@ -820,9 +2020,12 @@
               "path": [
                 "estiloservicosugerido"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estilo\": \"STANCE\",\n  \"idServico\": 1\n}"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Desvincular Serviço de um Estilo (admin)",
@@ -830,18 +2033,85 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/estiloservicosugerido/STANCE/1",
+              "raw": "{{base_url}}/estiloservicosugerido/STANCE/{{idServico}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "estiloservicosugerido",
                 "STANCE",
-                "1"
+                "{{idServico}}"
               ]
             }
-          },
-          "response": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "OficinaServico",
+      "item": [
+        {
+          "name": "Listar Serviços da Oficina (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficinaservico/{{idOficina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficinaservico",
+                "{{idOficina}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Vincular Serviço à Oficina (dono ou admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oficinaservico",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficinaservico"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idServico\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Desvincular Serviço da Oficina (dono ou admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oficinaservico/{{idOficina}}/{{idServico}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "oficinaservico",
+                "{{idOficina}}",
+                "{{idServico}}"
+              ]
+            }
+          }
         }
       ]
     },
@@ -858,10 +2128,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idModelo\": 1,\n  \"descricao\": \"Civic rebaixado\",\n  \"tipoCustomizacao\": \"ESTILO\",\n  \"estilo\": \"STANCE\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/projeto",
               "host": [
@@ -870,9 +2136,26 @@
               "path": [
                 "projeto"
               ]
-            }
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idModelo\": 1,\n  \"descricao\": \"Civic rebaixado\",\n  \"tipoCustomizacao\": \"ESTILO\",\n  \"estilo\": \"STANCE\"\n}"
+            },
+            "description": "Máx. 3 projetos ativos (RN07). Gera a To-do List automaticamente a partir do kit do estilo."
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('idProjeto', pm.response.json().projeto.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Criar Projeto Personalizado (usuário)",
@@ -884,10 +2167,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idModelo\": 1,\n  \"descricao\": \"Projeto personalizado\",\n  \"tipoCustomizacao\": \"PERSONALIZADA\"\n}"
-            },
             "url": {
               "raw": "{{base_url}}/projeto",
               "host": [
@@ -896,9 +2175,25 @@
               "path": [
                 "projeto"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idModelo\": 1,\n  \"descricao\": \"Projeto personalizado\",\n  \"tipoCustomizacao\": \"PERSONALIZADA\"\n}"
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('idProjeto', pm.response.json().projeto.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Meus Projetos (usuário)",
@@ -915,8 +2210,25 @@
                 "meus"
               ]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Meus Projetos Inativos (usuário)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projeto/meus/inativos",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projeto",
+                "meus",
+                "inativos"
+              ]
+            }
+          }
         },
         {
           "name": "Listar Todos os Projetos (admin)",
@@ -932,8 +2244,71 @@
                 "projeto"
               ]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Editar Descrição do Projeto (dono ou admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projeto/{{idProjeto}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projeto",
+                "{{idProjeto}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descricao\": \"Nova descrição\"\n}"
+            },
+            "description": "Só a descrição é editável. idModelo/tipoCustomizacao/estilo → 422."
+          }
+        },
+        {
+          "name": "Desativar Projeto (dono ou admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projeto/{{idProjeto}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projeto",
+                "{{idProjeto}}"
+              ]
+            },
+            "description": "Soft delete; libera uma vaga do limite de 3."
+          }
+        },
+        {
+          "name": "Reativar Projeto (dono ou admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projeto/{{idProjeto}}/reativar",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projeto",
+                "{{idProjeto}}",
+                "reativar"
+              ]
+            },
+            "description": "409 se já houver 3 projetos ativos."
+          }
         }
       ]
     },
@@ -941,22 +2316,21 @@
       "name": "ProjetoServico",
       "item": [
         {
-          "name": "Listar Serviços do Projeto",
+          "name": "Listar Serviços do Projeto (dono ou admin)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projetoservico/1",
+              "raw": "{{base_url}}/projetoservico/{{idProjeto}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "projetoservico",
-                "1"
+                "{{idProjeto}}"
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Adicionar Serviço ao Projeto (dono ou admin)",
@@ -968,10 +2342,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idProjeto\": 1,\n  \"idServico\": 1\n}"
-            },
             "url": {
               "raw": "{{base_url}}/projetoservico",
               "host": [
@@ -980,9 +2350,12 @@
               "path": [
                 "projetoservico"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idProjeto\": 1,\n  \"idServico\": 1\n}"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Marcar Item como Concluído (dono ou admin)",
@@ -994,24 +2367,23 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"concluido\": true\n}"
-            },
             "url": {
-              "raw": "{{base_url}}/projetoservico/1/1/concluido",
+              "raw": "{{base_url}}/projetoservico/{{idProjeto}}/{{idServico}}/concluido",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "projetoservico",
-                "1",
-                "1",
+                "{{idProjeto}}",
+                "{{idServico}}",
                 "concluido"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"concluido\": true\n}"
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Remover Serviço do Projeto (dono ou admin)",
@@ -1019,18 +2391,92 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projetoservico/1/1",
+              "raw": "{{base_url}}/projetoservico/{{idProjeto}}/{{idServico}}",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "projetoservico",
-                "1",
-                "1"
+                "{{idProjeto}}",
+                "{{idServico}}"
               ]
             }
-          },
-          "response": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Imagem",
+      "item": [
+        {
+          "name": "Listar Imagens da Oficina (público)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/imagem/oficina/{{idOficina}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "imagem",
+                "oficina",
+                "{{idOficina}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Enviar Imagem (oficina com plano Pro ativo)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/imagem",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "imagem"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "imagem",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "tipoImagem",
+                  "value": "GALERIA",
+                  "type": "text"
+                }
+              ]
+            },
+            "description": "form-data. JPEG/PNG até 5 MB. LOGO substitui o anterior; GALERIA até 6. 403 sem plano pago vigente."
+          }
+        },
+        {
+          "name": "Remover Imagem (dono ou admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/imagem/{{idImagem}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "imagem",
+                "{{idImagem}}"
+              ]
+            }
+          }
         }
       ]
     },
@@ -1040,9 +2486,6 @@
         {
           "name": "Rota Inexistente (teste 404)",
           "request": {
-            "auth": {
-              "type": "noauth"
-            },
             "method": "GET",
             "header": [],
             "url": {
@@ -1053,117 +2496,13 @@
               "path": [
                 "rota-que-nao-existe"
               ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Imagem",
-      "item": [
-        {
-          "name": "Upload de Imagem Oficina (Logo e Galeria)",
-          "request": {
+            },
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "tipoImagem",
-                  "value": "LOGO",
-                  "type": "text",
-                  "uuid": "6b7d452e-5b38-4b97-b2ea-2a253c5b4ea2"
-                },
-                {
-                  "key": "imagem",
-                  "type": "file",
-                  "uuid": "7f01672c-d815-4c71-b559-91261f436073",
-                  "src": "/C:/Users/Perry/Downloads/outro logo de oficina.jpg"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{base_url}}/imagem",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "imagem"
-              ]
+              "type": "noauth"
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Lista de Imagens da Oficina Logada",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/imagem/oficina/1",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "imagem",
-                "oficina",
-                "1"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Deleta Imagem de Oficina Logada",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/imagem/3",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "imagem",
-                "3"
-              ]
-            }
-          },
-          "response": []
+          }
         }
       ]
     }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{token}}",
-        "type": "string"
-      }
-    ]
-  }
+  ]
 }

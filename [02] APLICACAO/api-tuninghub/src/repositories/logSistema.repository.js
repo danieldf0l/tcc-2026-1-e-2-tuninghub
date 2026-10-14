@@ -1,32 +1,39 @@
 import db from '../config/db.js';
 
 class LogSistemaRepository {
-    async findAll() {
-        // Usamos LEFT JOIN porque o log pode pertencer a um Usuário OU a um Admin.
-        // Ordenamos de forma decrescente para ver os logs mais recentes primeiro.
-        const query = `
-      SELECT 
-        l.IdLog, 
-        l.Acao, 
-        l.DataLog, 
-        u.Nome AS NomeUsuario, 
-        a.Nome AS NomeAdmin
-      FROM LogSistema l
-      LEFT JOIN Usuario u ON l.IdUsuario = u.IdUsuario
-      LEFT JOIN Admin a ON l.IdAdmin = a.IdAdmin
-      ORDER BY l.DataLog DESC
-      LIMIT 100 -- Limitamos aos últimos 100 logs por questões de performance
+  async create({ idAdmin, acao, entidade, idReferencia }) {
+    const query = `
+      INSERT INTO logsistema (IdAdmin, Acao, Entidade, IdReferencia)
+      VALUES (?, ?, ?, ?)
     `;
-        const [rows] = await db.execute(query);
-        return rows;
-    }
+    await db.execute(query, [idAdmin, acao, entidade || null, idReferencia ?? null]);
+  }
 
-    async create(idUsuario, idAdmin, acao) {
-        const query = 'INSERT INTO LogSistema (IdUsuario, IdAdmin, Acao) VALUES (?, ?, ?)';
-        // Se o idUsuario for nulo, passamos null (e vice-versa para o Admin)
-        const [result] = await db.execute(query, [idUsuario || null, idAdmin || null, acao]);
-        return result.insertId;
-    }
+  // limite e offset chegam validados como inteiros (service), por isso vão direto no SQL
+  async listar({ idAdmin, entidade, de, ate, limite, offset }) {
+    const condicoes = [];
+    const params = [];
+
+    if (idAdmin !== undefined) { condicoes.push('l.IdAdmin = ?'); params.push(idAdmin); }
+    if (entidade) { condicoes.push('l.Entidade = ?'); params.push(entidade); }
+    if (de) { condicoes.push('l.DataAcao >= ?'); params.push(de); }
+    if (ate) { condicoes.push('l.DataAcao < DATE_ADD(?, INTERVAL 1 DAY)'); params.push(ate); }
+
+    const where = condicoes.length ? `WHERE ${condicoes.join(' AND ')}` : '';
+
+    const [itens] = await db.execute(
+      `SELECT l.IdLog, l.IdAdmin, a.Nome AS NomeAdmin, l.Acao, l.Entidade, l.IdReferencia, l.DataAcao
+       FROM logsistema l
+       INNER JOIN admin a ON a.IdAdmin = l.IdAdmin
+       ${where}
+       ORDER BY l.DataAcao DESC, l.IdLog DESC
+       LIMIT ${limite} OFFSET ${offset}`,
+      params
+    );
+    const [[{ total }]] = await db.execute(`SELECT COUNT(*) AS total FROM logsistema l ${where}`, params);
+
+    return { itens, total };
+  }
 }
 
 export default new LogSistemaRepository();

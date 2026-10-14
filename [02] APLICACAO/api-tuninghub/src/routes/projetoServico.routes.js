@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import ProjetoServicoController from '../controllers/projetoServico.controller.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
+import { registrarAcao } from '../middlewares/registrarAcao.middleware.js';
 
 const router = Router();
 

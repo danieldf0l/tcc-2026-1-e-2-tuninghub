@@ -18,7 +18,6 @@ import enderecoRoute from './routes/endereco.routes.js';
 import modeloRoute from './routes/modelo.routes.js';
 import montadoraRoute from './routes/montadora.routes.js';
 import projetoServicoRoute from './routes/projetoServico.routes.js';
-import logSistemaRoute from './routes/logSistema.routes.js';
 import oficinaServicoRoute from './routes/oficinaServico.routes.js';
 import estiloServicoSugeridoRoute from './routes/estiloServicoSugerido.routes.js';
 import categoriaServicoRoute from './routes/categoriaServico.routes.js';
@@ -48,13 +47,12 @@ app.use('/api/oficina', oficinaRoute);
 app.use('/api/plano', planoRoute);
 app.use('/api/imagem', imagemRoute);
 app.use('/api/servico', servicoRoute);
-app.use('/api/admin', adminRoute);
+app.use('/api/admin', adminRoute); // inclui GET /api/admin/logs (auditoria, só ADMIN_MASTER)
 
 app.use('/api/endereco', enderecoRoute);
 app.use('/api/montadora', montadoraRoute);
 app.use('/api/modelo', modeloRoute);
 app.use('/api/projetoServico', projetoServicoRoute);
-app.use('/api/logSistema', logSistemaRoute);
 app.use('/api/oficinaServico', oficinaServicoRoute);
 app.use('/api/estiloservicosugerido', estiloServicoSugeridoRoute);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

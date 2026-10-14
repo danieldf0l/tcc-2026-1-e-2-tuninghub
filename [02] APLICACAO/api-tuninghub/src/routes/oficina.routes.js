@@ -2,6 +2,7 @@ import { Router } from 'express';
 import OficinaController from '../controllers/oficina.controller.js';
 import { verificarToken, checkRole } from '../middlewares/auth.middleware.js';
 import { contaLimiter } from '../middlewares/contaLimiter.middleware.js';
+import { registrarAcao } from '../middlewares/registrarAcao.middleware.js';
 import { ROLES } from '../constants/roles.js';
 
 const router = Router();
@@ -18,8 +19,11 @@ router.patch('/me/faixa-preco', verificarToken, checkRole(ROLES.OFICINA), Oficin
 router.delete('/me', verificarToken, checkRole(ROLES.OFICINA), contaLimiter, OficinaController.excluirMinhaConta);
 
 router.patch('/aceitar-termos', verificarToken, checkRole(ROLES.OFICINA), OficinaController.aceitarTermos);
-router.put('/:id/faixa-preco', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), OficinaController.atualizarFaixaPreco);
-router.delete('/:id', verificarToken, checkRole(ROLES.ADMIN_MASTER), OficinaController.desativar);
-router.patch('/:id/reativar', verificarToken, checkRole(ROLES.ADMIN_MASTER), OficinaController.reativar);
+router.put('/:id/faixa-preco', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN),
+  registrarAcao('ALTEROU_FAIXA_PRECO_OFICINA', 'oficina'), OficinaController.atualizarFaixaPreco);
+router.delete('/:id', verificarToken, checkRole(ROLES.ADMIN_MASTER),
+  registrarAcao('DESATIVOU_OFICINA', 'oficina'), OficinaController.desativar);
+router.patch('/:id/reativar', verificarToken, checkRole(ROLES.ADMIN_MASTER),
+  registrarAcao('REATIVOU_OFICINA', 'oficina'), OficinaController.reativar);
 
 export default router;

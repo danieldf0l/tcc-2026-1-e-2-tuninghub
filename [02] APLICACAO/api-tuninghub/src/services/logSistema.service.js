@@ -1,31 +1,49 @@
 import LogSistemaRepository from '../repositories/logSistema.repository.js';
+import { ValidationError } from '../errors/AppError.js';
+
+const FORMATO_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
 class LogSistemaService {
-    async listarLogs() {
-        return await LogSistemaRepository.findAll();
+  // Nunca lança erro: falha no log não pode derrubar a ação do admin.
+  async registrar({ idAdmin, acao, entidade, idReferencia }) {
+    try {
+      await LogSistemaRepository.create({ idAdmin, acao, entidade, idReferencia });
+    } catch (error) {
+      console.error('[logsistema] Falha ao registrar ação:', error.message);
+    }
+  }
+
+  async listar({ idAdmin, entidade, de, ate, pagina, limite } = {}) {
+    if (idAdmin !== undefined && !Number.isInteger(Number(idAdmin))) {
+      throw new ValidationError('idAdmin deve ser numérico.');
+    }
+    if (de !== undefined && !FORMATO_DATA.test(String(de))) {
+      throw new ValidationError('O filtro "de" deve estar no formato AAAA-MM-DD.');
+    }
+    if (ate !== undefined && !FORMATO_DATA.test(String(ate))) {
+      throw new ValidationError('O filtro "ate" deve estar no formato AAAA-MM-DD.');
     }
 
-    async registrarLog(dados) {
-        const { idUsuario, idAdmin, acao } = dados;
+    const paginaAtual = Math.max(1, parseInt(pagina, 10) || 1);
+    const itensPorPagina = Math.min(100, Math.max(1, parseInt(limite, 10) || 20));
 
-        if (!acao) {
-            throw new Error('A descrição da ação é obrigatória para o log.');
-        }
+    const { itens, total } = await LogSistemaRepository.listar({
+      idAdmin: idAdmin !== undefined ? Number(idAdmin) : undefined,
+      entidade: entidade ? String(entidade).trim() : undefined,
+      de: de !== undefined ? String(de) : undefined,
+      ate: ate !== undefined ? String(ate) : undefined,
+      limite: itensPorPagina,
+      offset: (paginaAtual - 1) * itensPorPagina,
+    });
 
-        if (!idUsuario && !idAdmin) {
-            throw new Error('O log deve estar associado a um utilizador ou a um administrador.');
-        }
-
-        const novoId = await LogSistemaRepository.create(idUsuario, idAdmin, acao);
-
-        return {
-            idLog: novoId,
-            idUsuario,
-            idAdmin,
-            acao,
-            timestamp: new Date().toISOString()
-        };
-    }
+    return {
+      pagina: paginaAtual,
+      limite: itensPorPagina,
+      total,
+      totalPaginas: Math.ceil(total / itensPorPagina),
+      itens,
+    };
+  }
 }
 
 export default new LogSistemaService();
