@@ -46,8 +46,8 @@ class UsuarioService {
   }
 
   async listarUsuariosAdmin() {
-  return await UsuarioRepository.findAllAdmin();
-}
+    return await UsuarioRepository.findAllAdmin();
+  }
 
   async atualizarStatus(idUsuario, ativo) {
     if (typeof ativo !== 'boolean') throw new ValidationError('O campo ativo deve ser true ou false.');
@@ -57,6 +57,69 @@ class UsuarioService {
 
     await UsuarioRepository.atualizarStatus(idUsuario, ativo);
     return { idUsuario: Number(idUsuario), ativo };
+  }
+
+  // ---------- Meus Dados ----------
+
+  async buscarMeusDados(idUsuario) {
+    const perfil = await UsuarioRepository.findPerfil(idUsuario);
+    if (!perfil) throw new NotFoundError('Usuário não encontrado.');
+    return perfil;
+  }
+
+  async atualizarMeusDados(idUsuario, dados) {
+    if (dados.nome === undefined && dados.email === undefined) {
+      throw new ValidationError('Informe ao menos um campo para atualizar (nome ou email).');
+    }
+
+    const perfilAtual = await this.buscarMeusDados(idUsuario);
+
+    const nome = dados.nome !== undefined ? String(dados.nome).trim() : perfilAtual.Nome;
+    const email = dados.email !== undefined ? String(dados.email).trim() : perfilAtual.Email;
+
+    if (!nome) throw new ValidationError('O nome não pode ficar vazio.');
+    if (!validarEmail(email)) throw new ValidationError('E-mail inválido.');
+
+    if (email !== perfilAtual.Email) {
+      // Trocar e-mail exige confirmar a senha atual (evita sequestro de conta com token roubado)
+      if (!dados.senhaAtual) {
+        throw new ValidationError('Para alterar o e-mail, informe a senhaAtual.');
+      }
+      const usuario = await UsuarioRepository.findByIdAdmin(idUsuario);
+      const senhaCorreta = await bcrypt.compare(dados.senhaAtual, usuario.Senha);
+      if (!senhaCorreta) throw new ValidationError('Senha atual incorreta.');
+
+      const emUso = await UsuarioRepository.existsByEmailExcetoId(email, idUsuario);
+      if (emUso) throw new ConflictError('Este e-mail já está em uso.');
+    }
+
+    await UsuarioRepository.atualizarPerfil(idUsuario, nome, email);
+    return await this.buscarMeusDados(idUsuario);
+  }
+
+  async alterarSenha(idUsuario, dados) {
+    const { senhaAtual, novaSenha, confirmarNovaSenha } = dados;
+
+    if (!senhaAtual || !novaSenha || !confirmarNovaSenha) {
+      throw new ValidationError('Os campos senhaAtual, novaSenha e confirmarNovaSenha são obrigatórios.');
+    }
+
+    const usuario = await UsuarioRepository.findByIdAdmin(idUsuario);
+    if (!usuario) throw new NotFoundError('Usuário não encontrado.');
+
+    const senhaCorreta = await bcrypt.compare(senhaAtual, usuario.Senha);
+    if (!senhaCorreta) throw new ValidationError('Senha atual incorreta.');
+
+    if (novaSenha !== confirmarNovaSenha) throw new ValidationError('As senhas não coincidem.');
+    if (!validarSenha(novaSenha)) throw new ValidationError(SENHA_REQUISITOS_MSG);
+
+    const igualAAtual = await bcrypt.compare(novaSenha, usuario.Senha);
+    if (igualAAtual) throw new ValidationError('A nova senha deve ser diferente da senha atual.');
+
+    const senhaHasheada = await bcrypt.hash(novaSenha, 10);
+    await UsuarioRepository.atualizarSenha(idUsuario, senhaHasheada);
+
+    return { message: 'Senha alterada com sucesso.' };
   }
 }
 

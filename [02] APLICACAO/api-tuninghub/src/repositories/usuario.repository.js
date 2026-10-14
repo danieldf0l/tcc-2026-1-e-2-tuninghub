@@ -18,9 +18,15 @@ class UsuarioRepository {
     return rows.length > 0;
   }
 
+  async existsByEmailExcetoId(email, idUsuario) {
+    const query = 'SELECT IdUsuario FROM usuario WHERE Email = ? AND IdUsuario <> ?';
+    const [rows] = await db.execute(query, [email, idUsuario]);
+    return rows.length > 0;
+  }
+
   async create(nome, email, senhaHasheada, dataAceiteTermos) {
     const query = `
-      INSERT INTO usuario (Nome, Email, Senha, TermosAceitos, DataAceiteTermos) 
+      INSERT INTO usuario (Nome, Email, Senha, TermosAceitos, DataAceiteTermos)
       VALUES (?, ?, ?, 1, ?)
     `;
     const [result] = await db.execute(query, [nome, email, senhaHasheada, dataAceiteTermos]);
@@ -49,6 +55,28 @@ class UsuarioRepository {
     const query = 'SELECT * FROM usuario WHERE IdUsuario = ?';
     const [rows] = await db.execute(query, [idUsuario]);
     return rows[0];
+  }
+
+  // Perfil público do próprio usuário (nunca devolve a senha)
+  async findPerfil(idUsuario) {
+    const query = `
+      SELECT IdUsuario, Nome, Email, DataCriacao, TermosAceitos, DataAceiteTermos
+      FROM usuario WHERE IdUsuario = ?
+    `;
+    const [rows] = await db.execute(query, [idUsuario]);
+    return rows[0];
+  }
+
+  async atualizarPerfil(idUsuario, nome, email) {
+    const query = 'UPDATE usuario SET Nome = ?, Email = ? WHERE IdUsuario = ?';
+    const [result] = await db.execute(query, [nome, email, idUsuario]);
+    return result.affectedRows;
+  }
+
+  async atualizarSenha(idUsuario, senhaHasheada) {
+    const query = 'UPDATE usuario SET Senha = ? WHERE IdUsuario = ?';
+    const [result] = await db.execute(query, [senhaHasheada, idUsuario]);
+    return result.affectedRows;
   }
 
   async atualizarStatus(idUsuario, ativo) {

@@ -21,13 +21,13 @@ class UsuarioController {
   };
 
   aceitarTermos = async (req, res, next) => {
-  try {
-    const resultado = await UsuarioService.aceitarTermos(req.usuarioLogado.id);
-    res.status(200).json(resultado);
-  } catch (error) {
-    next(error);
-  }
-};
+    try {
+      const resultado = await UsuarioService.aceitarTermos(req.usuarioLogado.id);
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
 
   listarAdmin = async (req, res, next) => {
     try {
@@ -51,6 +51,33 @@ class UsuarioController {
     try {
       const resultado = await UsuarioService.atualizarStatus(req.params.id, true);
       res.status(200).json({ message: 'Usuário reativado com sucesso!', ...resultado });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  meusDados = async (req, res, next) => {
+    try {
+      const perfil = await UsuarioService.buscarMeusDados(req.usuarioLogado.id);
+      res.status(200).json(perfil);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  atualizarMeusDados = async (req, res, next) => {
+    try {
+      const perfil = await UsuarioService.atualizarMeusDados(req.usuarioLogado.id, req.body || {});
+      res.status(200).json({ message: 'Dados atualizados com sucesso!', usuario: perfil });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  alterarSenha = async (req, res, next) => {
+    try {
+      const resultado = await UsuarioService.alterarSenha(req.usuarioLogado.id, req.body || {});
+      res.status(200).json(resultado);
     } catch (error) {
       next(error);
     }
