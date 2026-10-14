@@ -3,16 +3,25 @@ import ModeloRepository from '../repositories/modelo.repository.js';
 import EstiloRepository from '../repositories/estilo.repository.js';
 import EstiloServicoSugeridoRepository from '../repositories/estiloServicoSugerido.repository.js';
 import ProjetoServicoRepository from '../repositories/projetoServico.repository.js';
-import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
+import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
-
 
 const LIMITE_PROJETOS_ATIVOS = 3;
 const TIPOS_CUSTOMIZACAO = ['ESTILO', 'PERSONALIZADA'];
+const CAMPOS_TRAVADOS = ['idModelo', 'tipoCustomizacao', 'estilo'];
 
-const resolverIdUsuario = (idUsuarioInformado, usuarioLogado) => {
-  const ehAdmin = usuarioLogado.role === ROLES.ADMIN_MASTER || usuarioLogado.role === ROLES.ADMIN;
-  return ehAdmin ? idUsuarioInformado : usuarioLogado.id;
+const ehAdmin = (usuarioLogado) =>
+  usuarioLogado.role === ROLES.ADMIN_MASTER || usuarioLogado.role === ROLES.ADMIN;
+
+const resolverIdUsuario = (idUsuarioInformado, usuarioLogado) =>
+  ehAdmin(usuarioLogado) ? idUsuarioInformado : usuarioLogado.id;
+
+// Garante que o logado é o dono do projeto (ou admin). Nunca confia em id vindo do body.
+const verificarDono = (projeto, usuarioLogado) => {
+  const ehDono = String(projeto.IdUsuario) === String(usuarioLogado.id);
+  if (!ehAdmin(usuarioLogado) && !ehDono) {
+    throw new ForbiddenError('Você não tem permissão para alterar este projeto.');
+  }
 };
 
 class ProjetoService {
@@ -22,6 +31,10 @@ class ProjetoService {
 
   async listarMeusProjetos(usuarioLogado) {
     return await ProjetoRepository.findByUsuario(usuarioLogado.id);
+  }
+
+  async listarMeusProjetosInativos(usuarioLogado) {
+    return await ProjetoRepository.findInativosByUsuario(usuarioLogado.id);
   }
 
   async criarProjeto(dados, usuarioLogado) {
@@ -72,6 +85,61 @@ class ProjetoService {
       estilo,
       servicosSugeridos,
     };
+  }
+
+  // Só a descrição é editável: modelo, tipo e estilo definem a To-do List gerada (RN09/RN10).
+  async atualizarProjeto(idProjeto, dados, usuarioLogado) {
+    const projeto = await ProjetoRepository.findById(idProjeto);
+    if (!projeto) throw new NotFoundError('Projeto não encontrado.');
+    verificarDono(projeto, usuarioLogado);
+
+    if (CAMPOS_TRAVADOS.some((campo) => dados[campo] !== undefined)) {
+      throw new ValidationError(
+        'Modelo, tipo de customização e estilo não podem ser alterados. Crie um novo projeto se precisar mudá-los.'
+      );
+    }
+    if (dados.descricao === undefined) {
+      throw new ValidationError('Informe o campo descricao para atualizar.');
+    }
+    if (dados.descricao !== null && typeof dados.descricao !== 'string') {
+      throw new ValidationError('A descrição deve ser um texto.');
+    }
+
+    // string vazia ou null limpa a descrição
+    const descricao = dados.descricao ? dados.descricao.trim() || null : null;
+    await ProjetoRepository.atualizarDescricao(idProjeto, descricao);
+
+    return await ProjetoRepository.findById(idProjeto);
+  }
+
+  async desativarProjeto(idProjeto, usuarioLogado) {
+    const projeto = await ProjetoRepository.findByIdQualquerStatus(idProjeto);
+    if (!projeto) throw new NotFoundError('Projeto não encontrado.');
+    verificarDono(projeto, usuarioLogado);
+
+    if (!projeto.Ativo) throw new ConflictError('Este projeto já está desativado.');
+
+    await ProjetoRepository.atualizarStatus(idProjeto, false);
+    return { idProjeto: Number(idProjeto), ativo: false };
+  }
+
+  async reativarProjeto(idProjeto, usuarioLogado) {
+    const projeto = await ProjetoRepository.findByIdQualquerStatus(idProjeto);
+    if (!projeto) throw new NotFoundError('Projeto não encontrado.');
+    verificarDono(projeto, usuarioLogado);
+
+    if (projeto.Ativo) throw new ConflictError('Este projeto já está ativo.');
+
+    // RN07 vale também ao reativar
+    const totalAtivos = await ProjetoRepository.countAtivosPorUsuario(projeto.IdUsuario);
+    if (totalAtivos >= LIMITE_PROJETOS_ATIVOS) {
+      throw new ConflictError(
+        `Limite de ${LIMITE_PROJETOS_ATIVOS} projetos ativos atingido. Desative outro projeto para reativar este.`
+      );
+    }
+
+    await ProjetoRepository.atualizarStatus(idProjeto, true);
+    return { idProjeto: Number(idProjeto), ativo: true };
   }
 }
 
