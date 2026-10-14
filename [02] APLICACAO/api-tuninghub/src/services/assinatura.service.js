@@ -5,6 +5,8 @@ import AbacatePayService from './abacatePay.service.js';
 import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
 
+const STATUS_PAGO = ['PAID', 'COMPLETED'];
+
 const somarDias = (data, dias) => {
   const resultado = new Date(data);
   resultado.setDate(resultado.getDate() + dias);
@@ -22,6 +24,7 @@ class AssinaturaService {
   }
 
   async buscarPorOficina(idOficina) {
+    await AssinaturaRepository.expirarVencidas(idOficina);
     const [assinatura] = await AssinaturaRepository.findAtivaOuPendentePorOficinaDetalhada(idOficina);
     return assinatura || null;
   }
@@ -42,6 +45,8 @@ class AssinaturaService {
     if (Number(plano.Valor) > 0) {
       throw new ValidationError('Este plano é pago. Use o endpoint de checkout para assiná-lo.');
     }
+
+    await AssinaturaRepository.expirarVencidas(idOficina);
 
     const existente = await AssinaturaRepository.findAtivaOuPendentePorOficina(idOficina);
     if (existente.length > 0) {
@@ -73,22 +78,71 @@ class AssinaturaService {
       throw new ValidationError('Este plano é gratuito e não precisa de checkout.');
     }
 
-    const existente = await AssinaturaRepository.findBloqueiaCheckoutPorOficina(idOficina);
-    if (existente.length > 0) {
-      throw new ConflictError('Esta oficina já possui uma assinatura ativa ou pendente.');
+    await AssinaturaRepository.expirarVencidas(idOficina);
+
+    const bloqueios = await AssinaturaRepository.findBloqueiaCheckoutPorOficina(idOficina);
+
+    if (bloqueios.some((a) => a.Status === 'ATIVA')) {
+      throw new ConflictError('Esta oficina já possui um plano pago ativo.');
     }
 
+    const pendente = bloqueios.find((a) => a.Status === 'PENDENTE');
+    if (pendente) {
+      const reaproveitado = await this.tratarPendente(pendente, idPlano);
+      if (reaproveitado) return reaproveitado;
+      // se chegou aqui, a pendente foi cancelada e um novo checkout pode ser gerado
+    }
+
+    return await this.gerarNovoCheckout(idOficina, plano);
+  }
+
+  // Resolve uma assinatura PENDENTE antiga antes de gerar novo checkout:
+  // - já paga: ativa e avisa (não cancela de jeito nenhum um pagamento feito);
+  // - ainda aguardando pagamento no mesmo plano: devolve a mesma URL;
+  // - expirada/cancelada/plano diferente: cancela para liberar novo checkout.
+  async tratarPendente(pendente, idPlano) {
+    // Se o AbacatePay estiver fora do ar, o erro 503 propaga (não cancela às cegas).
+    const checkout = await AbacatePayService.obterCheckout(pendente.IdCobrancaExterna);
+
+    if (STATUS_PAGO.includes(checkout.status)) {
+      await this.ativarAssinatura(pendente);
+      throw new ConflictError('O pagamento anterior já foi confirmado e a assinatura foi ativada.');
+    }
+
+    if (checkout.status === 'PENDING' && checkout.url && String(pendente.IdPlano) === String(idPlano)) {
+      return { idAssinatura: pendente.IdAssinatura, checkoutUrl: checkout.url, reaproveitado: true };
+    }
+
+    await AssinaturaRepository.atualizarStatus(pendente.IdAssinatura, 'CANCELADA');
+    return null;
+  }
+
+  async gerarNovoCheckout(idOficina, plano) {
     const checkout = await AbacatePayService.criarCheckout({
       idProdutoExterno: plano.IdProdutoExterno,
-      metadata: { idOficina, idPlano },
+      metadata: { idOficina, idPlano: plano.IdPlano },
     });
 
     const dataInicio = new Date().toISOString().slice(0, 10);
     const idAssinatura = await AssinaturaRepository.create({
-      idOficina, idPlano, dataInicio, dataFim: null, status: 'PENDENTE', idCobrancaExterna: checkout.id,
+      idOficina,
+      idPlano: plano.IdPlano,
+      dataInicio,
+      dataFim: null,
+      status: 'PENDENTE',
+      idCobrancaExterna: checkout.id,
     });
 
     return { idAssinatura, checkoutUrl: checkout.url };
+  }
+
+  async ativarAssinatura(assinatura) {
+    const plano = await PlanoRepository.findById(assinatura.IdPlano);
+    // validade conta a partir da data do pagamento confirmado, não da criação do checkout
+    const hoje = new Date().toISOString().slice(0, 10);
+    const dataFim = somarDias(hoje, plano.DuracaoDias);
+    await AssinaturaRepository.ativarCancelandoAnteriores(assinatura.IdAssinatura, assinatura.IdOficina, dataFim);
+    return dataFim;
   }
 
   async confirmarPagamento(idAssinatura, usuarioLogado) {
@@ -106,15 +160,11 @@ class AssinaturaService {
 
     const checkout = await AbacatePayService.obterCheckout(assinatura.IdCobrancaExterna);
 
-    if (checkout.status !== 'PAID' && checkout.status !== 'COMPLETED') {
+    if (!STATUS_PAGO.includes(checkout.status)) {
       return { status: checkout.status, message: 'Pagamento ainda não confirmado.' };
     }
 
-    const plano = await PlanoRepository.findById(assinatura.IdPlano);
-    const dataFim = somarDias(assinatura.DataInicio, plano.DuracaoDias);
-
-    await AssinaturaRepository.ativarCancelandoAnteriores(idAssinatura, assinatura.IdOficina, dataFim);
-
+    const dataFim = await this.ativarAssinatura(assinatura);
     return { status: 'ATIVA', dataFim };
   }
 }

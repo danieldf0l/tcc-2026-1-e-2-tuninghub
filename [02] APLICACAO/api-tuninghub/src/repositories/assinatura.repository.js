@@ -25,13 +25,17 @@ class AssinaturaRepository {
     return rows;
   }
 
+  // Bloqueia novo checkout: PENDENTE, ou ATIVA de plano pago ainda dentro da validade.
   async findBloqueiaCheckoutPorOficina(idOficina) {
     const query = `
       SELECT a.*
       FROM assinatura a
       INNER JOIN plano p ON a.IdPlano = p.IdPlano
       WHERE a.IdOficina = ?
-        AND (a.Status = 'PENDENTE' OR (a.Status = 'ATIVA' AND p.Valor > 0))
+        AND (
+          a.Status = 'PENDENTE'
+          OR (a.Status = 'ATIVA' AND p.Valor > 0 AND (a.DataFim IS NULL OR a.DataFim >= CURDATE()))
+        )
     `;
     const [rows] = await db.execute(query, [idOficina]);
     return rows;
@@ -49,16 +53,30 @@ class AssinaturaRepository {
     return rows;
   }
 
-  // Usado em imagem.service (RN18/19): oficina precisa ter plano pago ativo.
+  // Usado em imagem.service (RN18/19): plano pago ativo E dentro da validade.
   async findAtivaPaga(idOficina) {
     const query = `
       SELECT a.*, p.Valor
       FROM assinatura a
       INNER JOIN plano p ON a.IdPlano = p.IdPlano
       WHERE a.IdOficina = ? AND a.Status = 'ATIVA' AND p.Valor > 0
+        AND (a.DataFim IS NULL OR a.DataFim >= CURDATE())
     `;
     const [rows] = await db.execute(query, [idOficina]);
     return rows[0];
+  }
+
+  // Marca como EXPIRADA as assinaturas ATIVAS vencidas da oficina.
+  async expirarVencidas(idOficina) {
+    const query = `
+      UPDATE assinatura SET Status = 'EXPIRADA'
+      WHERE IdOficina = ? AND Status = 'ATIVA' AND DataFim IS NOT NULL AND DataFim < CURDATE()
+    `;
+    await db.execute(query, [idOficina]);
+  }
+
+  async atualizarStatus(idAssinatura, status) {
+    await db.execute('UPDATE assinatura SET Status = ? WHERE IdAssinatura = ?', [status, idAssinatura]);
   }
 
   async create({ idOficina, idPlano, dataInicio, dataFim, status, idCobrancaExterna }) {
