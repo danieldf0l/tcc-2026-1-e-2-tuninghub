@@ -36,6 +36,13 @@ export const verificarToken = async (req, res, next) => {
       if (!conta || !conta.Ativo) {
         return next(new ForbiddenError('Conta desativada. Contate o suporte.'));
       }
+
+      // Sessão emitida ANTES da última troca de senha não vale mais.
+      // (admin não tem essa coluna: SenhaAlteradaEmTs é undefined e a checagem é ignorada)
+      const senhaAlteradaEm = Number(conta.SenhaAlteradaEmTs);
+      if (senhaAlteradaEm && decoded.iat < senhaAlteradaEm) {
+        return next(new UnauthorizedError('Sessão expirada. Faça login novamente.'));
+      }
     }
 
     req.usuarioLogado = decoded;

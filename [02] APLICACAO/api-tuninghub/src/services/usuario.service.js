@@ -97,6 +97,7 @@ class UsuarioService {
     return await this.buscarMeusDados(idUsuario);
   }
 
+  // Exclusão física da própria conta (LGPD). Irreversível — diferente do soft delete (Ativo).
   async excluirMinhaConta(idUsuario, dados) {
     const { senha, confirmacao } = dados;
 
@@ -136,7 +137,7 @@ class UsuarioService {
     const senhaHasheada = await bcrypt.hash(novaSenha, 10);
     await UsuarioRepository.atualizarSenha(idUsuario, senhaHasheada);
 
-    return { message: 'Senha alterada com sucesso.' };
+    return { message: 'Senha alterada com sucesso. Faça login novamente.' };
   }
 }
 

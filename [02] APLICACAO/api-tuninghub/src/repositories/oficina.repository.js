@@ -95,8 +95,10 @@ class OficinaRepository {
     return rows.map(({ Senha, ...oficina }) => oficina);
   }
 
+  // SenhaAlteradaEmTs = momento da última troca de senha em segundos (epoch), usado pelo
+  // verificarToken para derrubar sessões antigas. Calculado no SQL para não depender de fuso horário.
   async findByIdAdmin(idOficina) {
-    const query = 'SELECT * FROM oficina WHERE IdOficina = ?';
+    const query = 'SELECT *, UNIX_TIMESTAMP(SenhaAlteradaEm) AS SenhaAlteradaEmTs FROM oficina WHERE IdOficina = ?';
     const [rows] = await db.execute(query, [idOficina]);
     return rows[0];
   }
@@ -123,8 +125,11 @@ class OficinaRepository {
   }
 
   async atualizarSenha(idOficina, senhaHasheada) {
-    const query = 'UPDATE oficina SET Senha = ? WHERE IdOficina = ?';
-    const [result] = await db.execute(query, [senhaHasheada, idOficina]);
+    // Marca a troca com o relógio do Node (mesmo relógio que assina o "iat" do JWT),
+    // assim não há diferença de relógio entre o servidor da API e o servidor do banco.
+    const query = 'UPDATE oficina SET Senha = ?, SenhaAlteradaEm = FROM_UNIXTIME(?) WHERE IdOficina = ?';
+    const agoraEmSegundos = Math.floor(Date.now() / 1000);
+    const [result] = await db.execute(query, [senhaHasheada, agoraEmSegundos, idOficina]);
     return result.affectedRows;
   }
 

@@ -51,8 +51,10 @@ class UsuarioRepository {
     return rows;
   }
 
+  // SenhaAlteradaEmTs = momento da última troca de senha em segundos (epoch), usado pelo
+  // verificarToken para derrubar sessões antigas. Calculado no SQL para não depender de fuso horário.
   async findByIdAdmin(idUsuario) {
-    const query = 'SELECT * FROM usuario WHERE IdUsuario = ?';
+    const query = 'SELECT *, UNIX_TIMESTAMP(SenhaAlteradaEm) AS SenhaAlteradaEmTs FROM usuario WHERE IdUsuario = ?';
     const [rows] = await db.execute(query, [idUsuario]);
     return rows[0];
   }
@@ -74,11 +76,15 @@ class UsuarioRepository {
   }
 
   async atualizarSenha(idUsuario, senhaHasheada) {
-    const query = 'UPDATE usuario SET Senha = ? WHERE IdUsuario = ?';
-    const [result] = await db.execute(query, [senhaHasheada, idUsuario]);
+    // Marca a troca com o relógio do Node (mesmo relógio que assina o "iat" do JWT),
+    // assim não há diferença de relógio entre o servidor da API e o servidor do banco.
+    const query = 'UPDATE usuario SET Senha = ?, SenhaAlteradaEm = FROM_UNIXTIME(?) WHERE IdUsuario = ?';
+    const agoraEmSegundos = Math.floor(Date.now() / 1000);
+    const [result] = await db.execute(query, [senhaHasheada, agoraEmSegundos, idUsuario]);
     return result.affectedRows;
   }
 
+  // Exclusão física (LGPD): remove a conta e tudo que depende dela, numa única transação.
   async excluirDefinitivamente(idUsuario) {
     const connection = await db.getConnection();
     try {

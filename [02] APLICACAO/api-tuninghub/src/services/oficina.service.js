@@ -188,6 +188,8 @@ class OficinaService {
     return await this.buscarMeusDados(idOficina);
   }
 
+  // Exclusão física da própria conta (LGPD). Irreversível — diferente do soft delete (Ativo).
+  // Registros financeiros dos pagamentos permanecem no processador (AbacatePay).
   async excluirMinhaConta(idOficina, dados) {
     const { senha, confirmacao } = dados;
 
@@ -202,6 +204,7 @@ class OficinaService {
     if (!senhaCorreta) throw new ValidationError('Senha incorreta.');
 
     const urlsImagens = await OficinaRepository.excluirDefinitivamente(idOficina);
+    // só depois do commit: se o banco falhar, as fotos continuam no disco
     ImagemService.removerArquivosFisicos(urlsImagens);
 
     return { message: 'Conta excluída definitivamente. Todos os seus dados foram removidos.' };
@@ -229,7 +232,7 @@ class OficinaService {
     const senhaHasheada = await bcrypt.hash(novaSenha, 10);
     await OficinaRepository.atualizarSenha(idOficina, senhaHasheada);
 
-    return { message: 'Senha alterada com sucesso.' };
+    return { message: 'Senha alterada com sucesso. Faça login novamente.' };
   }
 }
 
