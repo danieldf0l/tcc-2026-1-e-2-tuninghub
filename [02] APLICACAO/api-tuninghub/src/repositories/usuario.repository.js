@@ -79,6 +79,31 @@ class UsuarioRepository {
     return result.affectedRows;
   }
 
+  async excluirDefinitivamente(idUsuario) {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.execute(
+        `DELETE ps FROM projetoservico ps
+         INNER JOIN projeto p ON p.IdProjeto = ps.IdProjeto
+         WHERE p.IdUsuario = ?`,
+        [idUsuario]
+      );
+      await connection.execute('DELETE FROM projeto WHERE IdUsuario = ?', [idUsuario]);
+      await connection.execute('DELETE FROM token_recuperacao_senha WHERE IdUsuario = ?', [idUsuario]);
+      const [result] = await connection.execute('DELETE FROM usuario WHERE IdUsuario = ?', [idUsuario]);
+
+      await connection.commit();
+      return result.affectedRows;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   async atualizarStatus(idUsuario, ativo) {
     const query = 'UPDATE usuario SET Ativo = ? WHERE IdUsuario = ?';
     const [result] = await db.execute(query, [ativo ? 1 : 0, idUsuario]);

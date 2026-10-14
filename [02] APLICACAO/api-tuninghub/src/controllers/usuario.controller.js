@@ -74,6 +74,15 @@ class UsuarioController {
     }
   };
 
+  excluirMinhaConta = async (req, res, next) => {
+    try {
+      const resultado = await UsuarioService.excluirMinhaConta(req.usuarioLogado.id, req.body || {});
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   alterarSenha = async (req, res, next) => {
     try {
       const resultado = await UsuarioService.alterarSenha(req.usuarioLogado.id, req.body || {});

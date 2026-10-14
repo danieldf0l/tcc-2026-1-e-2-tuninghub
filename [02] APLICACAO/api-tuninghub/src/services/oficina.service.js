@@ -4,6 +4,7 @@ import OficinaRepository from '../repositories/oficina.repository.js';
 import EnderecoRepository from '../repositories/endereco.repository.js';
 import CnpjExternoService from './cnpjExterno.service.js';
 import GeocodificacaoService from './geocodificacao.service.js';
+import ImagemService from './imagem.service.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG, sanitizarCnpj, validarCnpjFormato } from '../utils/validators.js';
 import { calcularDistanciaKm } from '../utils/geolocalizacao.js';
@@ -185,6 +186,25 @@ class OficinaService {
 
     await OficinaRepository.atualizarPerfil(idOficina, { nomeOficina, nomeProprietario, telefone, email });
     return await this.buscarMeusDados(idOficina);
+  }
+
+  async excluirMinhaConta(idOficina, dados) {
+    const { senha, confirmacao } = dados;
+
+    if (!senha || confirmacao !== 'EXCLUIR') {
+      throw new ValidationError('Informe a senha e confirmacao: "EXCLUIR" para excluir a conta definitivamente.');
+    }
+
+    const oficina = await OficinaRepository.findByIdAdmin(idOficina);
+    if (!oficina) throw new NotFoundError('Oficina não encontrada.');
+
+    const senhaCorreta = await bcrypt.compare(senha, oficina.Senha);
+    if (!senhaCorreta) throw new ValidationError('Senha incorreta.');
+
+    const urlsImagens = await OficinaRepository.excluirDefinitivamente(idOficina);
+    ImagemService.removerArquivosFisicos(urlsImagens);
+
+    return { message: 'Conta excluída definitivamente. Todos os seus dados foram removidos.' };
   }
 
   async alterarSenha(idOficina, dados) {

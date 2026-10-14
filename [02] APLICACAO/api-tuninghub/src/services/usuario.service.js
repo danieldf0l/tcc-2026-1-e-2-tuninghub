@@ -97,6 +97,23 @@ class UsuarioService {
     return await this.buscarMeusDados(idUsuario);
   }
 
+  async excluirMinhaConta(idUsuario, dados) {
+    const { senha, confirmacao } = dados;
+
+    if (!senha || confirmacao !== 'EXCLUIR') {
+      throw new ValidationError('Informe a senha e confirmacao: "EXCLUIR" para excluir a conta definitivamente.');
+    }
+
+    const usuario = await UsuarioRepository.findByIdAdmin(idUsuario);
+    if (!usuario) throw new NotFoundError('Usuário não encontrado.');
+
+    const senhaCorreta = await bcrypt.compare(senha, usuario.Senha);
+    if (!senhaCorreta) throw new ValidationError('Senha incorreta.');
+
+    await UsuarioRepository.excluirDefinitivamente(idUsuario);
+    return { message: 'Conta excluída definitivamente. Todos os seus dados foram removidos.' };
+  }
+
   async alterarSenha(idUsuario, dados) {
     const { senhaAtual, novaSenha, confirmarNovaSenha } = dados;
 

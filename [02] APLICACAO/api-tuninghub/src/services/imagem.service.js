@@ -25,7 +25,10 @@ const verificarPermissao = (idOficina, usuarioLogado) => {
 const removerArquivoFisico = (urlImagem) => {
   const caminhoAbsoluto = path.resolve(`.${urlImagem}`);
   fs.unlink(caminhoAbsoluto, (err) => {
-    if (err) console.warn(`[Imagem] Não foi possível remover o arquivo físico: ${caminhoAbsoluto}`);
+    // arquivo já inexistente (ex.: imagem desativada antes) não é problema
+    if (err && err.code !== 'ENOENT') {
+      console.warn(`[Imagem] Não foi possível remover o arquivo físico: ${caminhoAbsoluto}`);
+    }
   });
 };
 
@@ -84,6 +87,10 @@ class ImagemService {
     removerArquivoFisico(imagem.UrlImagem);
 
     return { message: 'Imagem removida com sucesso.' };
+  }
+
+  removerArquivosFisicos(urlsImagens) {
+    urlsImagens.forEach(removerArquivoFisico);
   }
 }
 

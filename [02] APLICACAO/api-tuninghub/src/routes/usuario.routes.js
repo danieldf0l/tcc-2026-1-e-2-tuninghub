@@ -12,6 +12,8 @@ router.post('/', UsuarioController.criar);
 router.get('/me', verificarToken, checkRole(ROLES.USUARIO), UsuarioController.meusDados);
 router.put('/me', verificarToken, checkRole(ROLES.USUARIO), contaLimiter, UsuarioController.atualizarMeusDados);
 router.patch('/me/senha', verificarToken, checkRole(ROLES.USUARIO), contaLimiter, UsuarioController.alterarSenha);
+// Exclusão física da própria conta (LGPD). DEVE ficar antes de DELETE /:id, senão "me" vira :id.
+router.delete('/me', verificarToken, checkRole(ROLES.USUARIO), contaLimiter, UsuarioController.excluirMinhaConta);
 
 router.patch('/aceitar-termos', verificarToken, checkRole(ROLES.USUARIO), UsuarioController.aceitarTermos);
 router.get('/admin', verificarToken, checkRole(ROLES.ADMIN, ROLES.ADMIN_MASTER), UsuarioController.listarAdmin);

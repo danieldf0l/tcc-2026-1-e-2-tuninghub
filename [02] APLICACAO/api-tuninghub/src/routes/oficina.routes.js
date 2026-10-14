@@ -11,11 +11,11 @@ router.get('/admin', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN),
 router.get('/', OficinaController.listar);
 router.post('/', OficinaController.criar);
 
-// "Meus Dados" (oficina logada) — o id vem sempre do token
 router.get('/me', verificarToken, checkRole(ROLES.OFICINA), OficinaController.meusDados);
 router.put('/me', verificarToken, checkRole(ROLES.OFICINA), contaLimiter, OficinaController.atualizarMeusDados);
 router.patch('/me/senha', verificarToken, checkRole(ROLES.OFICINA), contaLimiter, OficinaController.alterarSenha);
 router.patch('/me/faixa-preco', verificarToken, checkRole(ROLES.OFICINA), OficinaController.atualizarMinhaFaixaPreco);
+router.delete('/me', verificarToken, checkRole(ROLES.OFICINA), contaLimiter, OficinaController.excluirMinhaConta);
 
 router.patch('/aceitar-termos', verificarToken, checkRole(ROLES.OFICINA), OficinaController.aceitarTermos);
 router.put('/:id/faixa-preco', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), OficinaController.atualizarFaixaPreco);

@@ -134,6 +134,29 @@ class OficinaRepository {
     return result.affectedRows;
   }
 
+  async excluirDefinitivamente(idOficina) {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      const [imagens] = await connection.execute('SELECT UrlImagem FROM imagem WHERE IdOficina = ?', [idOficina]);
+
+      await connection.execute('DELETE FROM imagem WHERE IdOficina = ?', [idOficina]);
+      await connection.execute('DELETE FROM oficinaservico WHERE IdOficina = ?', [idOficina]);
+      await connection.execute('DELETE FROM endereco WHERE IdOficina = ?', [idOficina]);
+      await connection.execute('DELETE FROM assinatura WHERE IdOficina = ?', [idOficina]);
+      await connection.execute('DELETE FROM oficina WHERE IdOficina = ?', [idOficina]);
+
+      await connection.commit();
+      return imagens.map((imagem) => imagem.UrlImagem);
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   async atualizarStatus(idOficina, ativo) {
     const query = 'UPDATE oficina SET Ativo = ? WHERE IdOficina = ?';
     const [result] = await db.execute(query, [ativo ? 1 : 0, idOficina]);

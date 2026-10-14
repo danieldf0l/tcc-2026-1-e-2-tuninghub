@@ -101,6 +101,15 @@ class OficinaController {
     }
   };
 
+  excluirMinhaConta = async (req, res, next) => {
+    try {
+      const resultado = await OficinaService.excluirMinhaConta(req.usuarioLogado.id, req.body || {});
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   alterarSenha = async (req, res, next) => {
     try {
       const resultado = await OficinaService.alterarSenha(req.usuarioLogado.id, req.body || {});
