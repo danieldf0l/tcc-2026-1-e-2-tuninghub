@@ -10,6 +10,7 @@ import { calcularDistanciaKm } from '../utils/geolocalizacao.js';
 import { SENAC_LATITUDE, SENAC_LONGITUDE, RAIO_MAXIMO_KM } from '../constants/localizacaoSenac.js';
 
 const FAIXAS_PRECO_VALIDAS = ['$', '$$', '$$$'];
+const CAMPOS_EDITAVEIS = ['nomeOficina', 'nomeProprietario', 'telefone', 'email'];
 
 class OficinaService {
   async listarOficinas() {
@@ -139,6 +140,76 @@ class OficinaService {
 
     await OficinaRepository.atualizarStatus(idOficina, ativo);
     return { idOficina: Number(idOficina), ativo };
+  }
+
+  // ---------- Meus Dados ----------
+  // CNPJ e CNAE NÃO são editáveis: foram validados na Receita no cadastro (RN13/16/23/24).
+  // Endereço é editado em POST /api/endereco/:idOficina (revalida o raio de 4 km).
+
+  async buscarMeusDados(idOficina) {
+    const perfil = await OficinaRepository.findPerfil(idOficina);
+    if (!perfil) throw new NotFoundError('Oficina não encontrada.');
+    return perfil;
+  }
+
+  async atualizarMeusDados(idOficina, dados) {
+    if (!CAMPOS_EDITAVEIS.some((campo) => dados[campo] !== undefined)) {
+      throw new ValidationError('Informe ao menos um campo para atualizar (nomeOficina, nomeProprietario, telefone ou email).');
+    }
+
+    const perfilAtual = await this.buscarMeusDados(idOficina);
+
+    const texto = (valor, atual) => (valor !== undefined ? String(valor).trim() : atual);
+
+    const nomeOficina = texto(dados.nomeOficina, perfilAtual.NomeOficina);
+    const email = texto(dados.email, perfilAtual.Email);
+    // proprietário e telefone são opcionais: string vazia limpa o campo
+    const nomeProprietario = texto(dados.nomeProprietario, perfilAtual.NomeProprietario) || null;
+    const telefone = texto(dados.telefone, perfilAtual.Telefone) || null;
+
+    if (!nomeOficina) throw new ValidationError('O nome da oficina não pode ficar vazio.');
+    if (!validarEmail(email)) throw new ValidationError('E-mail inválido.');
+
+    if (email !== perfilAtual.Email) {
+      // Trocar e-mail exige confirmar a senha atual (evita sequestro de conta com token roubado)
+      if (!dados.senhaAtual) {
+        throw new ValidationError('Para alterar o e-mail, informe a senhaAtual.');
+      }
+      const oficina = await OficinaRepository.findByIdAdmin(idOficina);
+      const senhaCorreta = await bcrypt.compare(dados.senhaAtual, oficina.Senha);
+      if (!senhaCorreta) throw new ValidationError('Senha atual incorreta.');
+
+      const emUso = await OficinaRepository.existsByEmailExcetoId(email, idOficina);
+      if (emUso) throw new ConflictError('Já existe uma oficina cadastrada com este e-mail.');
+    }
+
+    await OficinaRepository.atualizarPerfil(idOficina, { nomeOficina, nomeProprietario, telefone, email });
+    return await this.buscarMeusDados(idOficina);
+  }
+
+  async alterarSenha(idOficina, dados) {
+    const { senhaAtual, novaSenha, confirmarNovaSenha } = dados;
+
+    if (!senhaAtual || !novaSenha || !confirmarNovaSenha) {
+      throw new ValidationError('Os campos senhaAtual, novaSenha e confirmarNovaSenha são obrigatórios.');
+    }
+
+    const oficina = await OficinaRepository.findByIdAdmin(idOficina);
+    if (!oficina) throw new NotFoundError('Oficina não encontrada.');
+
+    const senhaCorreta = await bcrypt.compare(senhaAtual, oficina.Senha);
+    if (!senhaCorreta) throw new ValidationError('Senha atual incorreta.');
+
+    if (novaSenha !== confirmarNovaSenha) throw new ValidationError('As senhas não coincidem.');
+    if (!validarSenha(novaSenha)) throw new ValidationError(SENHA_REQUISITOS_MSG);
+
+    const igualAAtual = await bcrypt.compare(novaSenha, oficina.Senha);
+    if (igualAAtual) throw new ValidationError('A nova senha deve ser diferente da senha atual.');
+
+    const senhaHasheada = await bcrypt.hash(novaSenha, 10);
+    await OficinaRepository.atualizarSenha(idOficina, senhaHasheada);
+
+    return { message: 'Senha alterada com sucesso.' };
   }
 }
 
