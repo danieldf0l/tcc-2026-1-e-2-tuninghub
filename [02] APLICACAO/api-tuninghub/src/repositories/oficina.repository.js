@@ -134,6 +134,8 @@ class OficinaRepository {
     return result.affectedRows;
   }
 
+  // Exclusão física (LGPD): remove a oficina e tudo que depende dela, numa única transação.
+  // Devolve as URLs das imagens para o service apagar os arquivos do disco DEPOIS do commit.
   async excluirDefinitivamente(idOficina) {
     const connection = await db.getConnection();
     try {
@@ -145,6 +147,7 @@ class OficinaRepository {
       await connection.execute('DELETE FROM oficinaservico WHERE IdOficina = ?', [idOficina]);
       await connection.execute('DELETE FROM endereco WHERE IdOficina = ?', [idOficina]);
       await connection.execute('DELETE FROM assinatura WHERE IdOficina = ?', [idOficina]);
+      await connection.execute('DELETE FROM token_recuperacao_senha WHERE IdOficina = ?', [idOficina]);
       await connection.execute('DELETE FROM oficina WHERE IdOficina = ?', [idOficina]);
 
       await connection.commit();

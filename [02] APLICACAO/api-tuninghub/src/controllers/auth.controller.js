@@ -42,6 +42,25 @@ class AuthController {
       next(error);
     }
   };
+
+  esqueciSenha = async (req, res, next) => {
+    try {
+      const { email, tipo } = req.body || {};
+      const resultado = await AuthService.solicitarRecuperacaoSenha(email, tipo);
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  redefinirSenha = async (req, res, next) => {
+    try {
+      const resultado = await AuthService.redefinirSenha(req.body || {});
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default new AuthController();
