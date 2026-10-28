@@ -28,6 +28,10 @@
       "value": "1"
     },
     {
+      "key": "idAdmin",
+      "value": "1"
+    },
+    {
       "key": "idMontadora",
       "value": "1"
     },
@@ -579,11 +583,25 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Admin Padrão\",\n  \"email\": \"moderador@tuninghub.com\",\n  \"senha\": \"Senha@123\",\n  \"nivelAcesso\": \"PADRAO\"\n}"
+            },
+            "description": "201 e salva o id em {{idAdmin}}. 409 se o e-mail já existe. Registra CRIOU_ADMIN no log."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('idAdmin', pm.response.json().admin.id);",
+                  "}"
+                ]
+              }
             }
-          }
+          ]
         },
         {
-          "name": "Listar Admins",
+          "name": "Listar Admins (ativos e inativos)",
           "request": {
             "method": "GET",
             "header": [],
@@ -595,10 +613,165 @@
               "path": [
                 "admin"
               ]
+            },
+            "description": "ADMIN ou ADMIN_MASTER. Cada item traz o campo Ativo. Nunca devolve a senha."
+          }
+        },
+        {
+          "name": "Editar Admin (ADMIN_MASTER)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/{{idAdmin}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "{{idAdmin}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Admin Renomeado\",\n  \"nivelAcesso\": \"PADRAO\"\n}"
+            },
+            "description": "Campos: nome, email, nivelAcesso (SUPER/PADRAO). 422 sem campos ou nível inválido; 409 e-mail em uso; 404 inexistente. Não é possível alterar o PRÓPRIO nível de acesso (422). Rebaixar um admin vale na hora (o nível é lido do banco, não do token)."
+          }
+        },
+        {
+          "name": "Desativar Admin (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/{{idAdmin}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "{{idAdmin}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ativo\": false\n}"
+            },
+            "description": "Soft delete. 422 ao tentar desativar a PRÓPRIA conta. O admin desativado perde o acesso na hora (403) e o login responde 403 'Conta desativada'."
+          }
+        },
+        {
+          "name": "Reativar Admin (ADMIN_MASTER)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/{{idAdmin}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "{{idAdmin}}",
+                "status"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ativo\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar Logs de Auditoria (ADMIN_MASTER)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/logs?pagina=1&limite=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Somente ADMIN_MASTER. Resposta: { pagina, limite, total, totalPaginas, itens[] } (mais recentes primeiro). Filtros opcionais: idAdmin, entidade, de, ate (AAAA-MM-DD). limite máx. 100. Logs são gravados pelo servidor a cada ação administrativa bem-sucedida e a cada login de admin."
+          }
+        },
+        {
+          "name": "Consultar Logs - com filtros (ADMIN_MASTER)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/logs?entidade=usuario&idAdmin=1&de=2026-10-01&ate=2026-10-31&pagina=1&limite=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "entidade",
+                  "value": "usuario"
+                },
+                {
+                  "key": "idAdmin",
+                  "value": "1"
+                },
+                {
+                  "key": "de",
+                  "value": "2026-10-01"
+                },
+                {
+                  "key": "ate",
+                  "value": "2026-10-31"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "limite",
+                  "value": "20"
+                }
+              ]
             }
           }
         }
-      ]
+      ],
+      "description": "Ações de admin (criar/editar/desativar catálogos, contas, planos etc.) são registradas na tabela logsistema e consultadas em GET /admin/logs."
     },
     {
       "name": "Montadora",

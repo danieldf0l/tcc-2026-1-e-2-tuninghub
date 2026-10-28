@@ -9,6 +9,7 @@ import { ValidationError, ConflictError, NotFoundError } from '../errors/AppErro
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG, sanitizarCnpj, validarCnpjFormato } from '../utils/validators.js';
 import { calcularDistanciaKm } from '../utils/geolocalizacao.js';
 import { SENAC_LATITUDE, SENAC_LONGITUDE, RAIO_MAXIMO_KM } from '../constants/localizacaoSenac.js';
+import VerificacaoEmailService, { FINALIDADE } from './verificacaoEmail.service.js';
 
 const FAIXAS_PRECO_VALIDAS = ['$', '$$', '$$$'];
 const CAMPOS_EDITAVEIS = ['nomeOficina', 'nomeProprietario', 'telefone', 'email'];
@@ -81,9 +82,12 @@ class OficinaService {
 
       await connection.commit();
 
+      // A conta nasce com e-mail NÃO confirmado: enviamos o código (sem await; nunca lança erro).
+      VerificacaoEmailService.enviarCodigoCadastro('oficina', { IdOficina: novoIdOficina, NomeOficina: nomeOficina, Email: email });
+
       return {
         id: novoIdOficina,
-        nomeOficina, cnpj, email, cnae: cnaePrincipal,
+        nomeOficina, cnpj, email, cnae: cnaePrincipal, emailVerificado: false,
         endereco: { idEndereco, ...endereco, latitude, longitude, distanciaKm: Number(distanciaKm.toFixed(2)) },
       };
     } catch (error) {
@@ -153,6 +157,9 @@ class OficinaService {
     return perfil;
   }
 
+  // Nome, proprietário e telefone são salvos na hora. E-mail novo NÃO é trocado direto: o código vai
+  // para o endereço novo e a troca só vale em POST /me/confirmar-email.
+  // Devolve { perfil, emailPendente } (emailPendente = e-mail aguardando confirmação, ou null).
   async atualizarMeusDados(idOficina, dados) {
     if (!CAMPOS_EDITAVEIS.some((campo) => dados[campo] !== undefined)) {
       throw new ValidationError('Informe ao menos um campo para atualizar (nomeOficina, nomeProprietario, telefone ou email).');
@@ -171,6 +178,8 @@ class OficinaService {
     if (!nomeOficina) throw new ValidationError('O nome da oficina não pode ficar vazio.');
     if (!validarEmail(email)) throw new ValidationError('E-mail inválido.');
 
+    let emailPendente = null;
+
     if (email !== perfilAtual.Email) {
       // Trocar e-mail exige confirmar a senha atual (evita sequestro de conta com token roubado)
       if (!dados.senhaAtual) {
@@ -182,9 +191,42 @@ class OficinaService {
 
       const emUso = await OficinaRepository.existsByEmailExcetoId(email, idOficina);
       if (emUso) throw new ConflictError('Já existe uma oficina cadastrada com este e-mail.');
+
+      // envia o código ANTES de salvar o resto: se o e-mail falhar (503), nada é alterado
+      await VerificacaoEmailService.solicitarTrocaEmail({
+        tipo: 'oficina',
+        conta: { IdOficina: idOficina, NomeOficina: nomeOficina },
+        novoEmail: email,
+      });
+      emailPendente = email;
     }
 
-    await OficinaRepository.atualizarPerfil(idOficina, { nomeOficina, nomeProprietario, telefone, email });
+    // o e-mail continua o ATUAL até a confirmação
+    await OficinaRepository.atualizarPerfil(idOficina, { nomeOficina, nomeProprietario, telefone, email: perfilAtual.Email });
+    return { perfil: await this.buscarMeusDados(idOficina), emailPendente };
+  }
+
+  // Segunda etapa da troca de e-mail: confere o código enviado ao e-mail NOVO e efetiva a troca.
+  async confirmarTrocaEmail(idOficina, dados) {
+    const { codigo } = dados;
+    if (!codigo) throw new ValidationError('Informe o código recebido no novo e-mail.');
+
+    const token = await VerificacaoEmailService.consumirCodigo({
+      tipo: 'oficina', idDono: idOficina, finalidade: FINALIDADE.TROCA_EMAIL, codigo,
+    });
+    const novoEmail = token.NovoEmail;
+
+    // alguém pode ter ocupado o e-mail nesse meio tempo
+    if (await OficinaRepository.existsByEmailExcetoId(novoEmail, idOficina)) {
+      throw new ConflictError('Já existe uma oficina cadastrada com este e-mail.');
+    }
+
+    try {
+      await OficinaRepository.trocarEmail(idOficina, novoEmail);
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') throw new ConflictError('Já existe uma oficina cadastrada com este e-mail.');
+      throw error;
+    }
     return await this.buscarMeusDados(idOficina);
   }
 

@@ -106,7 +106,7 @@ class OficinaRepository {
   // Perfil do próprio dono (nunca devolve a senha)
   async findPerfil(idOficina) {
     const query = `
-      SELECT IdOficina, NomeOficina, CNPJ, NomeProprietario, Telefone, Email,
+      SELECT IdOficina, NomeOficina, CNPJ, NomeProprietario, Telefone, Email, EmailVerificado,
              FaixaPreco, CNAE, DataCriacao, TermosAceitos, DataAceiteTermos
       FROM oficina WHERE IdOficina = ?
     `;
@@ -121,6 +121,19 @@ class OficinaRepository {
       WHERE IdOficina = ?
     `;
     const [result] = await db.execute(query, [nomeOficina, nomeProprietario, telefone, email, idOficina]);
+    return result.affectedRows;
+  }
+
+  // E-mail confirmado por código (cadastro, recuperação de senha ou troca de e-mail)
+  async marcarEmailVerificado(idOficina) {
+    const [result] = await db.execute('UPDATE oficina SET EmailVerificado = 1 WHERE IdOficina = ?', [idOficina]);
+    return result.affectedRows;
+  }
+
+  // Troca de e-mail já confirmada pelo código enviado ao endereço NOVO
+  async trocarEmail(idOficina, novoEmail) {
+    const query = 'UPDATE oficina SET Email = ?, EmailVerificado = 1 WHERE IdOficina = ?';
+    const [result] = await db.execute(query, [novoEmail, idOficina]);
     return result.affectedRows;
   }
 

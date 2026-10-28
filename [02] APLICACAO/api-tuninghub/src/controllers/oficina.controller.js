@@ -13,7 +13,10 @@ class OficinaController {
   criar = async (req, res, next) => {
     try {
       const oficina = await OficinaService.criarOficina(req.body);
-      res.status(201).json({ message: 'Oficina cadastrada com sucesso!', oficina });
+      res.status(201).json({
+        message: 'Oficina cadastrada com sucesso! Enviamos um código de confirmação para o seu e-mail.',
+        oficina,
+      });
     } catch (error) {
       next(error);
     }
@@ -94,8 +97,11 @@ class OficinaController {
 
   atualizarMeusDados = async (req, res, next) => {
     try {
-      const perfil = await OficinaService.atualizarMeusDados(req.usuarioLogado.id, req.body || {});
-      res.status(200).json({ message: 'Dados atualizados com sucesso!', oficina: perfil });
+      const { perfil, emailPendente } = await OficinaService.atualizarMeusDados(req.usuarioLogado.id, req.body || {});
+      const message = emailPendente
+        ? `Dados atualizados. Enviamos um código para ${emailPendente}; confirme para concluir a troca de e-mail.`
+        : 'Dados atualizados com sucesso!';
+      res.status(200).json({ message, oficina: perfil, emailPendente });
     } catch (error) {
       next(error);
     }
@@ -114,6 +120,15 @@ class OficinaController {
     try {
       const resultado = await OficinaService.alterarSenha(req.usuarioLogado.id, req.body || {});
       res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+    confirmarTrocaEmail = async (req, res, next) => {
+    try {
+      const perfil = await OficinaService.confirmarTrocaEmail(req.usuarioLogado.id, req.body || {});
+      res.status(200).json({ message: 'E-mail alterado com sucesso!', oficina: perfil });
     } catch (error) {
       next(error);
     }

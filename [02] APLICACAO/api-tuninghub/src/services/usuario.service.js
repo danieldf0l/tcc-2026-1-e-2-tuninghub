@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import UsuarioRepository from '../repositories/usuario.repository.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG } from '../utils/validators.js';
+import VerificacaoEmailService, { FINALIDADE } from './verificacaoEmail.service.js';
 
 class UsuarioService {
   async listarUsuarios() {
@@ -36,7 +37,11 @@ class UsuarioService {
     const senhaHasheada = await bcrypt.hash(senha, saltRounds);
     const novoId = await UsuarioRepository.create(nome, email, senhaHasheada, new Date());
 
-    return { id: novoId, nome, email };
+    // A conta nasce com e-mail NÃO confirmado: enviamos o código (sem await; nunca lança erro).
+    // Se o e-mail não chegar, a pessoa pede outro em /api/auth/reenviar-codigo ou ao tentar entrar.
+    VerificacaoEmailService.enviarCodigoCadastro('usuario', { IdUsuario: novoId, Nome: nome, Email: email });
+
+    return { id: novoId, nome, email, emailVerificado: false };
   }
 
   async aceitarTermos(idUsuario) {
@@ -67,6 +72,9 @@ class UsuarioService {
     return perfil;
   }
 
+  // Nome é salvo na hora. E-mail novo NÃO é trocado direto: o código vai para o endereço novo e a
+  // troca só vale em POST /me/confirmar-email. Até lá, a conta continua com o e-mail antigo.
+  // Devolve { perfil, emailPendente } (emailPendente = e-mail aguardando confirmação, ou null).
   async atualizarMeusDados(idUsuario, dados) {
     if (dados.nome === undefined && dados.email === undefined) {
       throw new ValidationError('Informe ao menos um campo para atualizar (nome ou email).');
@@ -80,6 +88,8 @@ class UsuarioService {
     if (!nome) throw new ValidationError('O nome não pode ficar vazio.');
     if (!validarEmail(email)) throw new ValidationError('E-mail inválido.');
 
+    let emailPendente = null;
+
     if (email !== perfilAtual.Email) {
       // Trocar e-mail exige confirmar a senha atual (evita sequestro de conta com token roubado)
       if (!dados.senhaAtual) {
@@ -91,9 +101,42 @@ class UsuarioService {
 
       const emUso = await UsuarioRepository.existsByEmailExcetoId(email, idUsuario);
       if (emUso) throw new ConflictError('Este e-mail já está em uso.');
+
+      // envia o código ANTES de salvar o nome: se o e-mail falhar (503), nada é alterado
+      await VerificacaoEmailService.solicitarTrocaEmail({
+        tipo: 'usuario',
+        conta: { IdUsuario: idUsuario, Nome: nome },
+        novoEmail: email,
+      });
+      emailPendente = email;
     }
 
-    await UsuarioRepository.atualizarPerfil(idUsuario, nome, email);
+    // o e-mail continua o ATUAL até a confirmação
+    await UsuarioRepository.atualizarPerfil(idUsuario, nome, perfilAtual.Email);
+    return { perfil: await this.buscarMeusDados(idUsuario), emailPendente };
+  }
+
+  // Segunda etapa da troca de e-mail: confere o código enviado ao e-mail NOVO e efetiva a troca.
+  async confirmarTrocaEmail(idUsuario, dados) {
+    const { codigo } = dados;
+    if (!codigo) throw new ValidationError('Informe o código recebido no novo e-mail.');
+
+    const token = await VerificacaoEmailService.consumirCodigo({
+      tipo: 'usuario', idDono: idUsuario, finalidade: FINALIDADE.TROCA_EMAIL, codigo,
+    });
+    const novoEmail = token.NovoEmail;
+
+    // alguém pode ter ocupado o e-mail nesse meio tempo
+    if (await UsuarioRepository.existsByEmailExcetoId(novoEmail, idUsuario)) {
+      throw new ConflictError('Este e-mail já está em uso.');
+    }
+
+    try {
+      await UsuarioRepository.trocarEmail(idUsuario, novoEmail);
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') throw new ConflictError('Este e-mail já está em uso.');
+      throw error;
+    }
     return await this.buscarMeusDados(idUsuario);
   }
 

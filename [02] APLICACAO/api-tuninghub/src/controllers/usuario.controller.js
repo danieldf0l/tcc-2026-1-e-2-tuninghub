@@ -14,7 +14,10 @@ class UsuarioController {
     try {
       const dados = req.body;
       const usuario = await UsuarioService.criarUsuario(dados);
-      res.status(201).json({ message: 'Usuário criado com sucesso', usuario });
+      res.status(201).json({
+        message: 'Usuário criado com sucesso! Enviamos um código de confirmação para o seu e-mail.',
+        usuario,
+      });
     } catch (error) {
       next(error);
     }
@@ -67,8 +70,11 @@ class UsuarioController {
 
   atualizarMeusDados = async (req, res, next) => {
     try {
-      const perfil = await UsuarioService.atualizarMeusDados(req.usuarioLogado.id, req.body || {});
-      res.status(200).json({ message: 'Dados atualizados com sucesso!', usuario: perfil });
+      const { perfil, emailPendente } = await UsuarioService.atualizarMeusDados(req.usuarioLogado.id, req.body || {});
+      const message = emailPendente
+        ? `Dados atualizados. Enviamos um código para ${emailPendente}; confirme para concluir a troca de e-mail.`
+        : 'Dados atualizados com sucesso!';
+      res.status(200).json({ message, usuario: perfil, emailPendente });
     } catch (error) {
       next(error);
     }
@@ -87,6 +93,15 @@ class UsuarioController {
     try {
       const resultado = await UsuarioService.alterarSenha(req.usuarioLogado.id, req.body || {});
       res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+    confirmarTrocaEmail = async (req, res, next) => {
+    try {
+      const perfil = await UsuarioService.confirmarTrocaEmail(req.usuarioLogado.id, req.body || {});
+      res.status(200).json({ message: 'E-mail alterado com sucesso!', usuario: perfil });
     } catch (error) {
       next(error);
     }

@@ -46,7 +46,7 @@ class UsuarioRepository {
   }
 
   async findAllAdmin() {
-    const query = 'SELECT IdUsuario, Nome, Email, Ativo, DataCriacao FROM usuario ORDER BY Ativo DESC, Nome ASC';
+    const query = 'SELECT IdUsuario, Nome, Email, EmailVerificado, Ativo, DataCriacao FROM usuario ORDER BY Ativo DESC, Nome ASC';
     const [rows] = await db.execute(query);
     return rows;
   }
@@ -62,7 +62,7 @@ class UsuarioRepository {
   // Perfil público do próprio usuário (nunca devolve a senha)
   async findPerfil(idUsuario) {
     const query = `
-      SELECT IdUsuario, Nome, Email, DataCriacao, TermosAceitos, DataAceiteTermos
+      SELECT IdUsuario, Nome, Email, EmailVerificado, DataCriacao, TermosAceitos, DataAceiteTermos
       FROM usuario WHERE IdUsuario = ?
     `;
     const [rows] = await db.execute(query, [idUsuario]);
@@ -72,6 +72,19 @@ class UsuarioRepository {
   async atualizarPerfil(idUsuario, nome, email) {
     const query = 'UPDATE usuario SET Nome = ?, Email = ? WHERE IdUsuario = ?';
     const [result] = await db.execute(query, [nome, email, idUsuario]);
+    return result.affectedRows;
+  }
+
+  // E-mail confirmado por código (cadastro, recuperação de senha ou troca de e-mail)
+  async marcarEmailVerificado(idUsuario) {
+    const [result] = await db.execute('UPDATE usuario SET EmailVerificado = 1 WHERE IdUsuario = ?', [idUsuario]);
+    return result.affectedRows;
+  }
+
+  // Troca de e-mail já confirmada pelo código enviado ao endereço NOVO
+  async trocarEmail(idUsuario, novoEmail) {
+    const query = 'UPDATE usuario SET Email = ?, EmailVerificado = 1 WHERE IdUsuario = ?';
+    const [result] = await db.execute(query, [novoEmail, idUsuario]);
     return result.affectedRows;
   }
 
