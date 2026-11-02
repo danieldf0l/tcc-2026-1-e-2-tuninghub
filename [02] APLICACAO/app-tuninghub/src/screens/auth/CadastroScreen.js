@@ -61,9 +61,12 @@ export default function CadastroScreen({ navigation }) {
     }
 
     setLoading(true);
+    setLoading(true);
     try {
-      await cadastrarUsuario({ ...form, termosAceitos });
-      navigation.navigate('Login', { tipo: 'usuario' });
+      const emailLimpo = email.trim();
+      await cadastrarUsuario({ ...form, email: emailLimpo, termosAceitos });
+      // Conta criada com e-mail não confirmado: o backend já enviou o código
+      navigation.replace('ConfirmarEmail', { tipo: 'usuario', email: emailLimpo, senha });
     } catch (e) {
       setErroGeral(getErrorMessage(e));
     } finally {

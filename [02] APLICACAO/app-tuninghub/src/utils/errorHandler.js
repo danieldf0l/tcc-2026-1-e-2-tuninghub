@@ -10,3 +10,8 @@ export function getErrorMessage(error, fallback = 'Ocorreu um erro. Tente novame
 
   return data.message || fallback;
 }
+
+// 403 do login quando o e-mail da conta ainda não foi confirmado
+export function isEmailNaoVerificado(error) {
+  return error?.response?.data?.code === 'EMAIL_NAO_VERIFICADO';
+}

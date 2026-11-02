@@ -44,7 +44,7 @@ export default function CadastroOficinaAcessoScreen({ navigation }) {
     setCamposComErro([]);
     navigation.navigate('CadastroOficinaDados', {
       nomeProprietario,
-      email,
+      email: email.trim(),
       senha,
       termosAceitos,
     });

@@ -1,7 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { login as loginApi } from '../api/auth.api';
+import { login as loginApi, verificarEmail as verificarEmailApi } from '../api/auth.api';
 import { buscarMinhaAssinatura } from '../api/assinatura.api';
+import { setSessaoInvalidaHandler } from '../api/client';
 
 const TOKEN_KEY = 'tuninghub_token';
 const USUARIO_KEY = 'tuninghub_usuario';
@@ -24,6 +26,20 @@ export function AuthProvider({ children }) {
   const [assinatura, setAssinatura] = useState(null);
   const [carregando, setCarregando] = useState(true);
 
+  // Evita vários alertas quando várias requisições falham ao mesmo tempo
+  const encerrandoRef = useRef(false);
+
+  // Servidor recusou a sessão (401 / conta desativada): limpa tudo e volta ao login
+  useEffect(() => {
+    setSessaoInvalidaHandler(async (mensagem) => {
+      if (encerrandoRef.current) return;
+      encerrandoRef.current = true;
+      await sair();
+      Alert.alert('Sessão encerrada', mensagem);
+    });
+    return () => setSessaoInvalidaHandler(null);
+  }, []);
+
   useEffect(() => {
     async function restaurarSessao() {
       try {
@@ -34,9 +50,10 @@ export function AuthProvider({ children }) {
         ]);
         if (tokenSalvo && usuarioSalvo) {
           const tipo = tipoSalvo || 'usuario';
-          if (tipo === 'oficina') {
-            setAssinatura(await buscarAssinaturaSegura());
-          }
+          const assinaturaSalva = tipo === 'oficina' ? await buscarAssinaturaSegura() : null;
+          // Se o servidor recusou o token durante a restauração, a sessão já foi encerrada
+          if (encerrandoRef.current) return;
+          setAssinatura(assinaturaSalva);
           setToken(tokenSalvo);
           setUsuario(JSON.parse(usuarioSalvo));
           setTipoConta(tipo);
@@ -48,11 +65,12 @@ export function AuthProvider({ children }) {
     restaurarSessao();
   }, []);
 
-  async function entrar(tipo, email, senha) {
-    const resposta = await loginApi(tipo, email, senha);
+  // Grava e ativa a sessão (resposta = { usuario, token })
+  async function iniciarSessao(tipo, resposta) {
     await SecureStore.setItemAsync(TOKEN_KEY, resposta.token);
     await SecureStore.setItemAsync(USUARIO_KEY, JSON.stringify(resposta.usuario));
     await SecureStore.setItemAsync(TIPO_CONTA_KEY, tipo);
+    encerrandoRef.current = false;
 
     // O interceptor do axios lê o token do SecureStore, então já dá para consultar a assinatura aqui
     const assinaturaAtual = tipo === 'oficina' ? await buscarAssinaturaSegura() : null;
@@ -61,6 +79,17 @@ export function AuthProvider({ children }) {
     setToken(resposta.token);
     setUsuario(resposta.usuario);
     setTipoConta(tipo);
+  }
+
+  async function entrar(tipo, email, senha) {
+    const resposta = await loginApi(tipo, email, senha);
+    await iniciarSessao(tipo, resposta);
+  }
+
+  // Confirma o e-mail do cadastro com o código e já entra no app
+  async function confirmarEmail(tipo, email, senha, codigo) {
+    const resposta = await verificarEmailApi({ email, tipo, senha, codigo });
+    await iniciarSessao(tipo, resposta);
   }
 
   async function sair() {
@@ -105,6 +134,7 @@ export function AuthProvider({ children }) {
         carregando,
         autenticado: !!token,
         entrar,
+        confirmarEmail,
         sair,
         verificarAssinatura,
         atualizarAceiteTermos,

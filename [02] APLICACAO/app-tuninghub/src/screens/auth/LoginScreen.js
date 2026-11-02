@@ -1,20 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, Alert, Animated, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { getErrorMessage } from '../../utils/errorHandler';
+import { getErrorMessage, isEmailNaoVerificado } from '../../utils/errorHandler';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
 import BackButton from '../../components/BackButton';
 
 export default function LoginScreen({ route, navigation }) {
-  const { tipo } = route.params; // 'usuario' | 'oficina'
+  const { tipo, emailInicial } = route.params; // tipo: 'usuario' | 'oficina'
   const { colors } = useTheme();
   const { entrar } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(emailInicial || '');
   const [senha, setSenha] = useState('');
   const [erroGeral, setErroGeral] = useState('');
   const [camposComErro, setCamposComErro] = useState([]);
@@ -30,7 +30,7 @@ export default function LoginScreen({ route, navigation }) {
     setCamposComErro([]);
 
     const vazios = [];
-    if (!email) vazios.push('email');
+    if (!email.trim()) vazios.push('email');
     if (!senha) vazios.push('senha');
 
     if (vazios.length > 0) {
@@ -41,9 +41,14 @@ export default function LoginScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      await entrar(tipo, email, senha);
+      await entrar(tipo, email.trim(), senha);
       // Navegação pós-login é tratada automaticamente pelo RootNavigator
     } catch (e) {
+      if (isEmailNaoVerificado(e)) {
+        // Senha correta, mas o e-mail ainda não foi confirmado: o backend reenviou o código
+        navigation.navigate('ConfirmarEmail', { tipo, email: email.trim(), senha });
+        return;
+      }
       setErroGeral(getErrorMessage(e));
     } finally {
       setLoading(false);
@@ -80,7 +85,7 @@ export default function LoginScreen({ route, navigation }) {
           error={camposComErro.includes('senha')}
         />
 
-        <Pressable onPress={() => Alert.alert('Em breve', 'Recuperação de senha ainda não implementada.')}>
+        <Pressable onPress={() => navigation.navigate('EsqueciSenha', { tipo, email: email.trim() })}>
           <Text style={[styles.link, { color: colors.text }]}>Esqueci minha senha</Text>
         </Pressable>
 

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../../theme/ThemeContext';
-import { useAuth } from '../../../context/AuthContext';
 import { cadastrarOficina } from '../../../api/oficina.api';
 import { buscarEnderecoPorCep } from '../../../utils/cep';
 import { getErrorMessage } from '../../../utils/errorHandler';
@@ -11,7 +10,6 @@ import BackButton from '../../../components/BackButton';
 
 export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
   const { colors } = useTheme();
-  const { entrar } = useAuth();
 
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
@@ -70,10 +68,16 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
         endereco: { rua, numero, bairro, cidade, estado, cep },
       });
 
-      // Oficina criada com sucesso (transação atômica) — autentica automaticamente
-      await entrar('oficina', email, senha);
-      // A navegação para a escolha de plano é tratada automaticamente pelo RootNavigator
-      // (toda oficina sem assinatura cai direto na tela MinhaAssinatura, sem acesso ao resto do app)
+      // Oficina criada com e-mail não confirmado: o backend já enviou o código.
+      // Reinicia a pilha para que "voltar" leve ao login, não ao wizard.
+      navigation.reset({
+        index: 2,
+        routes: [
+          { name: 'RoleSelect' },
+          { name: 'Login', params: { tipo: 'oficina' } },
+          { name: 'ConfirmarEmail', params: { tipo: 'oficina', email, senha } },
+        ],
+      });
     } catch (e) {
       setErro(getErrorMessage(e));
     } finally {
