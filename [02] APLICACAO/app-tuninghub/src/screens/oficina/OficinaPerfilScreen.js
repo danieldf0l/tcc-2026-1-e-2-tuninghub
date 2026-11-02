@@ -103,10 +103,14 @@ export default function OficinaPerfilScreen({ route, navigation }) {
               [oficina.Bairro, oficina.Cidade].filter(Boolean).join(', '),
             ].filter(Boolean).join(' · ')}
           </Text>
-          <View style={{ height: 16, alignSelf: 'stretch' }} />
-          <View style={{ alignSelf: 'stretch' }}>
-            <Button title="Falar no WhatsApp" onPress={falarNoWhatsApp} />
-          </View>
+          {oficina.Telefone ? (
+            <>
+              <View style={{ height: 16, alignSelf: 'stretch' }} />
+              <View style={{ alignSelf: 'stretch' }}>
+                <Button title="Falar no WhatsApp" onPress={falarNoWhatsApp} />
+              </View>
+            </>
+          ) : null}
         </View>
 
         <View style={styles.corpo}>
