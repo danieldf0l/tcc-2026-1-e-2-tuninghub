@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { View, Text, FlatList, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
-import { listarMeusProjetos } from '../../api/projeto.api';
+import { listarMeusProjetos, listarMeusProjetosArquivados } from '../../api/projeto.api';
 import { listarTodosModelos } from '../../api/modelo.api';
 import { listarItensDoProjeto } from '../../api/projetoServico.api';
 import { getErrorMessage } from '../../utils/errorHandler';
@@ -14,6 +15,7 @@ const LIMITE_PROJETOS = 3;
 export default function ProjetosScreen({ navigation }) {
   const { colors } = useTheme();
   const [projetos, setProjetos] = useState([]);
+  const [qtdArquivados, setQtdArquivados] = useState(0);
   const [nomesModelos, setNomesModelos] = useState({});
   const [progressos, setProgressos] = useState({});
   const [carregando, setCarregando] = useState(true);
@@ -51,6 +53,14 @@ export default function ProjetosScreen({ navigation }) {
       );
       setProgressos(Object.fromEntries(entradas));
 
+      // Só para mostrar o link "Projetos arquivados (N)"; falha aqui não atrapalha a lista
+      try {
+        const arquivados = await listarMeusProjetosArquivados();
+        setQtdArquivados(arquivados.length);
+      } catch {
+        setQtdArquivados(0);
+      }
+
       setErro('');
     } catch (e) {
       setErro(getErrorMessage(e));
@@ -85,7 +95,9 @@ export default function ProjetosScreen({ navigation }) {
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         {projetos.length === 0
           ? 'Nenhum projeto criado ainda'
-          : `${projetos.length} ${projetos.length === 1 ? 'projeto ativo' : 'projetos ativos'}`}
+          : `${projetos.length} ${projetos.length === 1 ? 'projeto ativo' : 'projetos ativos'}${
+              atingiuLimite ? ' · arquive um para criar outro' : ''
+            }`}
       </Text>
 
       {carregando ? (
@@ -132,6 +144,18 @@ export default function ProjetosScreen({ navigation }) {
 
       {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
 
+      {qtdArquivados > 0 ? (
+        <Pressable
+          onPress={() => navigation.navigate('ProjetosArquivados')}
+          style={[styles.arquivadosLink, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        >
+          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
+            Projetos arquivados ({qtdArquivados})
+          </Text>
+          <ChevronRight size={18} color={colors.textSecondary} />
+        </Pressable>
+      ) : null}
+
       <Button
         title={atingiuLimite ? 'Limite de 3 projetos atingido' : '+ Novo Projeto'}
         onPress={() => navigation.navigate('EscolhaCarro')}
@@ -160,4 +184,14 @@ const styles = StyleSheet.create({
   vazioTitulo: { fontSize: 17, fontWeight: '700', marginBottom: 6 },
   vazioTexto: { fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
   erro: { fontSize: 13, textAlign: 'center', marginBottom: 12 },
+  arquivadosLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
 });

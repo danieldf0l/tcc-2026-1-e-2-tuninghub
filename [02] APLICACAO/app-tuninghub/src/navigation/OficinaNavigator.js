@@ -15,6 +15,9 @@ import MeusServicosScreen from '../screens/oficina/servicos/MeusServicosScreen';
 import MinhaAssinaturaScreen from '../screens/oficina/assinatura/MinhaAssinaturaScreen';
 import FotosOficinaScreen from '../screens/oficina/imagens/FotosOficinaScreen';
 import OficinaPerfilScreen from '../screens/oficina/OficinaPerfilScreen';
+import ConfirmarTrocaEmailScreen from '../screens/perfil/ConfirmarTrocaEmailScreen';
+import AlterarSenhaScreen from '../screens/perfil/AlterarSenhaScreen';
+import ExcluirContaScreen from '../screens/perfil/ExcluirContaScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -87,6 +90,9 @@ export default function OficinaNavigator() {
       <Stack.Screen name="MinhaAssinatura" component={MinhaAssinaturaScreen} />
       <Stack.Screen name="FotosOficina" component={FotosOficinaScreen} />
       <Stack.Screen name="OficinaPerfil" component={OficinaPerfilScreen} />
+      <Stack.Screen name="ConfirmarTrocaEmail" component={ConfirmarTrocaEmailScreen} />
+      <Stack.Screen name="AlterarSenha" component={AlterarSenhaScreen} />
+      <Stack.Screen name="ExcluirConta" component={ExcluirContaScreen} />
     </Stack.Navigator>
   );
 }

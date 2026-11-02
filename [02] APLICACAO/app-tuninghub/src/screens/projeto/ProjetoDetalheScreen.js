@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, Pressable, Alert, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import { listarItensDoProjeto, marcarConcluido } from '../../api/projetoServico.api';
+import { arquivarProjeto } from '../../api/projeto.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import BackButton from '../../components/BackButton';
 import ChecklistItem from '../../components/ChecklistItem';
@@ -53,6 +54,26 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
     navigation.navigate('AdicionarServico', { idProjeto, idsJaAdicionados });
   }
 
+  async function arquivar() {
+    try {
+      await arquivarProjeto(idProjeto);
+      navigation.goBack();
+    } catch (e) {
+      setErro(getErrorMessage(e));
+    }
+  }
+
+  function confirmarArquivar() {
+    Alert.alert(
+      'Arquivar projeto',
+      'O projeto sai da sua lista e libera uma vaga. Você pode desarquivá-lo depois, em "Projetos arquivados".',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Arquivar', onPress: arquivar },
+      ]
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
       <BackButton onPress={() => navigation.goBack()} />
@@ -84,6 +105,10 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
       {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
 
       <Button title="+ Adicionar serviço" variant="outline" onPress={irParaAdicionarServico} />
+
+      <Pressable onPress={confirmarArquivar} style={styles.arquivar}>
+        <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Arquivar projeto</Text>
+      </Pressable>
     </View>
   );
 }
@@ -94,4 +119,5 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, marginBottom: 20 },
   vazio: { textAlign: 'center', marginTop: 40 },
   erro: { fontSize: 13, textAlign: 'center', marginTop: 8 },
+  arquivar: { alignItems: 'center', marginTop: 16 },
 });
