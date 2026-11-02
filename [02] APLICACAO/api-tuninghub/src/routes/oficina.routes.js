@@ -13,6 +13,8 @@ router.post('/', OficinaController.criar);
 
 // "Meus Dados" (oficina logada) — o id vem sempre do token
 router.get('/me', verificarToken, checkRole(ROLES.OFICINA), OficinaController.meusDados);
+// Perfil público de uma oficina. Fica DEPOIS de /buscar, /admin e /me para não capturá-los como :id.
+router.get('/:id', OficinaController.perfilPublico);
 router.put('/me', verificarToken, checkRole(ROLES.OFICINA), contaLimiter, OficinaController.atualizarMeusDados);
 // 2ª etapa da troca de e-mail: confirma o código enviado ao e-mail novo
 router.post('/me/confirmar-email', verificarToken, checkRole(ROLES.OFICINA), contaLimiter, OficinaController.confirmarTrocaEmail);

@@ -82,6 +82,20 @@ class OficinaRepository {
     return rows;
   }
 
+    // Perfil público (app do entusiasta): só oficina ativa, com o endereço. Sem CNPJ nem dados internos.
+  async findPublicaPorId(idOficina) {
+    const query = `
+      SELECT o.IdOficina, o.NomeOficina, o.Telefone, o.Email, o.FaixaPreco,
+             e.Rua, e.Numero, e.Bairro, e.Cidade, e.Estado, e.CEP, e.Latitude, e.Longitude
+      FROM oficina o
+      LEFT JOIN endereco e ON e.IdOficina = o.IdOficina
+      WHERE o.IdOficina = ? AND o.Ativo = 1
+      LIMIT 1
+    `;
+    const [rows] = await db.execute(query, [idOficina]);
+    return rows[0];
+  }
+
   async findByEmailQualquerStatus(email) {
     const query = 'SELECT * FROM oficina WHERE Email = ?';
     const [rows] = await db.execute(query, [email]);

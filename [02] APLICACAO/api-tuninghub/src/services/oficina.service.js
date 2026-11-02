@@ -4,6 +4,7 @@ import OficinaRepository from '../repositories/oficina.repository.js';
 import EnderecoRepository from '../repositories/endereco.repository.js';
 import CnpjExternoService from './cnpjExterno.service.js';
 import GeocodificacaoService from './geocodificacao.service.js';
+import AssinaturaRepository from '../repositories/assinatura.repository.js';
 import ImagemService from './imagem.service.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG, sanitizarCnpj, validarCnpjFormato } from '../utils/validators.js';
@@ -14,9 +15,35 @@ import VerificacaoEmailService, { FINALIDADE } from './verificacaoEmail.service.
 const FAIXAS_PRECO_VALIDAS = ['$', '$$', '$$$'];
 const CAMPOS_EDITAVEIS = ['nomeOficina', 'nomeProprietario', 'telefone', 'email'];
 
+// Contato direto (Telefone e Email) só aparece para oficina com plano Pro ativo.
+// Sem plano pago, as chaves são REMOVIDAS do JSON (não vão como null), para o app checar pela ausência.
+// O plano de todas as oficinas da lista é resolvido em UMA consulta (sem N+1).
+const aplicarRegraDeContato = async (oficinas) => {
+  const ids = oficinas.map((oficina) => oficina.IdOficina);
+  const idsComPlanoPago = await AssinaturaRepository.findIdsComPlanoPago(ids);
+
+  return oficinas.map((oficina) => {
+    if (idsComPlanoPago.has(oficina.IdOficina)) return oficina;
+    const { Telefone: _telefone, Email: _email, ...semContato } = oficina;
+    return semContato;
+  });
+};
+
 class OficinaService {
   async listarOficinas() {
-    return await OficinaRepository.findAll();
+    const oficinas = await OficinaRepository.findAll();
+    return await aplicarRegraDeContato(oficinas);
+  }
+
+  async buscarPerfilPublico(idOficina) {
+    if (!Number.isInteger(Number(idOficina)) || Number(idOficina) <= 0) {
+      throw new ValidationError('O id da oficina deve ser um número válido.');
+    }
+    const oficina = await OficinaRepository.findPublicaPorId(idOficina);
+    if (!oficina) throw new NotFoundError('Oficina não encontrada.');
+
+    const [oficinaComRegra] = await aplicarRegraDeContato([oficina]);
+    return oficinaComRegra;
   }
 
   async listarOficinasAdmin() {
@@ -111,7 +138,8 @@ class OficinaService {
       throw new ValidationError('lat e lng devem ser números válidos.');
     }
 
-    const oficinas = await OficinaRepository.buscarComEndereco(idServico);
+    const oficinasBrutas = await OficinaRepository.buscarComEndereco(idServico);
+    const oficinas = await aplicarRegraDeContato(oficinasBrutas);
     return oficinas
       .map((oficina) => ({
         ...oficina,

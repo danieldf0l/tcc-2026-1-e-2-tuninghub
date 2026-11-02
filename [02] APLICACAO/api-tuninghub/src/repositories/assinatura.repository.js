@@ -1,5 +1,12 @@
 import db from '../config/db.js';
 
+// Regra única de "plano Pro": assinatura ATIVA, de plano pago (Valor > 0) e dentro da validade.
+// Usada no gate de imagens (findAtivaPaga) e na liberação do contato público da oficina.
+const CONDICAO_PLANO_PAGO = `
+  a.Status = 'ATIVA' AND p.Valor > 0
+  AND (a.DataFim IS NULL OR a.DataFim >= CURDATE())
+`;
+
 class AssinaturaRepository {
   async findAll() {
     const query = `
@@ -59,11 +66,26 @@ class AssinaturaRepository {
       SELECT a.*, p.Valor
       FROM assinatura a
       INNER JOIN plano p ON a.IdPlano = p.IdPlano
-      WHERE a.IdOficina = ? AND a.Status = 'ATIVA' AND p.Valor > 0
-        AND (a.DataFim IS NULL OR a.DataFim >= CURDATE())
+      WHERE a.IdOficina = ? AND ${CONDICAO_PLANO_PAGO}
     `;
     const [rows] = await db.execute(query, [idOficina]);
     return rows[0];
+  }
+
+  // Versão em lote da mesma regra (uma única consulta, sem N+1).
+  // Recebe os ids das oficinas e devolve um Set com os ids que têm plano Pro.
+  async findIdsComPlanoPago(idsOficinas) {
+    if (idsOficinas.length === 0) return new Set();
+
+    const placeholders = idsOficinas.map(() => '?').join(', ');
+    const query = `
+      SELECT DISTINCT a.IdOficina
+      FROM assinatura a
+      INNER JOIN plano p ON a.IdPlano = p.IdPlano
+      WHERE a.IdOficina IN (${placeholders}) AND ${CONDICAO_PLANO_PAGO}
+    `;
+    const [rows] = await db.execute(query, idsOficinas);
+    return new Set(rows.map((linha) => linha.IdOficina));
   }
 
   // Marca como EXPIRADA as assinaturas ATIVAS vencidas da oficina.

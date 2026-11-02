@@ -32,6 +32,15 @@ class OficinaController {
     }
   };
 
+    perfilPublico = async (req, res, next) => {
+    try {
+      const oficina = await OficinaService.buscarPerfilPublico(req.params.id);
+      res.status(200).json(oficina);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   aceitarTermos = async (req, res, next) => {
     try {
       const resultado = await OficinaService.aceitarTermos(req.usuarioLogado.id);
