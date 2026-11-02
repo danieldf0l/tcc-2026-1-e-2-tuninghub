@@ -20,4 +20,7 @@ router.delete('/:id', verificarToken, checkRole(ROLES.USUARIO, ROLES.ADMIN_MASTE
 router.patch('/:id/reativar', verificarToken, checkRole(ROLES.USUARIO, ROLES.ADMIN_MASTER, ROLES.ADMIN),
   registrarAcao('REATIVOU_PROJETO', 'projeto'), ProjetoController.reativar);
 
+// Exclusão FÍSICA (irreversível): só o dono, e só de projeto já desativado.
+router.delete('/:id/definitivo', verificarToken, checkRole(ROLES.USUARIO), ProjetoController.excluirDefinitivamente);
+
 export default router;

@@ -63,6 +63,15 @@ class ProjetoController {
       next(error);
     }
   };
+
+  excluirDefinitivamente = async (req, res, next) => {
+    try {
+      const resultado = await ProjetoService.excluirProjetoDefinitivamente(req.params.id, req.usuarioLogado);
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  }; 
 }
 
 export default new ProjetoController();

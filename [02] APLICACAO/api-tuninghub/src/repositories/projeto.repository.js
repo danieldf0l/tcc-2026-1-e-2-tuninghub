@@ -59,6 +59,25 @@ class ProjetoRepository {
     const [result] = await db.execute(query, [ativo ? 1 : 0, idProjeto]);
     return result.affectedRows;
   }
+
+    // Exclusão física: remove a To-do List do projeto e o projeto, numa única transação.
+  async excluirDefinitivamente(idProjeto) {
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.execute('DELETE FROM projetoservico WHERE IdProjeto = ?', [idProjeto]);
+      const [result] = await connection.execute('DELETE FROM projeto WHERE IdProjeto = ?', [idProjeto]);
+
+      await connection.commit();
+      return result.affectedRows;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
 }
 
 export default new ProjetoRepository();

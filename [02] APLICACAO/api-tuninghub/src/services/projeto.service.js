@@ -141,6 +141,21 @@ class ProjetoService {
     await ProjetoRepository.atualizarStatus(idProjeto, true);
     return { idProjeto: Number(idProjeto), ativo: true };
   }
+
+    // Exclusão física (irreversível). Só o dono, e só de projeto JÁ desativado:
+  // o fluxo é "desativar → excluir definitivamente", para evitar apagar sem querer.
+  async excluirProjetoDefinitivamente(idProjeto, usuarioLogado) {
+    const projeto = await ProjetoRepository.findByIdQualquerStatus(idProjeto);
+    if (!projeto) throw new NotFoundError('Projeto não encontrado.');
+    verificarDono(projeto, usuarioLogado);
+
+    if (projeto.Ativo) {
+      throw new ConflictError('Desative o projeto antes de excluí-lo definitivamente.');
+    }
+
+    await ProjetoRepository.excluirDefinitivamente(idProjeto);
+    return { message: 'Projeto excluído definitivamente.', idProjeto: Number(idProjeto) };
+  }
 }
 
 export default new ProjetoService();
