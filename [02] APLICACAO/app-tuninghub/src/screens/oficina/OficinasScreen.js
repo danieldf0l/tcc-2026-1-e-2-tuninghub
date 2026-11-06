@@ -10,6 +10,7 @@ import { getUrlImagem } from '../../utils/media';
 import { useLocalizacao } from '../../utils/useLocalizacao';
 import OficinaCard from '../../components/OficinaCard';
 import FiltroServicoModal from '../../components/FiltroServicoModal';
+import { Car, ChevronRight } from 'lucide-react-native';
 
 export default function OficinasScreen({ navigation }) {
   const { colors } = useTheme();
@@ -98,7 +99,19 @@ export default function OficinasScreen({ navigation }) {
           Localização não autorizada — mostrando resultados perto do SENAC.
         </Text>
       )}
-
+      <Pressable
+        onPress={() => navigation.navigate('OficinasPorProjeto')}
+        style={[styles.projetoCard, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+      >
+        <Car size={22} color={colors.primary} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '800' }}>Buscar pelo meu projeto</Text>
+          <Text style={{ color: colors.textSecondary, fontSize: 12, marginTop: 2 }}>
+            Oficinas que fazem os serviços que faltam no seu carro
+          </Text>
+        </View>
+        <ChevronRight size={18} color={colors.textSecondary} />
+      </Pressable>
       {carregando ? (
         <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
       ) : (
@@ -143,4 +156,5 @@ const styles = StyleSheet.create({
   avisoLocalizacao: { fontSize: 12, marginTop: 6, fontStyle: 'italic' },
   vazio: { textAlign: 'center', marginTop: 40 },
   erro: { fontSize: 13, textAlign: 'center', marginTop: 8 },
+  projetoCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, borderWidth: 1.5, padding: 14, marginTop: 16 },
 });

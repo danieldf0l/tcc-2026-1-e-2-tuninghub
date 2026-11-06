@@ -18,7 +18,7 @@ import BackButton from '../../components/BackButton';
 export default function OficinaPerfilScreen({ route, navigation }) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
-  const { oficina } = route.params;
+  const { oficina, contextoProjeto } = route.params;
 
   const [imagens, setImagens] = useState([]);
   const [servicos, setServicos] = useState([]);
@@ -63,7 +63,7 @@ export default function OficinaPerfilScreen({ route, navigation }) {
 
   async function falarNoWhatsApp() {
     try {
-      await abrirWhatsApp(oficina.Telefone, oficina.NomeOficina);
+      await abrirWhatsApp(oficina.Telefone, oficina.NomeOficina, contextoProjeto);
     } catch {
       Alert.alert('Não foi possível abrir o WhatsApp', 'Verifique se o aplicativo está instalado.');
     }

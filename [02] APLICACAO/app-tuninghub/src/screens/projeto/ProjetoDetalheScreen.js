@@ -73,6 +73,7 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
       ]
     );
   }
+  const temPendentes = itens.some((i) => !i.Concluido);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
@@ -105,7 +106,12 @@ export default function ProjetoDetalheScreen({ route, navigation }) {
       {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
 
       <Button title="+ Adicionar serviço" variant="outline" onPress={irParaAdicionarServico} />
-
+      <Button
+        title="Encontrar oficinas para este projeto"
+        onPress={() => navigation.navigate('OficinasPorProjeto', { idProjeto })}
+        disabled={!temPendentes}
+      />
+      <View style={{ height: 10 }} />
       <Pressable onPress={confirmarArquivar} style={styles.arquivar}>
         <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Arquivar projeto</Text>
       </Pressable>

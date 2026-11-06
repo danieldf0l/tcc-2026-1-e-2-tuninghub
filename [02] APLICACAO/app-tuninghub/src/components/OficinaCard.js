@@ -18,7 +18,7 @@ function Iniciais({ nome, tamanho, cor, background }) {
   );
 }
 
-export default function OficinaCard({ oficina, fotoUrl, servicos = [], onPress }) {
+export default function OficinaCard({ oficina, fotoUrl, servicos = [], atendimento, onPress }) {
   const { colors, isDark } = useTheme();
   const faixaPreco = formatarFaixaPreco(oficina.FaixaPreco);
 
@@ -50,6 +50,24 @@ export default function OficinaCard({ oficina, fotoUrl, servicos = [], onPress }
         <Text style={[styles.local, { color: colors.textSecondary }]} numberOfLines={1}>
           {[oficina.Bairro, oficina.Cidade].filter(Boolean).join(', ')}
         </Text>
+
+        {atendimento ? (
+          <View style={{ marginBottom: 8 }}>
+            <Text
+              style={[
+                styles.atende,
+                { color: atendimento.atendidos === atendimento.total ? colors.primary : colors.text },
+              ]}
+            >
+              Atende {atendimento.atendidos} de {atendimento.total} {atendimento.total === 1 ? 'serviço' : 'serviços'}
+            </Text>
+            {atendimento.faltantes.length > 0 ? (
+              <Text style={[styles.faltam, { color: colors.textSecondary }]} numberOfLines={2}>
+                Não faz: {atendimento.faltantes.join(', ')}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {servicos.length > 0 && (
           <View style={styles.chipsRow}>
@@ -84,6 +102,8 @@ const styles = StyleSheet.create({
   nome: { fontSize: 16, fontWeight: '800', flex: 1, marginRight: 8 },
   distancia: { fontSize: 13, fontWeight: '700' },
   local: { fontSize: 12, marginTop: 2, marginBottom: 8 },
+  atende: { fontSize: 13, fontWeight: '800' },
+  faltam: { fontSize: 12, marginTop: 2 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 },
   faixaPreco: { fontSize: 13, fontWeight: '700', marginTop: 6 },
-});
+}); 
