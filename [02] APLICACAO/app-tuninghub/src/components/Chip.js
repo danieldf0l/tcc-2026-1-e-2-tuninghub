@@ -1,54 +1,56 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function Chip({ label, selected, onPress, small }) {
-  const { colors } = useTheme();
+  const { colors, fonts, radius } = useTheme();
+  const estiloTexto = { fontFamily: fonts.semibold, fontSize: small ? 11.5 : 13 };
 
-  const conteudo = (
-    <Text
-      style={[
-        small ? styles.textoSmall : styles.texto,
-        { color: selected ? colors.background : colors.text },
-      ]}
-      numberOfLines={1}
-    >
-      {label}
-    </Text>
-  );
-
+  // Chip informativo (sem toque) — ex.: serviços no card da oficina
   if (!onPress) {
     return (
-      <Text
+      <View
         style={[
-          styles.chipEstatico,
-          small ? styles.textoSmall : styles.texto,
-          { backgroundColor: colors.background, color: colors.textSecondary, borderColor: colors.border },
+          styles.base,
+          styles.estatico,
+          { backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.pill },
         ]}
-        numberOfLines={1}
       >
-        {label}
-      </Text>
+        <Text style={[estiloTexto, { color: colors.textSecondary }]} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
     );
   }
 
   return (
     <Pressable
       onPress={onPress}
-      style={[
-        styles.chip,
-        small && styles.chipSmall,
-        { backgroundColor: selected ? colors.primary : colors.surface, borderColor: selected ? colors.primary : colors.border },
+      accessibilityRole="button"
+      accessibilityState={{ selected: !!selected }}
+      style={({ pressed }) => [
+        styles.base,
+        small ? styles.small : styles.normal,
+        {
+          borderRadius: radius.pill,
+          backgroundColor: selected ? colors.primary : colors.surface,
+          borderColor: selected ? colors.primary : colors.border,
+          opacity: pressed ? 0.8 : 1,
+        },
       ]}
     >
-      {conteudo}
+      <Text
+        style={[estiloTexto, { color: selected ? colors.textOnPrimary : colors.text }]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, marginRight: 8 },
-  chipSmall: { paddingHorizontal: 10, paddingVertical: 5 },
-  chipEstatico: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1, marginRight: 6, overflow: 'hidden' },
-  texto: { fontSize: 13, fontWeight: '600' },
-  textoSmall: { fontSize: 11, fontWeight: '600' },
+  base: { borderWidth: 1, marginRight: 8 },
+  normal: { paddingHorizontal: 14, paddingVertical: 8 },
+  small: { paddingHorizontal: 10, paddingVertical: 5 },
+  estatico: { paddingHorizontal: 10, paddingVertical: 5, marginRight: 6 },
 });

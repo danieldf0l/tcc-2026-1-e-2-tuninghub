@@ -1,43 +1,76 @@
 import { useRef } from 'react';
-import { Animated, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { Animated, Pressable, Text, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
-export default function Button({ title, onPress, variant = 'primary', loading, disabled }) {
-  const { colors } = useTheme();
+// variant: 'primary' | 'outline' | 'ghost' | 'danger'
+export default function Button({ title, onPress, variant = 'primary', loading, disabled, Icone }) {
+  const { colors, typography, layout, radius } = useTheme();
   const scale = useRef(new Animated.Value(1)).current;
+  const inativo = disabled || loading;
 
-  function pressIn() {
-    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start();
-  }
-  function pressOut() {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 40 }).start();
+  function animar(valor) {
+    Animated.spring(scale, { toValue: valor, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
   }
 
-  const isOutline = variant === 'outline';
+  const variantes = {
+    primary: {
+      fundo: colors.primary,
+      fundoPressionado: colors.primaryPressed,
+      borda: colors.primary,
+      texto: colors.textOnPrimary,
+    },
+    outline: {
+      fundo: 'transparent',
+      fundoPressionado: colors.primarySoft,
+      borda: colors.primary,
+      texto: colors.primary,
+    },
+    ghost: {
+      fundo: 'transparent',
+      fundoPressionado: colors.surface,
+      borda: 'transparent',
+      texto: colors.text,
+    },
+    danger: {
+      fundo: colors.dangerSoft,
+      fundoPressionado: colors.dangerSoft,
+      borda: colors.danger,
+      texto: colors.danger,
+    },
+  };
+  const v = variantes[variant] || variantes.primary;
+  const temBorda = variant === 'outline' || variant === 'danger';
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
       <Pressable
         onPress={onPress}
-        onPressIn={pressIn}
-        onPressOut={pressOut}
-        disabled={disabled || loading}
-        style={[
+        onPressIn={() => animar(0.97)}
+        onPressOut={() => animar(1)}
+        disabled={inativo}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!inativo, busy: !!loading }}
+        style={({ pressed }) => [
           styles.base,
           {
-            backgroundColor: isOutline ? 'transparent' : colors.primary,
-            borderWidth: isOutline ? 1.5 : 0,
-            borderColor: colors.primary,
-            opacity: disabled ? 0.5 : 1,
+            height: layout.controlHeight,
+            borderRadius: radius.md,
+            backgroundColor: pressed ? v.fundoPressionado : v.fundo,
+            borderColor: v.borda,
+            borderWidth: temBorda ? 1.5 : 0,
+            opacity: disabled ? 0.45 : 1,
           },
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={isOutline ? colors.primary : colors.background} />
+          <ActivityIndicator color={v.texto} />
         ) : (
-          <Text style={[styles.text, { color: isOutline ? colors.primary : colors.background }]}>
-            {title}
-          </Text>
+          <View style={styles.conteudo}>
+            {Icone ? <Icone size={18} color={v.texto} strokeWidth={2.25} /> : null}
+            <Text style={[typography.button, { color: v.texto }]} numberOfLines={1}>
+              {title}
+            </Text>
+          </View>
         )}
       </Pressable>
     </Animated.View>
@@ -46,13 +79,13 @@ export default function Button({ title, onPress, variant = 'primary', loading, d
 
 const styles = StyleSheet.create({
   base: {
-    height: 52,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  text: {
-    fontSize: 16,
-    fontWeight: '700',
+  conteudo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });

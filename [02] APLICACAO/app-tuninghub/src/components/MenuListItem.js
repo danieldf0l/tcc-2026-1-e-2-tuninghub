@@ -3,36 +3,69 @@ import { ChevronRight } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function MenuListItem({ Icone, titulo, subtitulo, onPress, ultimo, chevron = true, perigo, semCard }) {
-  const { colors } = useTheme();
+  const { colors, typography, fonts, radius } = useTheme();
+
   const corTexto = perigo ? colors.danger : colors.text;
-  const corIcone = perigo ? colors.danger : colors.textSecondary;
+  const corIcone = perigo ? colors.danger : colors.text;
+  const fundoIcone = perigo ? colors.dangerSoft : colors.surfaceElevated;
+  const mostrarDivisoria = !ultimo && !semCard;
 
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
       style={({ pressed }) => [
         styles.row,
-        !ultimo && !semCard && { borderBottomWidth: 1, borderBottomColor: colors.border },
-        semCard && { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: 16 },
-        { opacity: pressed ? 0.75 : 1 },
+        semCard && {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderWidth: 1,
+          borderRadius: radius.lg,
+        },
+        pressed && { backgroundColor: colors.surfaceElevated },
       ]}
     >
-      <View style={[styles.iconeCirculo, { backgroundColor: colors.background }]}>
-        <Icone size={18} color={corIcone} />
+      <View style={[styles.icone, { backgroundColor: fundoIcone, borderRadius: radius.sm + 2 }]}>
+        <Icone size={18} color={corIcone} strokeWidth={2} />
       </View>
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={[styles.titulo, { color: corTexto }]}>{titulo}</Text>
-        {subtitulo ? <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>{subtitulo}</Text> : null}
+
+      <View
+        style={[
+          styles.conteudo,
+          mostrarDivisoria && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+        ]}
+      >
+        <View style={styles.textos}>
+          <Text style={[typography.bodyStrong, { color: corTexto }]} numberOfLines={1}>
+            {titulo}
+          </Text>
+          {subtitulo ? (
+            <Text
+              style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}
+              numberOfLines={2}
+            >
+              {subtitulo}
+            </Text>
+          ) : null}
+        </View>
+        {chevron && onPress ? <ChevronRight size={18} color={colors.textSecondary} /> : null}
       </View>
-      {chevron && onPress ? <ChevronRight size={18} color={colors.textSecondary} /> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 14 },
-  iconeCirculo: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  titulo: { fontSize: 14.5, fontWeight: '700' },
-  subtitulo: { fontSize: 12, marginTop: 2 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingLeft: 14 },
+  icone: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  conteudo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 12,
+    paddingVertical: 14,
+    paddingRight: 14,
+    minHeight: 58,
+  },
+  textos: { flex: 1, gap: 2 },
 });

@@ -2,11 +2,19 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function MenuSection({ title, children }) {
-  const { colors } = useTheme();
+  const { colors, typography, radius } = useTheme();
+
   return (
     <View style={styles.wrapper}>
-      <Text style={[styles.title, { color: colors.textSecondary }]}>{title.toUpperCase()}</Text>
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {title ? (
+        <Text style={[typography.overline, styles.title, { color: colors.textSecondary }]}>{title}</Text>
+      ) : null}
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg },
+        ]}
+      >
         {children}
       </View>
     </View>
@@ -15,6 +23,6 @@ export default function MenuSection({ title, children }) {
 
 const styles = StyleSheet.create({
   wrapper: { marginBottom: 24 },
-  title: { fontSize: 12, fontWeight: '800', marginBottom: 8, letterSpacing: 0.5 },
-  card: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  title: { marginBottom: 8, marginLeft: 4 },
+  card: { borderWidth: 1, overflow: 'hidden' },
 });

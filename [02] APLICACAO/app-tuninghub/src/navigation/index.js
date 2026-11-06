@@ -9,7 +9,7 @@ import EscolhaPlanoGateScreen from '../screens/oficina/assinatura/EscolhaPlanoGa
 
 export default function RootNavigator() {
   const { carregando, autenticado, usuario, tipoConta, assinatura } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors, isDark, fonts } = useTheme();
 
   if (carregando) return null;
 
@@ -25,6 +25,13 @@ export default function RootNavigator() {
       text: colors.text,
       border: colors.border,
       notification: colors.primary,
+    },
+    fonts: {
+      ...baseTheme.fonts,
+      regular: { fontFamily: fonts.regular, fontWeight: 'normal' },
+      medium: { fontFamily: fonts.medium, fontWeight: 'normal' },
+      bold: { fontFamily: fonts.bold, fontWeight: 'normal' },
+      heavy: { fontFamily: fonts.extrabold, fontWeight: 'normal' },
     },
   };
 

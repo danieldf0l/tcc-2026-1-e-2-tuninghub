@@ -1,30 +1,36 @@
-import { Pressable, Text, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function BackButton({ onPress }) {
-  const { colors, isDark } = useTheme();
+  const { colors, radius } = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
       hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: pressed ? (isDark ? '#2A2B2C' : '#E2DFDD') : 'transparent' },
+        {
+          borderRadius: radius.pill,
+          backgroundColor: pressed ? colors.border : colors.surface,
+          borderColor: colors.border,
+        },
       ]}
     >
-      <Text style={[styles.arrow, { color: colors.text }]}>‹</Text>
+      <ChevronLeft size={22} color={colors.text} strokeWidth={2.25} style={{ marginLeft: -2 }} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
+    width: 40,
+    height: 40,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  arrow: { fontSize: 30, fontWeight: '600', marginTop: -2 },
 });

@@ -7,11 +7,12 @@ import ProjetosScreen from '../screens/projeto/ProjetosScreen';
 import OficinasScreen from '../screens/oficina/OficinasScreen';
 import PerfilScreen from '../screens/perfil/PerfilScreen';
 import AnimatedTabIcon from '../components/AnimatedTabIcon';
+import { StyleSheet } from 'react-native';
 
 const Tab = createBottomTabNavigator();
 
 export default function TabNavigator() {
-  const { colors } = useTheme();
+  const { colors, fonts } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -22,14 +23,15 @@ export default function TabNavigator() {
         tabBarInactiveTintColor: colors.textSecondary,
         animation: 'fade',
         tabBarStyle: {
-          backgroundColor: colors.surface,
+          backgroundColor: colors.background,
           borderTopColor: colors.border,
-          borderTopWidth: 1,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          elevation: 0,
           height: 68 + insets.bottom,
           paddingBottom: insets.bottom + 12,
           paddingTop: 10,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 11 },
       }}
     >
       <Tab.Screen
