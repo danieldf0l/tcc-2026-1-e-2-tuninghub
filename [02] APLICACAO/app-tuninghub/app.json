@@ -8,20 +8,20 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-    "image": "./assets/splash-icon.png",
-    "resizeMode": "contain",
-    "backgroundColor": "#050505"
-  },
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050505"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/adaptive-icon.png",
-      "backgroundColor": "#050505"
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#050505"
+      },
+      "edgeToEdgeEnabled": true
     },
-    "edgeToEdgeEnabled": true
-  },
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -34,12 +34,14 @@
         }
       ],
       [
-      "expo-image-picker",
-      {
-        "photosPermission": "O TuningHub precisa acessar suas fotos para você enviar a logo e as imagens da sua oficina."
-      }
-    ],
-      "expo-status-bar"
+        "expo-image-picker",
+        {
+          "photosPermission": "O TuningHub precisa acessar suas fotos para você enviar a logo e as imagens da sua oficina."
+        }
+      ],
+      "expo-status-bar",
+      "expo-font",
+      "expo-splash-screen"
     ]
   }
 }

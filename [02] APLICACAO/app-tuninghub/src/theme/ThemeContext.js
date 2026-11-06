@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo } from 'react';
 import { useColorScheme } from 'react-native';
 import { darkPalette, lightPalette } from './palette';
-import { spacing, radius, typography, layout, getShadows } from './tokens';
+import { fonts, spacing, radius, typography, layout, getShadows } from './tokens';
 
 const ThemeContext = createContext(null);
 
@@ -15,6 +15,7 @@ export function ThemeProvider({ children }) {
     () => ({
       colors: isDark ? darkPalette : lightPalette,
       isDark,
+      fonts,
       spacing,
       radius,
       typography,

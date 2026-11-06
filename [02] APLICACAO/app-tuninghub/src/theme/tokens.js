@@ -1,5 +1,14 @@
 import { Platform } from 'react-native';
 
+// Famílias da Inter — cada peso é uma fonte separada (não usar fontWeight)
+export const fonts = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+  extrabold: 'Inter_800ExtraBold',
+};
+
 // Espaçamentos — usar sempre estes valores em margin/padding/gap
 export const spacing = {
   xxs: 2,
@@ -30,21 +39,21 @@ export const layout = {
 
 // Escala tipográfica — espalhar no style: [typography.h1, { color: colors.text }]
 export const typography = {
-  display: { fontSize: 32, fontWeight: '800', lineHeight: 38, letterSpacing: -0.5 },
-  h1: { fontSize: 26, fontWeight: '800', lineHeight: 32, letterSpacing: -0.3 },
-  h2: { fontSize: 20, fontWeight: '700', lineHeight: 26 },
-  h3: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
-  body: { fontSize: 15, fontWeight: '400', lineHeight: 22 },
-  bodyStrong: { fontSize: 15, fontWeight: '600', lineHeight: 22 },
-  caption: { fontSize: 13, fontWeight: '500', lineHeight: 18 },
+  display: { fontFamily: fonts.extrabold, fontSize: 32, lineHeight: 38, letterSpacing: -0.6 },
+  h1: { fontFamily: fonts.extrabold, fontSize: 26, lineHeight: 32, letterSpacing: -0.4 },
+  h2: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 },
+  h3: { fontFamily: fonts.bold, fontSize: 17, lineHeight: 22 },
+  body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
+  bodyStrong: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22 },
+  caption: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18 },
   overline: {
+    fontFamily: fonts.bold,
     fontSize: 11,
-    fontWeight: '700',
     lineHeight: 14,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
-  button: { fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
+  button: { fontFamily: fonts.bold, fontSize: 16, letterSpacing: 0.1 },
 };
 
 // Sombras — iOS usa shadow*, Android usa elevation.
