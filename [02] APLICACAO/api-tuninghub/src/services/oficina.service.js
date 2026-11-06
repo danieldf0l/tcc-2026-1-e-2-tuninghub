@@ -5,6 +5,7 @@ import EnderecoRepository from '../repositories/endereco.repository.js';
 import CnpjExternoService from './cnpjExterno.service.js';
 import GeocodificacaoService from './geocodificacao.service.js';
 import AssinaturaRepository from '../repositories/assinatura.repository.js';
+import ProjetoRepository from '../repositories/projeto.repository.js';
 import ImagemService from './imagem.service.js';
 import { ValidationError, ConflictError, NotFoundError } from '../errors/AppError.js';
 import { validarEmail, validarSenha, SENHA_REQUISITOS_MSG, sanitizarCnpj, validarCnpjFormato } from '../utils/validators.js';
@@ -13,6 +14,8 @@ import { SENAC_LATITUDE, SENAC_LONGITUDE, RAIO_MAXIMO_KM } from '../constants/lo
 import VerificacaoEmailService, { FINALIDADE } from './verificacaoEmail.service.js';
 
 const FAIXAS_PRECO_VALIDAS = ['$', '$$', '$$$'];
+const LIMITE_PADRAO_PAGINA = 10;
+const LIMITE_MAXIMO_PAGINA = 30;
 const CAMPOS_EDITAVEIS = ['nomeOficina', 'nomeProprietario', 'telefone', 'email'];
 
 // Contato direto (Telefone e Email) só aparece para oficina com plano Pro ativo.
@@ -33,6 +36,103 @@ class OficinaService {
   async listarOficinas() {
     const oficinas = await OficinaRepository.findAll();
     return await aplicarRegraDeContato(oficinas);
+  }
+
+  // Oficinas que atendem os serviços PENDENTES de um projeto do entusiasta, paginadas no banco.
+  // Ordem: mais serviços atendidos > mais perto > menor id (oficina paga NÃO ganha prioridade).
+  async buscarPorProjeto({ idProjeto, idServicos, lat, lng, pagina, limite }, usuarioLogado) {
+    const inteiroPositivo = (valor) => /^\d+$/.test(String(valor)) && Number(valor) > 0;
+
+    if (!inteiroPositivo(idProjeto)) {
+      throw new ValidationError('idProjeto é obrigatório e deve ser um número válido.');
+    }
+    if (pagina !== undefined && !inteiroPositivo(pagina)) {
+      throw new ValidationError('pagina deve ser um inteiro maior que zero.');
+    }
+    if (limite !== undefined && !inteiroPositivo(limite)) {
+      throw new ValidationError('limite deve ser um inteiro maior que zero.');
+    }
+    const paginaAtual = pagina !== undefined ? Number(pagina) : 1;
+    const limitePagina = Math.min(limite !== undefined ? Number(limite) : LIMITE_PADRAO_PAGINA, LIMITE_MAXIMO_PAGINA);
+
+    const latRef = lat !== undefined ? Number(lat) : SENAC_LATITUDE;
+    const lngRef = lng !== undefined ? Number(lng) : SENAC_LONGITUDE;
+    if (!Number.isFinite(latRef) || !Number.isFinite(lngRef) || Math.abs(latRef) > 90 || Math.abs(lngRef) > 180) {
+      throw new ValidationError('lat e lng devem ser coordenadas válidas.');
+    }
+
+    // Projeto inexistente, inativo ou de outra pessoa: sempre o mesmo 404 (não revela que existe).
+    const projeto = await ProjetoRepository.findParaBuscaOficinas(idProjeto);
+    if (!projeto || String(projeto.IdUsuario) !== String(usuarioLogado.id)) {
+      throw new NotFoundError('Projeto não encontrado.');
+    }
+
+    const pendentes = await ProjetoRepository.findServicosPendentes(idProjeto);
+
+    let servicosBuscados = pendentes;
+    if (idServicos !== undefined) {
+      const ids = String(idServicos).split(',').map((id) => id.trim());
+      if (!ids.every(inteiroPositivo)) {
+        throw new ValidationError('idServicos deve ser uma lista de ids separados por vírgula. Ex.: 1,2,3');
+      }
+      const idsPedidos = new Set(ids.map(Number));
+      servicosBuscados = pendentes.filter((servico) => idsPedidos.has(servico.IdServico));
+      if (servicosBuscados.length !== idsPedidos.size) {
+        throw new ValidationError('idServicos deve conter apenas serviços pendentes deste projeto.');
+      }
+    }
+
+    const projetoResumo = {
+      IdProjeto: projeto.IdProjeto,
+      Descricao: projeto.Descricao,
+      Estilo: projeto.Estilo,
+      IdModelo: projeto.IdModelo,
+      NomeModelo: projeto.NomeModelo,
+      NomeMontadora: projeto.NomeMontadora,
+    };
+    const resposta = (total, oficinas) => ({
+      projeto: projetoResumo,
+      servicosBuscados,
+      pagina: paginaAtual,
+      limite: limitePagina,
+      total,
+      temMais: paginaAtual * limitePagina < total,
+      oficinas,
+    });
+
+    // projeto sem serviços pendentes: não é erro
+    if (servicosBuscados.length === 0) return resposta(0, []);
+
+    const idsServicos = servicosBuscados.map((servico) => servico.IdServico);
+    const total = await OficinaRepository.contarPorServicos(idsServicos);
+    if (total === 0) return resposta(0, []);
+
+    const linhas = await OficinaRepository.buscarPorServicos({
+      idsServicos, lat: latRef, lng: lngRef, limite: limitePagina, offset: (paginaAtual - 1) * limitePagina,
+    });
+
+    // mesma regra de contato do /buscar e do perfil público (plano das oficinas da página em UMA consulta)
+    const semIdsAtendidos = linhas.map(({ IdsAtendidos: _descartado, ...resto }) => resto);
+    const comRegraDeContato = await aplicarRegraDeContato(semIdsAtendidos);
+    const logos = await OficinaRepository.buscarLogosAtivas(linhas.map((linha) => linha.IdOficina));
+
+    const oficinas = comRegraDeContato.map((oficina, indice) => {
+      const idsAtendidos = new Set(String(linhas[indice].IdsAtendidos).split(',').map(Number));
+      const servicosAtendidos = servicosBuscados.filter((servico) => idsAtendidos.has(servico.IdServico));
+      const servicosFaltantes = servicosBuscados.filter((servico) => !idsAtendidos.has(servico.IdServico));
+
+      return {
+        ...oficina,
+        distanciaKm: Number(oficina.distanciaKm),
+        quantidadeAtendida: Number(oficina.quantidadeAtendida),
+        totalServicos: servicosBuscados.length,
+        servicosAtendidos,
+        servicosFaltantes,
+        UrlLogo: logos.get(oficina.IdOficina) || null,
+      };
+    });
+
+    return resposta(total, oficinas);
   }
 
   async buscarPerfilPublico(idOficina) {

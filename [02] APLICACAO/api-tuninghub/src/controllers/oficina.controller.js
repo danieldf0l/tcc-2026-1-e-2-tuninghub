@@ -32,6 +32,15 @@ class OficinaController {
     }
   };
 
+  buscarPorProjeto = async (req, res, next) => {
+    try {
+      const resultado = await OficinaService.buscarPorProjeto(req.query, req.usuarioLogado);
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  }; 
+
     perfilPublico = async (req, res, next) => {
     try {
       const oficina = await OficinaService.buscarPerfilPublico(req.params.id);

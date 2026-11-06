@@ -82,7 +82,80 @@ class OficinaRepository {
     return rows;
   }
 
-    // Perfil público (app do entusiasta): só oficina ativa, com o endereço. Sem CNPJ nem dados internos.
+  // ---------- Busca por projeto (paginada no banco) ----------
+
+  // Filtro comum da busca e da contagem: oficina ativa, com coordenadas, que atende ao menos 1 dos serviços.
+  // OBS.: as oficinas aparecem uma vez cada (assume 1 endereço por oficina, como no /buscar).
+  #filtroPorServicos(idsServicos) {
+    const placeholders = idsServicos.map(() => '?').join(', ');
+    return `
+      FROM oficina o
+      INNER JOIN endereco e ON e.IdOficina = o.IdOficina
+      INNER JOIN oficinaservico os ON os.IdOficina = o.IdOficina AND os.IdServico IN (${placeholders})
+      WHERE o.Ativo = 1 AND e.Latitude IS NOT NULL AND e.Longitude IS NOT NULL
+    `;
+  }
+
+  // Uma página de oficinas, ordenada por: mais serviços atendidos > mais perto > menor id.
+  // A distância (Haversine, raio 6371 km, igual ao cálculo em JS do /buscar) é calculada NO SQL.
+  // LIMIT/OFFSET e lat/lng são validados como números e interpolados: o db.execute (prepared statement)
+  // costuma falhar com "LIMIT ? OFFSET ?". Os ids dos serviços continuam como parâmetros (?).
+  async buscarPorServicos({ idsServicos, lat, lng, limite, offset }) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    const limiteSeguro = Number(limite);
+    const offsetSeguro = Number(offset);
+    if (![latitude, longitude].every(Number.isFinite) || ![limiteSeguro, offsetSeguro].every(Number.isInteger)) {
+      throw new Error('Parâmetros inválidos para a busca de oficinas por serviços.');
+    }
+
+    const distanciaSql = `
+      2 * 6371 * ASIN(SQRT(LEAST(1,
+        POWER(SIN(RADIANS(e.Latitude - (${latitude})) / 2), 2) +
+        COS(RADIANS(${latitude})) * COS(RADIANS(e.Latitude)) *
+        POWER(SIN(RADIANS(e.Longitude - (${longitude})) / 2), 2)
+      )))
+    `;
+
+    const query = `
+      SELECT o.IdOficina, o.NomeOficina, o.Telefone, o.Email, o.FaixaPreco,
+             e.Latitude, e.Longitude, e.Cidade, e.Bairro,
+             ROUND(${distanciaSql}, 2) AS distanciaKm,
+             COUNT(DISTINCT os.IdServico) AS quantidadeAtendida,
+             GROUP_CONCAT(DISTINCT os.IdServico) AS IdsAtendidos
+      ${this.#filtroPorServicos(idsServicos)}
+      GROUP BY o.IdOficina, e.IdEndereco
+      ORDER BY quantidadeAtendida DESC, distanciaKm ASC, o.IdOficina ASC
+      LIMIT ${limiteSeguro} OFFSET ${offsetSeguro}
+    `;
+    const [rows] = await db.execute(query, idsServicos);
+    return rows;
+  }
+
+  // Total de oficinas que atendem ao menos 1 dos serviços (mesmo filtro, sem LIMIT) — para a paginação.
+  async contarPorServicos(idsServicos) {
+    const query = `SELECT COUNT(DISTINCT o.IdOficina) AS total ${this.#filtroPorServicos(idsServicos)}`;
+    const [rows] = await db.execute(query, idsServicos);
+    return Number(rows[0].total);
+  }
+
+  // Logo ativa de cada oficina da página (uma consulta só). Devolve um Map idOficina -> url.
+  async buscarLogosAtivas(idsOficinas) {
+    if (idsOficinas.length === 0) return new Map();
+
+    const placeholders = idsOficinas.map(() => '?').join(', ');
+    const query = `
+      SELECT IdOficina, UrlImagem
+      FROM imagem
+      WHERE IdOficina IN (${placeholders}) AND TipoImagem = 'LOGO' AND Status = 'ATIVO'
+      ORDER BY IdImagem ASC
+    `;
+    const [rows] = await db.execute(query, idsOficinas);
+    // se houver mais de uma, vale a mais recente (a última do ORDER BY sobrescreve)
+    return new Map(rows.map((linha) => [linha.IdOficina, linha.UrlImagem]));
+  }
+
+  // Perfil público (app do entusiasta): só oficina ativa, com o endereço. Sem CNPJ nem dados internos.
   async findPublicaPorId(idOficina) {
     const query = `
       SELECT o.IdOficina, o.NomeOficina, o.Telefone, o.Email, o.FaixaPreco,

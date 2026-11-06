@@ -7,6 +7,7 @@ import { ROLES } from '../constants/roles.js';
 const router = Router();
 
 router.get('/buscar', OficinaController.buscar);
+router.get('/buscar-por-projeto', verificarToken, checkRole(ROLES.USUARIO), OficinaController.buscarPorProjeto);
 router.get('/admin', verificarToken, checkRole(ROLES.ADMIN_MASTER, ROLES.ADMIN), OficinaController.listarAdmin);
 router.get('/', OficinaController.listar);
 router.post('/', OficinaController.criar);

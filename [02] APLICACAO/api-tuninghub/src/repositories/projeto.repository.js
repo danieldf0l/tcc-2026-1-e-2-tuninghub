@@ -60,6 +60,33 @@ class ProjetoRepository {
     return result.affectedRows;
   }
 
+  // Projeto ATIVO com o nome do modelo e da montadora (usado na busca de oficinas por projeto).
+  async findParaBuscaOficinas(idProjeto) {
+    const query = `
+      SELECT p.IdProjeto, p.IdUsuario, p.Descricao, p.Estilo, p.IdModelo,
+             m.Nome AS NomeModelo, mo.Nome AS NomeMontadora
+      FROM projeto p
+      INNER JOIN modelo m ON m.IdModelo = p.IdModelo
+      INNER JOIN montadora mo ON mo.IdMontadora = m.IdMontadora
+      WHERE p.IdProjeto = ? AND p.Ativo = 1
+    `;
+    const [rows] = await db.execute(query, [idProjeto]);
+    return rows[0];
+  }
+
+  // Serviços ainda pendentes (Concluido = 0) da To-do List do projeto.
+  async findServicosPendentes(idProjeto) {
+    const query = `
+      SELECT DISTINCT s.IdServico, s.Nome AS NomeServico
+      FROM projetoservico ps
+      INNER JOIN servico s ON s.IdServico = ps.IdServico
+      WHERE ps.IdProjeto = ? AND ps.Concluido = 0
+      ORDER BY s.Nome ASC, s.IdServico ASC
+    `;
+    const [rows] = await db.execute(query, [idProjeto]);
+    return rows;
+  }
+
     // Exclusão física: remove a To-do List do projeto e o projeto, numa única transação.
   async excluirDefinitivamente(idProjeto) {
     const connection = await db.getConnection();
