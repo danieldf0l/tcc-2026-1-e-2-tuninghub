@@ -1,4 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useTheme } from '../theme/ThemeContext';
+import { getStackScreenOptions } from './navigationOptions';
 import TabNavigator from './TabNavigator';
 import EscolhaCarroScreen from '../screens/projeto/EscolhaCarroScreen';
 import EscolhaEstiloScreen from '../screens/projeto/EscolhaEstiloScreen';
@@ -18,8 +20,10 @@ import OficinasPorProjetoScreen from '../screens/oficina/OficinasPorProjetoScree
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
+  const { colors } = useTheme();
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={getStackScreenOptions({ colors })}>
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="EscolhaCarro" component={EscolhaCarroScreen} />
       <Stack.Screen name="EscolhaEstilo" component={EscolhaEstiloScreen} />

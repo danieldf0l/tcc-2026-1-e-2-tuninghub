@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
   Inter_400Regular,
@@ -10,6 +11,7 @@ import {
   Inter_800ExtraBold,
 } from '@expo-google-fonts/inter';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { ToastProvider } from './src/context/ToastContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { EstilosProvider } from './src/context/EstilosContext';
 import RootNavigator from './src/navigation';
@@ -36,13 +38,17 @@ export default function App() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <EstilosProvider>
-          <AppContent />
-        </EstilosProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <EstilosProvider>
+              <AppContent />
+            </EstilosProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 

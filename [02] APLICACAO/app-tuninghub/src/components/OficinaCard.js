@@ -1,109 +1,188 @@
-import { Pressable, View, Text, Image, StyleSheet, Platform } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, View, Text, Image, StyleSheet } from 'react-native';
+import { MapPin, Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import Chip from './Chip';
 import { formatarFaixaPreco } from '../utils/faixaPreco';
 
-function Iniciais({ nome, tamanho, cor, background }) {
-  const iniciais = (nome || '?')
+const SELO_FUNDO = 'rgba(5, 5, 5, 0.6)'; // fixo: fica sobre a foto, não sobre o tema
+const SELO_TEXTO = '#FEFEFE';
+
+function obterIniciais(nome) {
+  return (nome || '?')
     .split(' ')
+    .filter(Boolean)
     .slice(0, 2)
     .map((p) => p[0])
     .join('')
     .toUpperCase();
+}
 
-  return (
-    <View style={[styles.avatarFallback, { width: tamanho, height: tamanho, borderRadius: 14, backgroundColor: background }]}>
-      <Text style={[styles.avatarTexto, { color: cor, fontSize: tamanho * 0.35 }]}>{iniciais}</Text>
-    </View>
-  );
+function formatarDistancia(km) {
+  if (km === null || km === undefined || km === '') return null;
+  const n = Number(km);
+  if (Number.isNaN(n)) return `${km} km`;
+  if (n < 1) return `${Math.round(n * 1000)} m`;
+  return `${n.toFixed(1).replace('.', ',')} km`;
 }
 
 export default function OficinaCard({ oficina, fotoUrl, servicos = [], atendimento, onPress }) {
-  const { colors, isDark } = useTheme();
+  const { colors, fonts, typography, radius, shadows } = useTheme();
+  const [erroFoto, setErroFoto] = useState(false);
+
+  useEffect(() => {
+    setErroFoto(false);
+  }, [fotoUrl]);
+
   const faixaPreco = formatarFaixaPreco(oficina.FaixaPreco);
+  const distancia = formatarDistancia(oficina.distanciaKm);
+  const local = [oficina.Bairro, oficina.Cidade].filter(Boolean).join(', ');
+  const mostrarFoto = !!fotoUrl && !erroFoto;
+  const extras = servicos.length - 3;
+
+  const faltantes = atendimento?.faltantes || [];
+  const atendeTudo = !!atendimento && atendimento.atendidos === atendimento.total;
+  const raioCard = radius.lg + 2;
 
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Oficina ${oficina.NomeOficina}`}
       style={({ pressed }) => [
-        styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.92 : 1 },
-        !isDark && styles.sombra,
+        styles.sombraWrapper,
+        { borderRadius: raioCard, backgroundColor: colors.surface, transform: [{ scale: pressed ? 0.985 : 1 }] },
+        shadows.md,
       ]}
     >
-      {fotoUrl ? (
-        <Image source={{ uri: fotoUrl }} style={styles.foto} resizeMode="cover" />
-      ) : (
-        <View style={[styles.foto, styles.fotoVazia, { backgroundColor: colors.background }]}>
-          <Iniciais nome={oficina.NomeOficina} tamanho={64} cor={colors.background} background={colors.primary} />
-        </View>
-      )}
+      <View style={[styles.interno, { borderRadius: raioCard, borderColor: colors.border }]}>
+        <View style={[styles.midia, { backgroundColor: colors.skeleton }]}>
+          {mostrarFoto ? (
+            <Image
+              source={{ uri: fotoUrl }}
+              style={styles.foto}
+              resizeMode="cover"
+              onError={() => setErroFoto(true)}
+            />
+          ) : (
+            <View style={[styles.foto, styles.fotoVazia, { backgroundColor: colors.primarySoft }]}>
+              <View style={[styles.iniciais, { backgroundColor: colors.primary, borderRadius: radius.lg }]}>
+                <Text style={[styles.iniciaisTexto, { color: colors.textOnPrimary, fontFamily: fonts.extrabold }]}>
+                  {obterIniciais(oficina.NomeOficina)}
+                </Text>
+              </View>
+            </View>
+          )}
 
-      <View style={styles.corpo}>
-        <View style={styles.linhaTopo}>
-          <Text style={[styles.nome, { color: colors.text }]} numberOfLines={1}>
+          {distancia ? (
+            <View style={[styles.selo, styles.seloEsquerda, { borderRadius: radius.pill }]}>
+              <MapPin size={12} color={SELO_TEXTO} strokeWidth={2.5} />
+              <Text style={[styles.seloTexto, { fontFamily: fonts.semibold }]}>{distancia}</Text>
+            </View>
+          ) : null}
+
+          {faixaPreco ? (
+            <View style={[styles.selo, styles.seloDireita, { borderRadius: radius.pill }]}>
+              <Text style={[styles.seloTexto, { fontFamily: fonts.bold }]}>{faixaPreco}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.corpo}>
+          <Text style={[typography.h3, { color: colors.text }]} numberOfLines={1}>
             {oficina.NomeOficina}
           </Text>
-          <Text style={[styles.distancia, { color: colors.primary }]}>{oficina.distanciaKm} km</Text>
-        </View>
 
-        <Text style={[styles.local, { color: colors.textSecondary }]} numberOfLines={1}>
-          {[oficina.Bairro, oficina.Cidade].filter(Boolean).join(', ')}
-        </Text>
-
-        {atendimento ? (
-          <View style={{ marginBottom: 8 }}>
+          {local ? (
             <Text
-              style={[
-                styles.atende,
-                { color: atendimento.atendidos === atendimento.total ? colors.primary : colors.text },
-              ]}
+              style={[typography.caption, styles.local, { color: colors.textSecondary, fontFamily: fonts.regular }]}
+              numberOfLines={1}
             >
-              Atende {atendimento.atendidos} de {atendimento.total} {atendimento.total === 1 ? 'serviço' : 'serviços'}
+              {local}
             </Text>
-            {atendimento.faltantes.length > 0 ? (
-              <Text style={[styles.faltam, { color: colors.textSecondary }]} numberOfLines={2}>
-                Não faz: {atendimento.faltantes.join(', ')}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
+          ) : null}
 
-        {servicos.length > 0 && (
-          <View style={styles.chipsRow}>
-            {servicos.slice(0, 3).map((s) => (
-              <Chip key={s.IdServico} label={s.Nome} small />
-            ))}
-          </View>
-        )}
+          {atendimento ? (
+            <View style={styles.atendimento}>
+              <View
+                style={[
+                  styles.atendeSelo,
+                  {
+                    backgroundColor: atendeTudo ? colors.successSoft : colors.surfaceElevated,
+                    borderRadius: radius.pill,
+                  },
+                ]}
+              >
+                {atendeTudo ? <Check size={13} color={colors.success} strokeWidth={3} /> : null}
+                <Text
+                  style={[
+                    styles.atendeTexto,
+                    { fontFamily: fonts.bold, color: atendeTudo ? colors.success : colors.text },
+                  ]}
+                >
+                  Atende {atendimento.atendidos} de {atendimento.total}{' '}
+                  {atendimento.total === 1 ? 'serviço' : 'serviços'}
+                </Text>
+              </View>
 
-        {faixaPreco ? (
-          <Text style={[styles.faixaPreco, { color: colors.textSecondary }]}>{faixaPreco}</Text>
-        ) : null}
+              {faltantes.length > 0 ? (
+                <Text
+                  style={[typography.caption, styles.faltam, { color: colors.textSecondary, fontFamily: fonts.regular }]}
+                  numberOfLines={2}
+                >
+                  Não faz: {faltantes.join(', ')}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+
+          {servicos.length > 0 ? (
+            <View style={styles.chipsRow}>
+              {servicos.slice(0, 3).map((s) => (
+                <Chip key={s.IdServico} label={s.Nome} small />
+              ))}
+              {extras > 0 ? <Chip label={`+${extras}`} small /> : null}
+            </View>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 18, borderWidth: 1, overflow: 'hidden', marginBottom: 18 },
-  sombra: {
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-      android: { elevation: 3 },
-    }),
-  },
-  foto: { width: '100%', height: 160 },
+  sombraWrapper: { marginBottom: 18 },
+  interno: { borderWidth: 1, overflow: 'hidden' },
+  midia: { width: '100%', height: 170 },
+  foto: { width: '100%', height: '100%' },
   fotoVazia: { alignItems: 'center', justifyContent: 'center' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  avatarTexto: { fontWeight: '800' },
-  corpo: { padding: 14 },
-  linhaTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  nome: { fontSize: 16, fontWeight: '800', flex: 1, marginRight: 8 },
-  distancia: { fontSize: 13, fontWeight: '700' },
-  local: { fontSize: 12, marginTop: 2, marginBottom: 8 },
-  atende: { fontSize: 13, fontWeight: '800' },
-  faltam: { fontSize: 12, marginTop: 2 },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 2 },
-  faixaPreco: { fontSize: 13, fontWeight: '700', marginTop: 6 },
-}); 
+  iniciais: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
+  iniciaisTexto: { fontSize: 22 },
+  selo: {
+    position: 'absolute',
+    top: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    backgroundColor: SELO_FUNDO,
+  },
+  seloEsquerda: { left: 12 },
+  seloDireita: { right: 12 },
+  seloTexto: { color: SELO_TEXTO, fontSize: 12 },
+  corpo: { padding: 14, paddingTop: 12 },
+  local: { marginTop: 2 },
+  atendimento: { marginTop: 10 },
+  atendeSelo: {
+    flexDirection: 'row',
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  atendeTexto: { fontSize: 12.5 },
+  faltam: { marginTop: 6 },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6, marginTop: 10 },
+});
