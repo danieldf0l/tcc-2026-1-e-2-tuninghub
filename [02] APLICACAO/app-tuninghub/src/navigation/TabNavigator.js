@@ -7,7 +7,7 @@ import ProjetosScreen from '../screens/projeto/ProjetosScreen';
 import OficinasScreen from '../screens/oficina/OficinasScreen';
 import PerfilScreen from '../screens/perfil/PerfilScreen';
 import AnimatedTabIcon from '../components/AnimatedTabIcon';
-import { StyleSheet } from 'react-native';
+import { getTabScreenOptions } from './navigationOptions';
 
 const Tab = createBottomTabNavigator();
 
@@ -16,24 +16,7 @@ export default function TabNavigator() {
   const insets = useSafeAreaInsets();
 
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
-        animation: 'fade',
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          elevation: 0,
-          height: 68 + insets.bottom,
-          paddingBottom: insets.bottom + 12,
-          paddingTop: 10,
-        },
-        tabBarLabelStyle: { fontFamily: fonts.semibold, fontSize: 11 },
-      }}
-    >
+      <Tab.Navigator screenOptions={getTabScreenOptions({ colors, fonts, insets })}>
       <Tab.Screen
         name="InicioTab"
         component={HomeScreen}

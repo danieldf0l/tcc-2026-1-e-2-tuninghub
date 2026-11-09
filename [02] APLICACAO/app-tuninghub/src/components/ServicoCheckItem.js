@@ -1,46 +1,66 @@
 import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function ServicoCheckItem({ nome, selecionado, jaAdicionado, desabilitado, onToggle }) {
-  const { colors } = useTheme();
+  const { colors, typography, fonts, radius } = useTheme();
   const bloqueado = jaAdicionado || desabilitado;
 
   return (
     <Pressable
       onPress={bloqueado ? undefined : onToggle}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!selecionado, disabled: !!bloqueado }}
       style={({ pressed }) => [
         styles.row,
         {
-          backgroundColor: colors.surface,
+          borderRadius: radius.md,
+          backgroundColor: selecionado ? colors.primarySoft : colors.surface,
           borderColor: selecionado ? colors.primary : colors.border,
-          borderWidth: selecionado ? 2 : 1,
-          opacity: bloqueado ? 0.5 : pressed ? 0.85 : 1,
+          opacity: bloqueado ? 0.55 : pressed ? 0.85 : 1,
         },
       ]}
     >
       <View
         style={[
-          styles.checkbox,
+          styles.caixa,
           {
-            borderColor: selecionado ? colors.primary : colors.border,
+            borderRadius: radius.sm - 2,
+            borderColor: selecionado ? colors.primary : colors.placeholder,
             backgroundColor: selecionado ? colors.primary : 'transparent',
           },
         ]}
       >
-        {selecionado ? <Text style={styles.check}>✓</Text> : null}
+        {selecionado ? <Check size={14} color={colors.textOnPrimary} strokeWidth={3} /> : null}
       </View>
-      <Text style={[styles.nome, { color: colors.text }]}>{nome}</Text>
+
+      <Text style={[typography.body, styles.nome, { color: colors.text, fontFamily: fonts.medium }]}>
+        {nome}
+      </Text>
+
       {jaAdicionado ? (
-        <Text style={[styles.tag, { color: colors.textSecondary }]}>Já adicionado</Text>
+        <View style={[styles.badge, { backgroundColor: colors.surfaceElevated, borderRadius: radius.pill }]}>
+          <Check size={12} color={colors.textSecondary} strokeWidth={2.5} />
+          <Text style={[styles.badgeTexto, { color: colors.textSecondary, fontFamily: fonts.semibold }]}>
+            Já adicionado
+          </Text>
+        </View>
       ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 14, marginBottom: 10 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  check: { color: '#FEFEFE', fontSize: 13, fontWeight: '900' },
-  nome: { fontSize: 14, fontWeight: '600', flex: 1 },
-  tag: { fontSize: 11, fontWeight: '600' },
+  row: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, padding: 14, marginBottom: 10 },
+  caixa: {
+    width: 22,
+    height: 22,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  nome: { flex: 1 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
+  badgeTexto: { fontSize: 11 },
 });

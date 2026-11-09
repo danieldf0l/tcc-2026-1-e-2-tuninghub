@@ -1,24 +1,31 @@
-import { Pressable, View, Text, StyleSheet } from 'react-native';
+import { Pressable, View, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function Checkbox({ marcado, onToggle, children }) {
-  const { colors } = useTheme();
+  const { colors, radius } = useTheme();
 
   return (
-    <Pressable onPress={onToggle} style={styles.row} hitSlop={6}>
+    <Pressable
+      onPress={onToggle}
+      style={styles.row}
+      hitSlop={6}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!marcado }}
+    >
       <View
         style={[
           styles.caixa,
           {
-            borderColor: marcado ? colors.primary : colors.border,
+            borderRadius: radius.sm - 2,
+            borderColor: marcado ? colors.primary : colors.placeholder,
             backgroundColor: marcado ? colors.primary : 'transparent',
           },
         ]}
       >
-        {marcado ? <Check size={13} color={colors.background} strokeWidth={3} /> : null}
+        {marcado ? <Check size={14} color={colors.textOnPrimary} strokeWidth={3} /> : null}
       </View>
-      <View style={{ flex: 1 }}>{children}</View>
+      <View style={styles.conteudo}>{children}</View>
     </Pressable>
   );
 }
@@ -26,13 +33,13 @@ export default function Checkbox({ marcado, onToggle, children }) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
   caixa: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
-    marginTop: 2,
+    marginRight: 12,
+    marginTop: 1,
   },
+  conteudo: { flex: 1 },
 });

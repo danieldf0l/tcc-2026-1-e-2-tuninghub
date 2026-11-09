@@ -1,32 +1,46 @@
 import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function ChecklistItem({ titulo, concluido, onToggle }) {
-  const { colors } = useTheme();
+  const { colors, typography, fonts, radius } = useTheme();
 
   return (
     <Pressable
       onPress={onToggle}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: !!concluido }}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.85 : 1 },
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: radius.md,
+          opacity: pressed ? 0.85 : 1,
+        },
       ]}
     >
       <View
         style={[
-          styles.checkbox,
+          styles.check,
           {
-            borderColor: concluido ? colors.primary : colors.border,
+            borderColor: concluido ? colors.primary : colors.placeholder,
             backgroundColor: concluido ? colors.primary : 'transparent',
           },
         ]}
       >
-        {concluido ? <Text style={styles.check}>✓</Text> : null}
+        {concluido ? <Check size={14} color={colors.textOnPrimary} strokeWidth={3} /> : null}
       </View>
+
       <Text
         style={[
+          typography.body,
           styles.titulo,
-          { color: colors.text, textDecorationLine: concluido ? 'line-through' : 'none', opacity: concluido ? 0.6 : 1 },
+          {
+            fontFamily: concluido ? fonts.regular : fonts.medium,
+            color: concluido ? colors.textSecondary : colors.text,
+            textDecorationLine: concluido ? 'line-through' : 'none',
+          },
         ]}
       >
         {titulo}
@@ -36,8 +50,15 @@ export default function ChecklistItem({ titulo, concluido, onToggle }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 },
-  checkbox: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  check: { color: '#FEFEFE', fontSize: 14, fontWeight: '900' },
-  titulo: { fontSize: 15, fontWeight: '600', flex: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, padding: 14, marginBottom: 10 },
+  check: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  titulo: { flex: 1 },
 });
