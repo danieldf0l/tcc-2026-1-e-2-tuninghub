@@ -12,6 +12,7 @@ import TermosScreen from '../screens/perfil/TermosScreen';
 import CadastroOficinaAcessoScreen from '../screens/auth/oficina/CadastroOficinaAcessoScreen';
 import CadastroOficinaDadosScreen from '../screens/auth/oficina/CadastroOficinaDadosScreen';
 import CadastroOficinaEnderecoScreen from '../screens/auth/oficina/CadastroOficinaEnderecoScreen';
+import NovaSenhaScreen from '../screens/auth/NovaSenhaScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,7 @@ export default function AuthNavigator() {
       <Stack.Screen name="ConfirmarEmail" component={ConfirmarEmailScreen} />
       <Stack.Screen name="EsqueciSenha" component={EsqueciSenhaScreen} />
       <Stack.Screen name="RedefinirSenha" component={RedefinirSenhaScreen} />
+      <Stack.Screen name="NovaSenha" component={NovaSenhaScreen} />
       <Stack.Screen name="Privacidade" component={PrivacidadeScreen} />
       <Stack.Screen name="Termos" component={TermosScreen} />
       <Stack.Screen name="CadastroOficinaAcesso" component={CadastroOficinaAcessoScreen} />

@@ -1,17 +1,21 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { FileText } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { aceitarTermos as aceitarTermosUsuario } from '../../api/usuario.api';
 import { aceitarTermosOficina } from '../../api/oficina.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { TERMOS_DE_USO, DATA_ATUALIZACAO } from '../../constants/textosLegais';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
 import DocumentoLegal from '../../components/DocumentoLegal';
 import Checkbox from '../../components/Checkbox';
 import Button from '../../components/Button';
 
 export default function AceiteTermosScreen() {
-  const { colors } = useTheme();
+  const { colors, fonts, typography } = useTheme();
   const { tipoConta, atualizarAceiteTermos, sair } = useAuth();
   const [marcado, setMarcado] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,40 +42,42 @@ export default function AceiteTermosScreen() {
     }
   }
 
+  const rodape = (
+    <>
+      <Checkbox marcado={marcado} onToggle={() => setMarcado((v) => !v)}>
+        <Text style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+          Li e concordo com os Termos de Uso e a Política de Privacidade
+        </Text>
+      </Checkbox>
+
+      <View style={styles.espaco} />
+      <AvisoInline mensagem={erro} />
+
+      <Button title="Aceitar e continuar" onPress={confirmar} loading={loading} disabled={!marcado || loading} />
+      <View style={styles.espacoPequeno} />
+      <Button title="Sair da conta" variant="ghost" onPress={sair} />
+    </>
+  );
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView style={{ flex: 1, paddingHorizontal: 24, paddingTop: 60 }} contentContainerStyle={{ paddingBottom: 20 }}>
-        <Text style={[styles.title, { color: colors.text }]}>Atualizamos nossos termos</Text>
-        <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>
-          Para continuar usando o TuningHub, leia e aceite os Termos de Uso abaixo.
-        </Text>
-        <Text style={[styles.atualizado, { color: colors.textSecondary }]}>
-          Atualizado em: {DATA_ATUALIZACAO}
-        </Text>
-        <DocumentoLegal introducao={TERMOS_DE_USO.introducao} clausulas={TERMOS_DE_USO.clausulas} />
-      </ScrollView>
+    <ScreenContainer rodape={rodape}>
+      <ScreenHeader
+        Icone={FileText}
+        titulo="Atualizamos nossos termos"
+        subtitulo="Para continuar usando o TuningHub, leia e aceite os Termos de Uso abaixo."
+      />
 
-      <View style={[styles.rodape, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <Checkbox marcado={marcado} onToggle={() => setMarcado((v) => !v)}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12.5 }}>
-            Li e concordo com os Termos de Uso e a Política de Privacidade
-          </Text>
-        </Checkbox>
+      <Text style={[typography.caption, styles.atualizado, { color: colors.textSecondary }]}>
+        Atualizado em: {DATA_ATUALIZACAO}
+      </Text>
 
-        {erro ? <Text style={{ color: colors.danger, fontSize: 13, marginBottom: 8 }}>{erro}</Text> : null}
-
-        <Button title="Aceitar e continuar" onPress={confirmar} loading={loading} disabled={!marcado || loading} />
-        <View style={{ height: 8 }} />
-        <Button title="Sair da conta" variant="outline" onPress={sair} />
-      </View>
-    </View>
+      <DocumentoLegal introducao={TERMOS_DE_USO.introducao} clausulas={TERMOS_DE_USO.clausulas} />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  title: { fontSize: 22, fontWeight: '800', marginBottom: 6 },
-  subtitulo: { fontSize: 13.5, marginBottom: 4, lineHeight: 19 },
-  atualizado: { fontSize: 12, marginBottom: 20 },
-  rodape: { padding: 20, borderTopWidth: 1 },
+  atualizado: { marginTop: -12, marginBottom: 20 },
+  espaco: { height: 8 },
+  espacoPequeno: { height: 4 },
 });

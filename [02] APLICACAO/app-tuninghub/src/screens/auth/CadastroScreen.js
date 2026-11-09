@@ -1,23 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
+import { User, Mail, Lock } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { cadastrarUsuario } from '../../api/usuario.api';
 import { getErrorMessage } from '../../utils/errorHandler';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
+import RequisitosSenha from '../../components/RequisitosSenha';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import BackButton from '../../components/BackButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Checkbox from '../../components/Checkbox';
 
 export default function CadastroScreen({ navigation }) {
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, fonts, typography } = useTheme();
+  const emailRef = useRef(null);
+  const senhaRef = useRef(null);
+  const confirmarRef = useRef(null);
+
   const [form, setForm] = useState({ nome: '', email: '', senha: '', confirmarSenha: '' });
   const [termosAceitos, setTermosAceitos] = useState(false);
   const [erroGeral, setErroGeral] = useState('');
   const [camposComErro, setCamposComErro] = useState([]);
   const [loading, setLoading] = useState(false);
-  
 
   const fade = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -50,7 +55,7 @@ export default function CadastroScreen({ navigation }) {
     }
 
     if (senha !== confirmarSenha) {
-      setErroGeral('As senhas não coincidem.'); 
+      setErroGeral('As senhas não coincidem.');
       setCamposComErro(['senha', 'confirmarSenha']);
       return;
     }
@@ -60,7 +65,6 @@ export default function CadastroScreen({ navigation }) {
       return;
     }
 
-    setLoading(true);
     setLoading(true);
     try {
       const emailLimpo = email.trim();
@@ -74,73 +78,108 @@ export default function CadastroScreen({ navigation }) {
     }
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
-      <BackButton onPress={() => navigation.goBack()} />
+  const estiloLink = { color: colors.primary, fontFamily: fonts.bold };
 
+  return (
+    <ScreenContainer>
       <Animated.View style={{ opacity: fade }}>
-        <Text style={[styles.title, { color: colors.text }]}>Cadastre-se</Text>
+        <ScreenHeader
+          onVoltar={() => navigation.goBack()}
+          titulo="Crie sua conta"
+          subtitulo="Leva menos de um minuto. Depois é só confirmar seu e-mail."
+        />
 
         <Input
-          placeholder="Nome"
+          label="Nome"
+          Icone={User}
+          placeholder="Como podemos te chamar?"
           value={form.nome}
           onChangeText={(v) => atualizar('nome', v)}
+          autoCapitalize="words"
+          autoComplete="name"
+          textContentType="name"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => emailRef.current?.focus()}
           error={camposComErro.includes('nome')}
         />
         <Input
-          placeholder="Email"
+          ref={emailRef}
+          label="E-mail"
+          Icone={Mail}
+          placeholder="seu@email.com"
           value={form.email}
           onChangeText={(v) => atualizar('email', v)}
           keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => senhaRef.current?.focus()}
           error={camposComErro.includes('email')}
         />
         <Input
-          placeholder="Senha"
+          ref={senhaRef}
+          label="Senha"
+          Icone={Lock}
+          placeholder="Crie uma senha"
           value={form.senha}
           onChangeText={(v) => atualizar('senha', v)}
           secureText
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => confirmarRef.current?.focus()}
           error={camposComErro.includes('senha')}
         />
+        <RequisitosSenha senha={form.senha} />
+
         <Input
-          placeholder="Confirmar Senha"
+          ref={confirmarRef}
+          label="Confirmar senha"
+          Icone={Lock}
+          placeholder="Repita a senha"
           value={form.confirmarSenha}
           onChangeText={(v) => atualizar('confirmarSenha', v)}
           secureText
+          autoComplete="new-password"
+          textContentType="newPassword"
+          returnKeyType="done"
           error={camposComErro.includes('confirmarSenha')}
         />
 
-        {erroGeral ? (
-          <Text style={[styles.erroGeral, { color: colors.danger }]}>{erroGeral}</Text>
-        ) : null}
-
-        <View style={{ height: 8 }} />
         <Checkbox marcado={termosAceitos} onToggle={() => setTermosAceitos((v) => !v)}>
-          <Text style={{ color: colors.textSecondary, fontSize: 12.5, lineHeight: 18 }}>
+          <Text style={[typography.caption, styles.termos, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
             Li e concordo com os{' '}
-            <Text style={{ color: colors.primary, fontWeight: '700' }} onPress={() => navigation.navigate('Termos')}>
+            <Text style={estiloLink} onPress={() => navigation.navigate('Termos')}>
               Termos de Uso
             </Text>{' '}
             e a{' '}
-            <Text style={{ color: colors.primary, fontWeight: '700' }} onPress={() => navigation.navigate('Privacidade')}>
+            <Text style={estiloLink} onPress={() => navigation.navigate('Privacidade')}>
               Política de Privacidade
             </Text>
           </Text>
         </Checkbox>
 
-        <View style={{ height: 12 }} />
-        <Button title="Cadastrar" onPress={handleCadastrar} loading={loading} />
+        <View style={styles.espaco} />
+        <AvisoInline mensagem={erroGeral} />
 
-        <Pressable onPress={() => navigation.navigate('Login', { tipo: 'usuario' })} style={styles.footer}>
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Já tenho uma conta</Text>
-        </Pressable>
+        <Button title="Criar conta" onPress={handleCadastrar} loading={loading} />
+
+        <View style={styles.rodape}>
+          <Text style={[typography.body, { color: colors.textSecondary }]}>Já tem conta? </Text>
+          <Pressable onPress={() => navigation.navigate('Login', { tipo: 'usuario' })} hitSlop={8}>
+            <Text style={[typography.body, { color: colors.primary, fontFamily: fonts.bold }]}>Entrar</Text>
+          </Pressable>
+        </View>
       </Animated.View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: '800', marginBottom: 32, textAlign: 'center', marginTop: 16 },
-  erroGeral: { fontSize: 13, marginBottom: 8, textAlign: 'center' },
-  footer: { marginTop: 20, alignItems: 'center' },
+  termos: { lineHeight: 19 },
+  espaco: { height: 12 },
+  rodape: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
 });

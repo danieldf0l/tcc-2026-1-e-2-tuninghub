@@ -1,31 +1,32 @@
 import { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MailCheck } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { reenviarCodigo } from '../../api/auth.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { useContagem } from '../../utils/useContagem';
-import Input from '../../components/Input';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
+import CodeInput from '../../components/CodeInput';
 import Button from '../../components/Button';
-import BackButton from '../../components/BackButton';
 
 export default function ConfirmarEmailScreen({ route, navigation }) {
   const { tipo, email, senha } = route.params; // senha só em memória (o backend exige para confirmar)
-  const { colors } = useTheme();
+  const { colors, fonts, typography } = useTheme();
   const { confirmarEmail } = useAuth();
-  const insets = useSafeAreaInsets();
+  const { mostrar } = useToast();
   const { restante, reiniciar } = useContagem(60);
 
   const [codigo, setCodigo] = useState('');
   const [erro, setErro] = useState('');
-  const [aviso, setAviso] = useState('');
   const [loading, setLoading] = useState(false);
   const [reenviando, setReenviando] = useState(false);
 
   async function handleConfirmar() {
     setErro('');
-    setAviso('');
     if (codigo.length !== 6) {
       setErro('Digite o código de 6 dígitos.');
       return;
@@ -45,11 +46,10 @@ export default function ConfirmarEmailScreen({ route, navigation }) {
   async function handleReenviar() {
     if (restante > 0 || reenviando) return;
     setErro('');
-    setAviso('');
     setReenviando(true);
     try {
       const resposta = await reenviarCodigo(email, tipo);
-      setAviso(resposta.message);
+      mostrar(resposta?.message || 'Enviamos um novo código.', 'info');
       reiniciar();
     } catch (e) {
       setErro(getErrorMessage(e));
@@ -58,50 +58,48 @@ export default function ConfirmarEmailScreen({ route, navigation }) {
     }
   }
 
+  const textoReenvio =
+    restante > 0 ? `Reenviar código em ${restante}s` : reenviando ? 'Enviando...' : 'Reenviar código';
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
-      <BackButton onPress={() => navigation.goBack()} />
-
-      <Text style={[styles.title, { color: colors.text }]}>Confirme seu e-mail</Text>
-      <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>
-        Enviamos um código de 6 dígitos para{' '}
-        <Text style={{ color: colors.text, fontWeight: '700' }}>{email}</Text>. Confira também a caixa de spam.
-      </Text>
-
-      <Input
-        placeholder="Código de 6 dígitos"
-        value={codigo}
-        onChangeText={(v) => setCodigo(v.replace(/\D/g, '').slice(0, 6))}
-        keyboardType="number-pad"
-        maxLength={6}
-        textContentType="oneTimeCode"
-        error={!!erro}
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        Icone={MailCheck}
+        titulo="Confirme seu e-mail"
+        subtitulo={
+          <>
+            Enviamos um código de 6 dígitos para{' '}
+            <Text style={{ color: colors.text, fontFamily: fonts.semibold }}>{email}</Text>. Confira também a caixa
+            de spam.
+          </>
+        }
       />
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
-      {aviso ? <Text style={[styles.aviso, { color: colors.textSecondary }]}>{aviso}</Text> : null}
+      <CodeInput value={codigo} onChange={setCodigo} error={!!erro} />
 
-      <View style={{ height: 12 }} />
-      <Button title="Confirmar" onPress={handleConfirmar} loading={loading} />
+      <AvisoInline mensagem={erro} />
 
-      <Pressable onPress={handleReenviar} disabled={restante > 0 || reenviando} style={styles.footer}>
-        <Text style={{ color: restante > 0 ? colors.textSecondary : colors.primary, fontWeight: '600' }}>
-          {restante > 0 ? `Reenviar código em ${restante}s` : reenviando ? 'Enviando...' : 'Reenviar código'}
+      <Button title="Confirmar" onPress={handleConfirmar} loading={loading} disabled={codigo.length !== 6} />
+
+      <Pressable onPress={handleReenviar} disabled={restante > 0 || reenviando} hitSlop={8} style={styles.link}>
+        <Text
+          style={[
+            typography.body,
+            { color: restante > 0 ? colors.textSecondary : colors.primary, fontFamily: fonts.semibold },
+          ]}
+        >
+          {textoReenvio}
         </Text>
       </Pressable>
 
-      <Pressable onPress={() => navigation.navigate('Login', { tipo })} style={styles.footer}>
-        <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Voltar ao login</Text>
-      </Pressable>
-    </View>
+      <View style={styles.espaco} />
+      <Button title="Voltar ao login" variant="ghost" onPress={() => navigation.navigate('Login', { tipo })} />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: '800', marginTop: 16, marginBottom: 12, textAlign: 'center' },
-  subtitulo: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 28 },
-  erro: { fontSize: 13, textAlign: 'center', marginBottom: 4 },
-  aviso: { fontSize: 13, textAlign: 'center', marginBottom: 4 },
-  footer: { marginTop: 20, alignItems: 'center' },
+  link: { alignSelf: 'center', marginTop: 20 },
+  espaco: { height: 8 },
 });

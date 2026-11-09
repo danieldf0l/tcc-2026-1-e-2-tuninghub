@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
+import { KeyRound, Mail } from 'lucide-react-native';
 import { esqueciSenha } from '../../api/auth.api';
 import { getErrorMessage } from '../../utils/errorHandler';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import BackButton from '../../components/BackButton';
 
 export default function EsqueciSenhaScreen({ route, navigation }) {
   const { tipo, email: emailInicial } = route.params;
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  useTheme(); // mantém a tela reativa à troca de tema
 
   const [email, setEmail] = useState(emailInicial || '');
   const [erro, setErro] = useState('');
@@ -37,33 +37,32 @@ export default function EsqueciSenhaScreen({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
-      <BackButton onPress={() => navigation.goBack()} />
-
-      <Text style={[styles.title, { color: colors.text }]}>Recuperar senha</Text>
-      <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>
-        Informe o e-mail da sua conta. Se ele estiver cadastrado, enviaremos um código de 6 dígitos.
-      </Text>
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        Icone={KeyRound}
+        titulo="Recuperar senha"
+        subtitulo="Informe o e-mail da sua conta. Se ele estiver cadastrado, enviaremos um código de 6 dígitos."
+      />
 
       <Input
-        placeholder="Email"
+        label="E-mail"
+        Icone={Mail}
+        placeholder="seu@email.com"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        autoComplete="email"
+        textContentType="username"
+        autoFocus={!emailInicial}
+        returnKeyType="send"
+        onSubmitEditing={handleEnviar}
         error={!!erro}
       />
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+      <AvisoInline mensagem={erro} />
 
-      <View style={{ height: 12 }} />
       <Button title="Enviar código" onPress={handleEnviar} loading={loading} />
-    </View>
+    </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  title: { fontSize: 28, fontWeight: '800', marginTop: 16, marginBottom: 12, textAlign: 'center' },
-  subtitulo: { fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 28 },
-  erro: { fontSize: 13, textAlign: 'center', marginBottom: 4 },
-});

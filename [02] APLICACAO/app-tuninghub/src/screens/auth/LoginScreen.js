@@ -1,18 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Mail, Lock } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage, isEmailNaoVerificado } from '../../utils/errorHandler';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import BackButton from '../../components/BackButton';
 
 export default function LoginScreen({ route, navigation }) {
   const { tipo, emailInicial } = route.params; // tipo: 'usuario' | 'oficina'
-  const { colors } = useTheme();
+  const { colors, fonts, typography } = useTheme();
   const { entrar } = useAuth();
-  const insets = useSafeAreaInsets();
+  const senhaRef = useRef(null);
+  const ehOficina = tipo === 'oficina';
 
   const [email, setEmail] = useState(emailInicial || '');
   const [senha, setSenha] = useState('');
@@ -64,48 +67,68 @@ export default function LoginScreen({ route, navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
-      <BackButton onPress={() => navigation.goBack()} />
-
+    <ScreenContainer>
       <Animated.View style={{ opacity: fade }}>
-        <Text style={[styles.title, { color: colors.text }]}>Entre</Text>
+        <ScreenHeader
+          onVoltar={() => navigation.goBack()}
+          titulo="Entrar"
+          subtitulo={ehOficina ? 'Acesse a conta da sua oficina.' : 'Acesse sua conta de entusiasta.'}
+        />
 
         <Input
-          placeholder="Email"
+          Icone={Mail}
+          placeholder="E-mail"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+          autoComplete="email"
+          textContentType="username"
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() => senhaRef.current?.focus()}
           error={camposComErro.includes('email')}
         />
         <Input
+          ref={senhaRef}
+          Icone={Lock}
           placeholder="Senha"
           value={senha}
           onChangeText={setSenha}
           secureText
+          autoComplete="current-password"
+          textContentType="password"
+          returnKeyType="go"
+          onSubmitEditing={handleEntrar}
           error={camposComErro.includes('senha')}
         />
 
-        <Pressable onPress={() => navigation.navigate('EsqueciSenha', { tipo, email: email.trim() })}>
-          <Text style={[styles.link, { color: colors.text }]}>Esqueci minha senha</Text>
+        <Pressable
+          onPress={() => navigation.navigate('EsqueciSenha', { tipo, email: email.trim() })}
+          hitSlop={8}
+          style={styles.esqueci}
+        >
+          <Text style={[styles.link, { color: colors.textSecondary, fontFamily: fonts.semibold }]}>
+            Esqueci minha senha
+          </Text>
         </Pressable>
 
-        {erroGeral ? <Text style={[styles.erroGeral, { color: colors.danger }]}>{erroGeral}</Text> : null}
+        <AvisoInline mensagem={erroGeral} />
 
-        <View style={{ height: 20 }} />
         <Button title="Entrar" onPress={handleEntrar} loading={loading} />
 
-        <Pressable onPress={handleCriarConta} style={styles.footer}>
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Não tem conta? Criar Conta</Text>
-        </Pressable>
+        <View style={styles.rodape}>
+          <Text style={[typography.body, { color: colors.textSecondary }]}>Não tem conta? </Text>
+          <Pressable onPress={handleCriarConta} hitSlop={8}>
+            <Text style={[typography.body, { color: colors.primary, fontFamily: fonts.bold }]}>Criar conta</Text>
+          </Pressable>
+        </View>
       </Animated.View>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  title: { fontSize: 30, fontWeight: '800', marginBottom: 32, textAlign: 'center', marginTop: 16 },
-  link: { fontSize: 13, fontWeight: '600', marginBottom: 8 },
-  erroGeral: { fontSize: 13, textAlign: 'center', marginBottom: 8 },
-  footer: { marginTop: 24, alignItems: 'center' },
+  esqueci: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 24 },
+  link: { fontSize: 13.5 },
+  rodape: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
 });
