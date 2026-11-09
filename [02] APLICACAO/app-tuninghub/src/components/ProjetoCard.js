@@ -36,7 +36,7 @@ export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPres
           <View style={[styles.badge, { borderRadius: radius.pill }]}>
             <Text style={[styles.badgeTexto, { fontFamily: fonts.semibold }]}>{nomeEstiloExibicao}</Text>
           </View>
-          <Text style={styles.iconeGrande}>{visual.icone}</Text>
+          <visual.Icone size={40} color="#FEFEFE" strokeWidth={1.75} />
         </View>
 
         <View style={styles.corpo}>

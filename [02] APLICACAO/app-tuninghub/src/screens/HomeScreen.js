@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Car, MapPin, Wrench, ListTodo } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Car, MapPin, ListTodo } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { listarMeusProjetos } from '../api/projeto.api';
@@ -11,12 +12,30 @@ import { getSaudacao } from '../utils/saudacao';
 import StatCard from '../components/StatCard';
 import QuickActionCard from '../components/QuickActionCard';
 import ProjetoCard from '../components/ProjetoCard';
+import ProjetoCardSkeleton from '../components/ProjetoCardSkeleton';
+import Skeleton from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 const LIMITE_PROJETOS = 3;
 
+function TituloSecao({ titulo, acao, onAcao }) {
+  const { colors, typography, fonts } = useTheme();
+  return (
+    <View style={styles.tituloSecao}>
+      <Text style={[typography.h3, { color: colors.text }]}>{titulo}</Text>
+      {acao ? (
+        <Pressable onPress={onAcao} hitSlop={8}>
+          <Text style={[typography.caption, { color: colors.primary, fontFamily: fonts.semibold }]}>{acao}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 export default function HomeScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography, layout, radius } = useTheme();
   const { usuario } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [projetos, setProjetos] = useState([]);
   const [nomesModelos, setNomesModelos] = useState({});
@@ -82,33 +101,71 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 16,
+        paddingHorizontal: layout.screenPadding,
+        paddingBottom: 24,
+      }}
+      showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={atualizando} onRefresh={handleAtualizar} tintColor={colors.primary} />}
     >
       <View style={styles.header}>
-        <View>
-          <Text style={[styles.saudacao, { color: colors.textSecondary }]}>{getSaudacao()},</Text>
-          <Text style={[styles.nome, { color: colors.text }]}>{primeiroNome}</Text>
+        <View style={styles.headerTextos}>
+          <Text style={[typography.body, { color: colors.textSecondary, fontFamily: fonts.medium }]}>
+            {getSaudacao()},
+          </Text>
+          <Text style={[typography.h1, { color: colors.text }]} numberOfLines={1}>
+            {primeiroNome}
+          </Text>
         </View>
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarTexto}>{primeiroNome.charAt(0).toUpperCase()}</Text>
-        </View>
+        <Pressable
+          onPress={() => navigation.navigate('PerfilTab')}
+          accessibilityRole="button"
+          accessibilityLabel="Abrir perfil"
+          style={({ pressed }) => [
+            styles.avatar,
+            { backgroundColor: colors.primary, borderRadius: radius.pill, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Text style={[styles.avatarTexto, { color: colors.textOnPrimary, fontFamily: fonts.extrabold }]}>
+            {primeiroNome.charAt(0).toUpperCase()}
+          </Text>
+        </Pressable>
       </View>
 
       {carregando ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 30 }} />
+        <>
+          <View style={styles.statsRow}>
+            <Skeleton height={112} borderRadius={radius.lg} style={styles.flex} />
+            <View style={styles.gap} />
+            <Skeleton height={112} borderRadius={radius.lg} style={styles.flex} />
+          </View>
+          <View style={styles.secao}>
+            <Skeleton width={180} height={20} style={styles.skeletonTitulo} />
+            <ProjetoCardSkeleton />
+          </View>
+        </>
       ) : (
         <>
           <View style={styles.statsRow}>
             <StatCard valor={`${projetos.length}/${LIMITE_PROJETOS}`} rotulo="Projetos ativos" Icone={Car} />
-            <View style={{ width: 12 }} />
-            <StatCard valor={totalPendentes} rotulo="Itens pendentes" destaque={totalPendentes > 0} Icone={ListTodo} />
+            <View style={styles.gap} />
+            <StatCard
+              valor={totalPendentes}
+              rotulo="Serviços pendentes"
+              destaque={totalPendentes > 0}
+              Icone={ListTodo}
+            />
           </View>
 
           {projetoMaisRecente ? (
             <View style={styles.secao}>
-              <Text style={[styles.secaoTitulo, { color: colors.text }]}>Continue de onde parou</Text>
+              <TituloSecao
+                titulo="Continue de onde parou"
+                acao="Ver todos"
+                onAcao={() => navigation.navigate('ProjetosTab')}
+              />
               <ProjetoCard
                 nome={projetoMaisRecente.Descricao}
                 nomeCarro={nomesModelos[String(projetoMaisRecente.IdModelo)] || 'Carro'}
@@ -126,31 +183,37 @@ export default function HomeScreen({ navigation }) {
               />
             </View>
           ) : (
-            <View style={[styles.vazioCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Wrench size={28} color={colors.textSecondary} style={{ marginBottom: 8 }} />
-              <Text style={[styles.vazioTitulo, { color: colors.text }]}>Comece seu primeiro projeto</Text>
-              <Text style={[styles.vazioTexto, { color: colors.textSecondary }]}>
-                Escolha seu carro e monte a to-do list de customização.
-              </Text>
+            <View
+              style={[
+                styles.vazioCard,
+                { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg },
+              ]}
+            >
+              <EmptyState
+                compacto
+                Icone={Car}
+                titulo="Comece seu primeiro projeto"
+                descricao="Escolha seu carro e monte a lista de customização."
+                acaoTitulo="Criar projeto"
+                onAcao={() => navigation.navigate('EscolhaCarro')}
+              />
             </View>
           )}
         </>
       )}
 
       <View style={styles.secao}>
-        <Text style={[styles.secaoTitulo, { color: colors.text }]}>Explorar</Text>
+        <TituloSecao titulo="Explorar" />
         <QuickActionCard
           Icone={Car}
-          titulo="Meus Projetos"
+          titulo="Meus projetos"
           subtitulo="Veja e gerencie suas customizações"
-          corFundo={colors.primary}
           onPress={() => navigation.navigate('ProjetosTab')}
         />
         <QuickActionCard
           Icone={MapPin}
-          titulo="Oficinas Próximas"
+          titulo="Oficinas próximas"
           subtitulo="Encontre onde executar seus serviços"
-          corFundo={colors.secondary}
           onPress={() => navigation.navigate('OficinasTab')}
         />
       </View>
@@ -159,17 +222,15 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 24, paddingTop: 64, paddingBottom: 24 },
+  flex: { flex: 1 },
+  gap: { width: 12 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  saudacao: { fontSize: 15, fontWeight: '500' },
-  nome: { fontSize: 26, fontWeight: '800', marginTop: 2 },
-  avatar: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  avatarTexto: { color: '#FEFEFE', fontSize: 18, fontWeight: '800' },
+  headerTextos: { flex: 1, marginRight: 12 },
+  avatar: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  avatarTexto: { fontSize: 18 },
   statsRow: { flexDirection: 'row', marginBottom: 28 },
   secao: { marginBottom: 28 },
-  secaoTitulo: { fontSize: 17, fontWeight: '800', marginBottom: 12 },
-  vazioCard: { borderRadius: 16, borderWidth: 1, padding: 24, alignItems: 'center', marginBottom: 28 },
-  vazioTitulo: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  vazioTexto: { fontSize: 13, textAlign: 'center' },
+  tituloSecao: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  skeletonTitulo: { marginBottom: 12 },
+  vazioCard: { borderWidth: 1, marginBottom: 28 },
 });

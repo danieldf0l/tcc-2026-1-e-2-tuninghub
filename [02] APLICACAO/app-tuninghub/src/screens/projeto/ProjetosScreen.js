@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { ChevronRight } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Plus, Archive, Car } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { listarMeusProjetos, listarMeusProjetosArquivados } from '../../api/projeto.api';
 import { listarTodosModelos } from '../../api/modelo.api';
@@ -9,11 +10,17 @@ import { listarItensDoProjeto } from '../../api/projetoServico.api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import Button from '../../components/Button';
 import ProjetoCard from '../../components/ProjetoCard';
+import ProjetoCardSkeleton from '../../components/ProjetoCardSkeleton';
+import MenuListItem from '../../components/MenuListItem';
+import EmptyState from '../../components/EmptyState';
+import AvisoInline from '../../components/AvisoInline';
 
 const LIMITE_PROJETOS = 3;
 
 export default function ProjetosScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography, layout, radius } = useTheme();
+  const insets = useSafeAreaInsets();
+
   const [projetos, setProjetos] = useState([]);
   const [qtdArquivados, setQtdArquivados] = useState(0);
   const [nomesModelos, setNomesModelos] = useState({});
@@ -83,42 +90,73 @@ export default function ProjetosScreen({ navigation }) {
 
   const atingiuLimite = projetos.length >= LIMITE_PROJETOS;
 
+  const subtitulo =
+    projetos.length === 0
+      ? 'Nenhum projeto criado ainda'
+      : `${projetos.length} ${projetos.length === 1 ? 'projeto ativo' : 'projetos ativos'}${
+          atingiuLimite ? ' · arquive um para criar outro' : ''
+        }`;
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop: insets.top + 16,
+          paddingHorizontal: layout.screenPadding,
+        },
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Projetos</Text>
-        <Text style={[styles.contador, { color: colors.textSecondary }]}>
-          {projetos.length}/{LIMITE_PROJETOS}
-        </Text>
+        <Text style={[typography.h1, { color: colors.text }]}>Projetos</Text>
+        <View
+          style={[
+            styles.contador,
+            {
+              backgroundColor: atingiuLimite ? colors.primarySoft : colors.surface,
+              borderColor: atingiuLimite ? colors.primary : colors.border,
+              borderRadius: radius.pill,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.contadorTexto,
+              { fontFamily: fonts.bold, color: atingiuLimite ? colors.primary : colors.textSecondary },
+            ]}
+          >
+            {projetos.length}/{LIMITE_PROJETOS}
+          </Text>
+        </View>
       </View>
 
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        {projetos.length === 0
-          ? 'Nenhum projeto criado ainda'
-          : `${projetos.length} ${projetos.length === 1 ? 'projeto ativo' : 'projetos ativos'}${
-              atingiuLimite ? ' · arquive um para criar outro' : ''
-            }`}
-      </Text>
+      <Text style={[typography.body, styles.subtitulo, { color: colors.textSecondary }]}>{subtitulo}</Text>
+
+      <AvisoInline mensagem={erro} />
 
       {carregando ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        <View style={styles.lista}>
+          <ProjetoCardSkeleton />
+          <ProjetoCardSkeleton />
+        </View>
       ) : (
         <FlatList
+          style={styles.lista}
           data={projetos}
           keyExtractor={(item, index) => String(item.IdProjeto ?? item.id ?? index)}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={atualizando} onRefresh={handleAtualizar} tintColor={colors.primary} />
           }
-          contentContainerStyle={{ paddingTop: 24, paddingBottom: 20, flexGrow: 1 }}
+          contentContainerStyle={styles.listaConteudo}
           ListEmptyComponent={
-            <View style={styles.vazioContainer}>
-              <View style={[styles.vazioIcone, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={{ fontSize: 28 }}>🚗</Text>
-              </View>
-              <Text style={[styles.vazioTitulo, { color: colors.text }]}>Sem projetos por aqui</Text>
-              <Text style={[styles.vazioTexto, { color: colors.textSecondary }]}>
-                Crie seu primeiro projeto e comece a montar a to-do list de customização do seu carro.
-              </Text>
+            <View style={styles.vazio}>
+              <EmptyState
+                Icone={Car}
+                titulo="Sem projetos por aqui"
+                descricao="Crie seu primeiro projeto e monte a lista de customização do seu carro."
+              />
             </View>
           }
           renderItem={({ item }) => {
@@ -142,56 +180,39 @@ export default function ProjetosScreen({ navigation }) {
         />
       )}
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+      <View style={styles.rodape}>
+        {qtdArquivados > 0 ? (
+          <View style={styles.arquivados}>
+            <MenuListItem
+              semCard
+              Icone={Archive}
+              titulo="Projetos arquivados"
+              subtitulo={`${qtdArquivados} ${qtdArquivados === 1 ? 'projeto' : 'projetos'}`}
+              onPress={() => navigation.navigate('ProjetosArquivados')}
+            />
+          </View>
+        ) : null}
 
-      {qtdArquivados > 0 ? (
-        <Pressable
-          onPress={() => navigation.navigate('ProjetosArquivados')}
-          style={[styles.arquivadosLink, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          <Text style={{ color: colors.text, fontWeight: '700', fontSize: 14 }}>
-            Projetos arquivados ({qtdArquivados})
-          </Text>
-          <ChevronRight size={18} color={colors.textSecondary} />
-        </Pressable>
-      ) : null}
-
-      <Button
-        title={atingiuLimite ? 'Limite de 3 projetos atingido' : '+ Novo Projeto'}
-        onPress={() => navigation.navigate('EscolhaCarro')}
-        disabled={atingiuLimite}
-      />
+        <Button
+          title={atingiuLimite ? 'Limite de 3 projetos atingido' : 'Novo projeto'}
+          Icone={atingiuLimite ? undefined : Plus}
+          onPress={() => navigation.navigate('EscolhaCarro')}
+          disabled={atingiuLimite}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 56, paddingBottom: 24 },
+  container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 28, fontWeight: '800' },
-  contador: { fontSize: 13, fontWeight: '700' },
-  subtitle: { fontSize: 14, marginTop: 4, marginBottom: 4 },
-  vazioContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  vazioIcone: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  vazioTitulo: { fontSize: 17, fontWeight: '700', marginBottom: 6 },
-  vazioTexto: { fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
-  erro: { fontSize: 13, textAlign: 'center', marginBottom: 12 },
-  arquivadosLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
+  contador: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5 },
+  contadorTexto: { fontSize: 13 },
+  subtitulo: { marginTop: 4, marginBottom: 16 },
+  lista: { flex: 1 },
+  listaConteudo: { paddingTop: 4, paddingBottom: 12, flexGrow: 1 },
+  vazio: { flex: 1, justifyContent: 'center' },
+  rodape: { paddingTop: 8, paddingBottom: 16 },
+  arquivados: { marginBottom: 12 },
 });

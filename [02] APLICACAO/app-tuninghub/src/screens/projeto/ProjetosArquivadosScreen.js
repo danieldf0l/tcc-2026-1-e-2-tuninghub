@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
-import { View, Text, FlatList, Pressable, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Alert, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Archive } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useEstilos } from '../../context/EstilosContext';
+import { useToast } from '../../context/ToastContext';
 import {
   listarMeusProjetosArquivados,
   desarquivarProjeto,
@@ -11,18 +12,24 @@ import {
 } from '../../api/projeto.api';
 import { listarTodosModelos } from '../../api/modelo.api';
 import { getErrorMessage } from '../../utils/errorHandler';
-import BackButton from '../../components/BackButton';
+import { getEstiloVisual } from '../../constants/estilos';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
+import EmptyState from '../../components/EmptyState';
+import Skeleton from '../../components/Skeleton';
 import Button from '../../components/Button';
 
 export default function ProjetosArquivadosScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography, radius } = useTheme();
   const { getNomeEstilo } = useEstilos();
-  const insets = useSafeAreaInsets();
+  const { mostrar } = useToast();
 
   const [projetos, setProjetos] = useState([]);
   const [nomesModelos, setNomesModelos] = useState({});
   const [carregando, setCarregando] = useState(true);
   const [idProcessando, setIdProcessando] = useState(null);
+  const [acaoEmCurso, setAcaoEmCurso] = useState(null); // 'desarquivar' | 'excluir'
   const [erro, setErro] = useState('');
 
   async function carregar() {
@@ -52,13 +59,16 @@ export default function ProjetosArquivadosScreen({ navigation }) {
   async function handleDesarquivar(item) {
     setErro('');
     setIdProcessando(item.IdProjeto);
+    setAcaoEmCurso('desarquivar');
     try {
       await desarquivarProjeto(item.IdProjeto);
       setProjetos((prev) => prev.filter((p) => p.IdProjeto !== item.IdProjeto));
+      mostrar('Projeto desarquivado. Ele voltou para sua lista.');
     } catch (e) {
       setErro(getErrorMessage(e)); // ex.: limite de 3 projetos ativos
     } finally {
       setIdProcessando(null);
+      setAcaoEmCurso(null);
     }
   }
 
@@ -74,13 +84,16 @@ export default function ProjetosArquivadosScreen({ navigation }) {
           onPress: async () => {
             setErro('');
             setIdProcessando(item.IdProjeto);
+            setAcaoEmCurso('excluir');
             try {
               await excluirProjetoDefinitivamente(item.IdProjeto);
               setProjetos((prev) => prev.filter((p) => p.IdProjeto !== item.IdProjeto));
+              mostrar('Projeto excluído.');
             } catch (e) {
               setErro(getErrorMessage(e));
             } finally {
               setIdProcessando(null);
+              setAcaoEmCurso(null);
             }
           },
         },
@@ -88,71 +101,105 @@ export default function ProjetosArquivadosScreen({ navigation }) {
     );
   }
 
+  function renderCard({ item }) {
+    const nomeCarro = nomesModelos[String(item.IdModelo)] || 'Carro';
+    const visual = getEstiloVisual(item.Estilo);
+    const processando = idProcessando === item.IdProjeto;
+    const ocupado = idProcessando !== null;
+
+    return (
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg },
+        ]}
+      >
+        <View style={styles.cardTopo}>
+          <View style={[styles.cardIcone, { backgroundColor: visual.cor, borderRadius: radius.md }]}>
+            <visual.Icone size={22} color="#FEFEFE" strokeWidth={2} />
+          </View>
+          <View style={styles.cardTextos}>
+            <Text style={[typography.h3, { color: colors.text }]} numberOfLines={1}>
+              {item.Descricao || nomeCarro}
+            </Text>
+            <Text
+              style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}
+              numberOfLines={1}
+            >
+              {item.Descricao ? `${nomeCarro} · ` : ''}
+              {item.Estilo ? getNomeEstilo(item.Estilo) : 'Personalizado'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.acoes}>
+          <View style={styles.acao}>
+            <Button
+              title="Desarquivar"
+              variant="outline"
+              onPress={() => handleDesarquivar(item)}
+              loading={processando && acaoEmCurso === 'desarquivar'}
+              disabled={ocupado}
+            />
+          </View>
+          <View style={styles.acao}>
+            <Button
+              title="Excluir"
+              variant="danger"
+              onPress={() => confirmarExclusao(item)}
+              loading={processando && acaoEmCurso === 'excluir'}
+              disabled={ocupado}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.title, { color: colors.text }]}>Projetos arquivados</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Desarquive para voltar a usar, ou exclua de vez.
-      </Text>
+    <ScreenContainer scroll={false}>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        titulo="Projetos arquivados"
+        subtitulo="Desarquive para voltar a usar, ou exclua de vez."
+      />
+
+      <AvisoInline mensagem={erro} />
 
       {carregando ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        <View>
+          <Skeleton height={140} borderRadius={radius.lg} style={styles.skeleton} />
+          <Skeleton height={140} borderRadius={radius.lg} style={styles.skeleton} />
+        </View>
       ) : (
         <FlatList
+          style={styles.lista}
           data={projetos}
           keyExtractor={(item) => String(item.IdProjeto)}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listaConteudo}
           ListEmptyComponent={
-            <Text style={[styles.vazio, { color: colors.textSecondary }]}>Nenhum projeto arquivado.</Text>
+            <EmptyState
+              Icone={Archive}
+              titulo="Nenhum projeto arquivado"
+              descricao="Quando você arquivar um projeto, ele aparece aqui."
+            />
           }
-          renderItem={({ item }) => {
-            const nomeCarro = nomesModelos[String(item.IdModelo)] || 'Carro';
-            const processando = idProcessando === item.IdProjeto;
-            return (
-              <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <Text style={[styles.cardTitulo, { color: colors.text }]} numberOfLines={1}>
-                  {item.Descricao || nomeCarro}
-                </Text>
-                <Text style={[styles.cardSub, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {item.Descricao ? `${nomeCarro} · ` : ''}
-                  {item.Estilo ? getNomeEstilo(item.Estilo) : 'Personalizado'}
-                </Text>
-
-                <View style={{ height: 14 }} />
-                <Button
-                  title="Desarquivar"
-                  variant="outline"
-                  onPress={() => handleDesarquivar(item)}
-                  loading={processando}
-                  disabled={idProcessando !== null}
-                />
-                <Pressable
-                  onPress={() => confirmarExclusao(item)}
-                  disabled={idProcessando !== null}
-                  style={styles.excluir}
-                >
-                  <Text style={{ color: colors.danger, fontWeight: '700' }}>Excluir definitivamente</Text>
-                </Pressable>
-              </View>
-            );
-          }}
+          renderItem={renderCard}
         />
       )}
-
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 16 },
-  subtitle: { fontSize: 14, marginTop: 4, marginBottom: 20 },
-  vazio: { textAlign: 'center', marginTop: 40 },
-  card: { borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 14 },
-  cardTitulo: { fontSize: 16, fontWeight: '800' },
-  cardSub: { fontSize: 13, marginTop: 2 },
-  excluir: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
-  erro: { fontSize: 13, textAlign: 'center', marginTop: 8 },
+  lista: { flex: 1 },
+  listaConteudo: { paddingBottom: 8, flexGrow: 1 },
+  skeleton: { marginBottom: 14 },
+  card: { borderWidth: 1, padding: 16, marginBottom: 14 },
+  cardTopo: { flexDirection: 'row', alignItems: 'center' },
+  cardIcone: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  cardTextos: { flex: 1, gap: 2 },
+  acoes: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  acao: { flex: 1 },
 });
