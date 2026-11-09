@@ -1,13 +1,23 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { User, Mail, Lock } from 'lucide-react-native';
 import { useTheme } from '../../../theme/ThemeContext';
+import { emailValido, senhaValida } from '../../../utils/validadores';
+import ScreenContainer from '../../../components/ScreenContainer';
+import ScreenHeader from '../../../components/ScreenHeader';
+import ProgressoEtapas from '../../../components/ProgressoEtapas';
+import AvisoInline from '../../../components/AvisoInline';
+import RequisitosSenha from '../../../components/RequisitosSenha';
 import Input from '../../../components/Input';
 import Checkbox from '../../../components/Checkbox';
 import Button from '../../../components/Button';
-import BackButton from '../../../components/BackButton';
 
 export default function CadastroOficinaAcessoScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography } = useTheme();
+  const emailRef = useRef(null);
+  const senhaRef = useRef(null);
+  const confirmarRef = useRef(null);
+
   const [nomeProprietario, setNomeProprietario] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -19,14 +29,26 @@ export default function CadastroOficinaAcessoScreen({ navigation }) {
   function handleProximo() {
     setErro('');
     const vazios = [];
-    if (!nomeProprietario) vazios.push('nomeProprietario');
-    if (!email) vazios.push('email');
+    if (!nomeProprietario.trim()) vazios.push('nomeProprietario');
+    if (!email.trim()) vazios.push('email');
     if (!senha) vazios.push('senha');
     if (!confirmarSenha) vazios.push('confirmarSenha');
 
     if (vazios.length > 0) {
       setErro('Preencha todos os campos.');
       setCamposComErro(vazios);
+      return;
+    }
+
+    if (!emailValido(email)) {
+      setErro('Informe um e-mail válido.');
+      setCamposComErro(['email']);
+      return;
+    }
+
+    if (!senhaValida(senha)) {
+      setErro('A senha precisa ter 8 caracteres, com letra maiúscula, número e símbolo.');
+      setCamposComErro(['senha']);
       return;
     }
 
@@ -38,77 +60,116 @@ export default function CadastroOficinaAcessoScreen({ navigation }) {
 
     if (!termosAceitos) {
       setErro('Você precisa aceitar os Termos de Uso e a Política de Privacidade.');
+      setCamposComErro([]);
       return;
     }
 
     setCamposComErro([]);
     navigation.navigate('CadastroOficinaDados', {
-      nomeProprietario,
+      nomeProprietario: nomeProprietario.trim(),
       email: email.trim(),
       senha,
       termosAceitos,
     });
   }
 
+  const estiloLink = { color: colors.primary, fontFamily: fonts.bold };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.etapa, { color: colors.primary }]}>Etapa 1 de 3</Text>
-      <Text style={[styles.title, { color: colors.text }]}>Para acesso</Text>
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        acaoDireita={<ProgressoEtapas atual={1} />}
+        titulo="Crie o acesso"
+        subtitulo="Esses dados serão usados para entrar no app da oficina."
+      />
 
       <Input
-        placeholder="Nome do Proprietário"
+        Icone={User}
+        placeholder="Nome do proprietário"
         value={nomeProprietario}
         onChangeText={setNomeProprietario}
+        autoCapitalize="words"
+        autoComplete="name"
+        textContentType="name"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => emailRef.current?.focus()}
         error={camposComErro.includes('nomeProprietario')}
       />
       <Input
-        placeholder="Email"
+        ref={emailRef}
+        Icone={Mail}
+        placeholder="E-mail"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        autoComplete="email"
+        textContentType="emailAddress"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => senhaRef.current?.focus()}
         error={camposComErro.includes('email')}
       />
       <Input
+        ref={senhaRef}
+        Icone={Lock}
         placeholder="Senha"
         value={senha}
         onChangeText={setSenha}
         secureText
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => confirmarRef.current?.focus()}
         error={camposComErro.includes('senha')}
       />
+      <RequisitosSenha senha={senha} />
+
       <Input
-        placeholder="Confirmar Senha"
+        ref={confirmarRef}
+        Icone={Lock}
+        placeholder="Confirmar senha"
         value={confirmarSenha}
         onChangeText={setConfirmarSenha}
         secureText
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="done"
         error={camposComErro.includes('confirmarSenha')}
       />
 
-      <View style={{ height: 8 }} />
       <Checkbox marcado={termosAceitos} onToggle={() => setTermosAceitos((v) => !v)}>
-        <Text style={{ color: colors.textSecondary, fontSize: 12.5, lineHeight: 18 }}>
+        <Text style={[typography.caption, styles.termos, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
           Li e concordo com os{' '}
-          <Text style={{ color: colors.primary, fontWeight: '700' }} onPress={() => navigation.navigate('Termos')}>
+          <Text style={estiloLink} onPress={() => navigation.navigate('Termos')}>
             Termos de Uso
           </Text>{' '}
           e a{' '}
-          <Text style={{ color: colors.primary, fontWeight: '700' }} onPress={() => navigation.navigate('Privacidade')}>
+          <Text style={estiloLink} onPress={() => navigation.navigate('Privacidade')}>
             Política de Privacidade
           </Text>
         </Text>
       </Checkbox>
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+      <View style={styles.espaco} />
+      <AvisoInline mensagem={erro} />
 
-      <View style={{ height: 12 }} />
-      <Button title="Próximo" onPress={handleProximo} />
-    </ScrollView>
+      <Button title="Continuar" onPress={handleProximo} />
+
+      <View style={styles.rodape}>
+        <Text style={[typography.body, { color: colors.textSecondary }]}>Já tem conta? </Text>
+        <Pressable onPress={() => navigation.navigate('Login', { tipo: 'oficina' })} hitSlop={8}>
+          <Text style={[typography.body, { color: colors.primary, fontFamily: fonts.bold }]}>Entrar</Text>
+        </Pressable>
+      </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  etapa: { fontSize: 12, fontWeight: '800', marginTop: 16, letterSpacing: 0.5 },
-  title: { fontSize: 26, fontWeight: '800', marginTop: 4, marginBottom: 24 },
-  erro: { fontSize: 13, textAlign: 'center', marginTop: 8 },
+  termos: { lineHeight: 19 },
+  espaco: { height: 12 },
+  rodape: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24 },
 });

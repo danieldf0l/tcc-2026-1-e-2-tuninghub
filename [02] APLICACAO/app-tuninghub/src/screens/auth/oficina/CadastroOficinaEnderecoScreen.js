@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { MapPin, Hash, Map, Building } from 'lucide-react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { cadastrarOficina } from '../../../api/oficina.api';
 import { buscarEnderecoPorCep } from '../../../utils/cep';
+import { mascaraCep, somenteDigitos } from '../../../utils/formatters';
 import { getErrorMessage } from '../../../utils/errorHandler';
+import ScreenContainer from '../../../components/ScreenContainer';
+import ScreenHeader from '../../../components/ScreenHeader';
+import ProgressoEtapas from '../../../components/ProgressoEtapas';
+import AvisoInline from '../../../components/AvisoInline';
 import Input from '../../../components/Input';
 import Button from '../../../components/Button';
-import BackButton from '../../../components/BackButton';
 
 export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography } = useTheme();
+  const numeroRef = useRef(null);
 
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
@@ -18,13 +24,17 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
   const [estado, setEstado] = useState('');
   const [cep, setCep] = useState('');
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepNaoEncontrado, setCepNaoEncontrado] = useState(false);
   const [erro, setErro] = useState('');
   const [camposComErro, setCamposComErro] = useState([]);
   const [loading, setLoading] = useState(false);
 
   async function handleCepChange(valor) {
-    setCep(valor);
-    const cepLimpo = valor.replace(/\D/g, '');
+    const mascarado = mascaraCep(valor);
+    setCep(mascarado);
+    setCepNaoEncontrado(false);
+
+    const cepLimpo = somenteDigitos(mascarado);
     if (cepLimpo.length === 8) {
       setBuscandoCep(true);
       const endereco = await buscarEnderecoPorCep(cepLimpo);
@@ -33,6 +43,9 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
         setBairro(endereco.bairro);
         setCidade(endereco.cidade);
         setEstado(endereco.estado);
+        numeroRef.current?.focus();
+      } else {
+        setCepNaoEncontrado(true);
       }
       setBuscandoCep(false);
     }
@@ -41,14 +54,20 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
   async function handleFinalizar() {
     setErro('');
     const vazios = [];
-    if (!rua) vazios.push('rua');
-    if (!cidade) vazios.push('cidade');
-    if (!estado) vazios.push('estado');
+    if (!rua.trim()) vazios.push('rua');
+    if (!cidade.trim()) vazios.push('cidade');
+    if (!estado.trim()) vazios.push('estado');
     if (!cep) vazios.push('cep');
 
     if (vazios.length > 0) {
       setErro('Preencha rua, cidade, estado e CEP.');
       setCamposComErro(vazios);
+      return;
+    }
+
+    if (somenteDigitos(cep).length !== 8) {
+      setErro('CEP incompleto.');
+      setCamposComErro(['cep']);
       return;
     }
 
@@ -65,7 +84,14 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
         email,
         senha,
         termosAceitos,
-        endereco: { rua, numero, bairro, cidade, estado, cep },
+        endereco: {
+          rua: rua.trim(),
+          numero: numero.trim(),
+          bairro: bairro.trim(),
+          cidade: cidade.trim(),
+          estado: estado.trim().toUpperCase(),
+          cep: somenteDigitos(cep),
+        },
       });
 
       // Oficina criada com e-mail não confirmado: o backend já enviou o código.
@@ -86,57 +112,108 @@ export default function CadastroOficinaEnderecoScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.etapa, { color: colors.primary }]}>Etapa 3 de 3</Text>
-      <Text style={[styles.title, { color: colors.text }]}>Endereço</Text>
-      <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>
-        Sua oficina precisa estar a até 4km do SENAC Nações Unidas.
-      </Text>
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        acaoDireita={<ProgressoEtapas atual={3} />}
+        titulo="Onde fica a oficina?"
+        subtitulo="Comece pelo CEP que a gente completa o resto."
+      />
+
+      <AvisoInline tipo="info" mensagem="O TuningHub atende oficinas a até 4 km do SENAC Nações Unidas." />
 
       <Input
+        Icone={MapPin}
         placeholder="CEP"
         value={cep}
         onChangeText={handleCepChange}
-        keyboardType="numeric"
+        keyboardType="number-pad"
+        autoComplete="postal-code"
+        textContentType="postalCode"
+        maxLength={9}
         error={camposComErro.includes('cep')}
       />
-      {buscandoCep ? <ActivityIndicator color={colors.primary} style={{ marginBottom: 12 }} /> : null}
+
+      {buscandoCep ? (
+        <View style={styles.status}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+            Buscando endereço...
+          </Text>
+        </View>
+      ) : cepNaoEncontrado ? (
+        <View style={styles.status}>
+          <Text style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+            CEP não encontrado. Preencha o endereço abaixo.
+          </Text>
+        </View>
+      ) : null}
 
       <Input
+        Icone={Map}
         placeholder="Rua"
         value={rua}
         onChangeText={setRua}
+        autoCapitalize="words"
         error={camposComErro.includes('rua')}
       />
-      <Input placeholder="Número" value={numero} onChangeText={setNumero} keyboardType="numeric" />
-      <Input placeholder="Bairro" value={bairro} onChangeText={setBairro} />
-      <Input
-        placeholder="Cidade"
-        value={cidade}
-        onChangeText={setCidade}
-        error={camposComErro.includes('cidade')}
-      />
-      <Input
-        placeholder="Estado (UF)"
-        value={estado}
-        onChangeText={setEstado}
-        autoCapitalize="characters"
-        error={camposComErro.includes('estado')}
-      />
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+      <View style={styles.linha}>
+        <View style={styles.colunaPequena}>
+          <Input
+            ref={numeroRef}
+            Icone={Hash}
+            placeholder="Nº"
+            value={numero}
+            onChangeText={setNumero}
+            keyboardType="number-pad"
+          />
+        </View>
+        <View style={styles.colunaGrande}>
+          <Input placeholder="Bairro" value={bairro} onChangeText={setBairro} autoCapitalize="words" />
+        </View>
+      </View>
 
-      <View style={{ height: 12 }} />
+      <View style={styles.linha}>
+        <View style={styles.colunaGrande}>
+          <Input
+            Icone={Building}
+            placeholder="Cidade"
+            value={cidade}
+            onChangeText={setCidade}
+            autoCapitalize="words"
+            error={camposComErro.includes('cidade')}
+          />
+        </View>
+        <View style={styles.colunaPequena}>
+          <Input
+            placeholder="UF"
+            value={estado}
+            onChangeText={(v) => setEstado(v.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2))}
+            autoCapitalize="characters"
+            maxLength={2}
+            error={camposComErro.includes('estado')}
+          />
+        </View>
+      </View>
+
+      <AvisoInline mensagem={erro} />
+
       <Button title="Finalizar cadastro" onPress={handleFinalizar} loading={loading} />
-    </ScrollView>
+
+      {loading ? (
+        <Text style={[typography.caption, styles.esperando, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+          Validando CNPJ e localização. Isso pode levar alguns segundos.
+        </Text>
+      ) : null}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 60 },
-  etapa: { fontSize: 12, fontWeight: '800', marginTop: 16, letterSpacing: 0.5 },
-  title: { fontSize: 26, fontWeight: '800', marginTop: 4, marginBottom: 4 },
-  subtitulo: { fontSize: 13, marginBottom: 20 },
-  erro: { fontSize: 13, textAlign: 'center', marginTop: 8 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -6, marginBottom: 14, paddingLeft: 4 },
+  linha: { flexDirection: 'row', gap: 10 },
+  colunaPequena: { flex: 1 },
+  colunaGrande: { flex: 2 },
+  esperando: { textAlign: 'center', marginTop: 12 },
 });

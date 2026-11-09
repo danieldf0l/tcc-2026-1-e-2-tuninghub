@@ -1,21 +1,14 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
-
-// Espelha a regra do backend (validação real continua lá)
-const REGRAS = [
-  { rotulo: '8 caracteres', testa: (s) => s.length >= 8 },
-  { rotulo: 'letra maiúscula', testa: (s) => /[A-Z]/.test(s) },
-  { rotulo: 'número', testa: (s) => /\d/.test(s) },
-  { rotulo: 'símbolo', testa: (s) => /[^A-Za-z0-9]/.test(s) },
-];
+import { REGRAS_SENHA } from '../utils/validadores';
 
 // Nada com o campo vazio; uma linha com o que falta; "Senha válida" quando ok
 export default function RequisitosSenha({ senha = '' }) {
   const { colors, fonts } = useTheme();
   if (!senha) return null;
 
-  const pendentes = REGRAS.filter((r) => !r.testa(senha));
+  const pendentes = REGRAS_SENHA.filter((r) => !r.testa(senha));
   const ok = pendentes.length === 0;
 
   return (
