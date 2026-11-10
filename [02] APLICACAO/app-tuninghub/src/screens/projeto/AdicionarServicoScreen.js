@@ -1,22 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, SectionList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, SectionList, StyleSheet } from 'react-native';
+import { Search, SearchX } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { useToast } from '../../context/ToastContext';
 import { listarServicos } from '../../api/servico.api';
 import { adicionarVariosItens } from '../../api/projetoServico.api';
 import { getCategoriaInfo } from '../../constants/categoriasServico';
 import { getErrorMessage } from '../../utils/errorHandler';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
 import ServicoCheckItem from '../../components/ServicoCheckItem';
+import AvisoInline from '../../components/AvisoInline';
+import EmptyState from '../../components/EmptyState';
+import Skeleton from '../../components/Skeleton';
+import Input from '../../components/Input';
 import Button from '../../components/Button';
-import BackButton from '../../components/BackButton';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+// Busca sem diferenciar acento nem maiúscula ("suspensao" encontra "Suspensão")
+const normalizar = (t) =>
+  (t || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 export default function AdicionarServicoScreen({ route, navigation }) {
   const { idProjeto, idsJaAdicionados = [] } = route.params;
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, typography, radius } = useTheme();
+  const { mostrar } = useToast();
 
   const [servicos, setServicos] = useState([]);
   const [selecionados, setSelecionados] = useState([]);
+  const [busca, setBusca] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
@@ -36,21 +51,22 @@ export default function AdicionarServicoScreen({ route, navigation }) {
   }, []);
 
   const secoes = useMemo(() => {
+    const termo = normalizar(busca);
     const grupos = {};
-    servicos.forEach((s) => {
-      const chave = s.Categoria || 'OUTROS';
-      if (!grupos[chave]) grupos[chave] = [];
-      grupos[chave].push(s);
-    });
+
+    servicos
+      .filter((s) => !termo || normalizar(s.Nome || s.nome).includes(termo))
+      .forEach((s) => {
+        const chave = s.Categoria || 'OUTROS';
+        if (!grupos[chave]) grupos[chave] = [];
+        grupos[chave].push(s);
+      });
 
     return Object.entries(grupos).map(([categoria, itens]) => {
       const info = getCategoriaInfo(categoria);
-      return {
-        title: `${info.icone}  ${info.rotulo}`,
-        data: itens,
-      };
+      return { title: info.rotulo, Icone: info.Icone, data: itens };
     });
-  }, [servicos]);
+  }, [servicos, busca]);
 
   function alternarSelecao(idServico) {
     setSelecionados((prev) =>
@@ -64,7 +80,9 @@ export default function AdicionarServicoScreen({ route, navigation }) {
     setSalvando(true);
     try {
       await adicionarVariosItens(idProjeto, selecionados);
+      const n = selecionados.length;
       navigation.goBack();
+      mostrar(`${n} ${n === 1 ? 'serviço adicionado' : 'serviços adicionados'} à lista.`);
     } catch (e) {
       setErro(getErrorMessage(e));
     } finally {
@@ -72,56 +90,91 @@ export default function AdicionarServicoScreen({ route, navigation }) {
     }
   }
 
+  const n = selecionados.length;
+
+  const rodape = (
+    <>
+      <AvisoInline mensagem={erro} />
+      <Button
+        title={n > 0 ? `Adicionar ${n} ${n === 1 ? 'serviço' : 'serviços'}` : 'Selecione os serviços'}
+        onPress={handleAdicionar}
+        loading={salvando}
+        disabled={n === 0 || salvando}
+      />
+    </>
+  );
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingBottom: insets.bottom + 16 }]}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.title, { color: colors.text }]}>Adicionar serviços</Text>
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-        Escolha os itens que quer incluir na sua to-do list
-      </Text>
+    <ScreenContainer scroll={false} rodape={rodape}>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        titulo="Adicionar serviços"
+        subtitulo="Escolha o que você quer incluir na lista do projeto."
+      />
+
+      <Input
+        Icone={Search}
+        placeholder="Buscar serviço"
+        value={busca}
+        onChangeText={setBusca}
+        autoCorrect={false}
+        returnKeyType="search"
+      />
 
       {carregando ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        <View>
+          <Skeleton width={120} height={12} style={styles.skeletonTitulo} />
+          <Skeleton height={54} borderRadius={radius.md} style={styles.skeleton} />
+          <Skeleton height={54} borderRadius={radius.md} style={styles.skeleton} />
+          <Skeleton height={54} borderRadius={radius.md} style={styles.skeleton} />
+        </View>
       ) : (
         <SectionList
+          style={styles.lista}
           sections={secoes}
           keyExtractor={(item, index) => String(item.IdServico ?? index)}
           stickySectionHeadersEnabled={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listaConteudo}
+          ListEmptyComponent={
+            busca ? (
+              <EmptyState
+                compacto
+                Icone={SearchX}
+                titulo="Nenhum serviço encontrado"
+                descricao={`Não achamos nada para "${busca}".`}
+              />
+            ) : null
+          }
           renderSectionHeader={({ section }) => (
-            <Text style={[styles.sectionHeader, { color: colors.text }]}>{section.title}</Text>
+            <View style={styles.secao}>
+              <section.Icone size={15} color={colors.textSecondary} strokeWidth={2.25} />
+              <Text style={[typography.overline, { color: colors.textSecondary }]}>{section.title}</Text>
+            </View>
           )}
           renderItem={({ item }) => {
             const idServico = item.IdServico ?? item.id;
-            const jaAdicionado = idsJaAdicionados.includes(idServico);
             return (
               <ServicoCheckItem
                 nome={item.Nome || item.nome}
                 selecionado={selecionados.includes(idServico)}
-                jaAdicionado={jaAdicionado}
+                jaAdicionado={idsJaAdicionados.includes(idServico)}
                 onToggle={() => alternarSelecao(idServico)}
               />
             );
           }}
         />
       )}
-
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
-
-      <Button
-        title={selecionados.length > 0 ? `Adicionar (${selecionados.length})` : 'Selecione ao menos um item'}
-        onPress={handleAdicionar}
-        loading={salvando}
-        disabled={selecionados.length === 0 || salvando}
-      />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 16 },
-  subtitle: { fontSize: 13, marginTop: 4, marginBottom: 16 },
-  sectionHeader: { fontSize: 14, fontWeight: '800', marginTop: 12, marginBottom: 8 },
-  erro: { fontSize: 13, textAlign: 'center', marginVertical: 8 },
+  lista: { flex: 1 },
+  listaConteudo: { paddingBottom: 12, flexGrow: 1 },
+  secao: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 10 },
+  skeletonTitulo: { marginBottom: 12, marginTop: 8 },
+  skeleton: { marginBottom: 10 },
 });

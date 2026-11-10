@@ -2,7 +2,7 @@ import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 
-export default function ChecklistItem({ titulo, concluido, onToggle }) {
+export default function ChecklistItem({ titulo, concluido, onToggle, style }) {
   const { colors, typography, fonts, radius } = useTheme();
 
   return (
@@ -18,6 +18,7 @@ export default function ChecklistItem({ titulo, concluido, onToggle }) {
           borderRadius: radius.md,
           opacity: pressed ? 0.85 : 1,
         },
+        style,
       ]}
     >
       <View

@@ -14,12 +14,12 @@ export async function adicionarVariosItens(idProjeto, idsServico) {
   return Promise.all(idsServico.map((idServico) => adicionarItem(idProjeto, idServico)));
 }
 
-export async function removerItem(idProjeto, idServico) {
-  const { data } = await api.delete(`/projetoservico/${idProjeto}/${idServico}`);
+export async function marcarConcluido(idProjeto, idServico, concluido) {
+  const { data } = await api.patch(`/projetoservico/${idProjeto}/${idServico}/concluido`, { concluido });
   return data;
 }
 
-export async function marcarConcluido(idProjeto, idServico, concluido) {
-  const { data } = await api.patch(`/projetoservico/${idProjeto}/${idServico}/concluido`, { concluido });
+export async function removerItemDoProjeto(idProjeto, idServico) {
+  const { data } = await api.delete(`/projetoservico/${idProjeto}/${idServico}`);
   return data;
 }

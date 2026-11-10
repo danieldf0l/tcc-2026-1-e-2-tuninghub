@@ -233,6 +233,7 @@ export default function ProjetosScreen({ navigation }) {
                     navigation.navigate('ProjetoDetalhe', {
                       idProjeto,
                       nomeCarro: item.Descricao || nomeCarro,
+                      nomeModelo: nomeCarro,
                     })
                   }
                 />

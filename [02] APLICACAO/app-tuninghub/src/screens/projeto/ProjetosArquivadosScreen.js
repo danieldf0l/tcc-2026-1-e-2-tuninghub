@@ -5,6 +5,7 @@ import { Archive } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useEstilos } from '../../context/EstilosContext';
 import { useToast } from '../../context/ToastContext';
+import { LIMITE_PROJETOS_ARQUIVADOS } from '../../utils/limitesProjeto';
 import {
   listarMeusProjetosArquivados,
   desarquivarProjeto,
@@ -160,8 +161,38 @@ export default function ProjetosArquivadosScreen({ navigation }) {
     <ScreenContainer scroll={false}>
       <ScreenHeader
         onVoltar={() => navigation.goBack()}
+        acaoDireita={
+          carregando ? null : (
+            <View
+              style={[
+                styles.contador,
+                {
+                  borderRadius: radius.pill,
+                  backgroundColor: projetos.length >= LIMITE_PROJETOS_ARQUIVADOS ? colors.primarySoft : colors.surface,
+                  borderColor: projetos.length >= LIMITE_PROJETOS_ARQUIVADOS ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.contadorTexto,
+                  {
+                    fontFamily: fonts.bold,
+                    color: projetos.length >= LIMITE_PROJETOS_ARQUIVADOS ? colors.primary : colors.textSecondary,
+                  },
+                ]}
+              >
+                {projetos.length}/{LIMITE_PROJETOS_ARQUIVADOS}
+              </Text>
+            </View>
+          )
+        }
         titulo="Projetos arquivados"
-        subtitulo="Desarquive para voltar a usar, ou exclua de vez."
+        subtitulo={
+          projetos.length >= LIMITE_PROJETOS_ARQUIVADOS
+            ? 'Limite atingido. Exclua um para poder arquivar outros projetos.'
+            : 'Desarquive para voltar a usar, ou exclua de vez.'
+        }
       />
 
       <AvisoInline mensagem={erro} />
@@ -202,4 +233,6 @@ const styles = StyleSheet.create({
   cardTextos: { flex: 1, gap: 2 },
   acoes: { flexDirection: 'row', gap: 10, marginTop: 16 },
   acao: { flex: 1 },
+  contador: { borderWidth: 1, paddingHorizontal: 12, paddingVertical: 5 },
+  contadorTexto: { fontSize: 13 },
 });

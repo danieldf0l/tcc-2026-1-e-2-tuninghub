@@ -2,21 +2,23 @@ import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, MapPin, ListTodo } from 'lucide-react-native';
+import { Car, MapPin, ListTodo, Search } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useEstilos } from '../context/EstilosContext';
 import { listarMeusProjetos } from '../api/projeto.api';
 import { listarTodosModelos } from '../api/modelo.api';
 import { listarItensDoProjeto } from '../api/projetoServico.api';
 import { getSaudacao } from '../utils/saudacao';
+import { getEstiloVisual } from '../constants/estilos';
+import { LIMITE_PROJETOS_ATIVOS } from '../utils/limitesProjeto';
 import StatCard from '../components/StatCard';
 import QuickActionCard from '../components/QuickActionCard';
 import ProjetoCard from '../components/ProjetoCard';
 import ProjetoCardSkeleton from '../components/ProjetoCardSkeleton';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
-
-const LIMITE_PROJETOS = 3;
+import MenuAcoes from '../components/MenuAcoes';
 
 function TituloSecao({ titulo, acao, onAcao }) {
   const { colors, typography, fonts } = useTheme();
@@ -35,6 +37,7 @@ function TituloSecao({ titulo, acao, onAcao }) {
 export default function HomeScreen({ navigation }) {
   const { colors, fonts, typography, layout, radius } = useTheme();
   const { usuario } = useAuth();
+  const { getNomeEstilo } = useEstilos();
   const insets = useSafeAreaInsets();
 
   const [projetos, setProjetos] = useState([]);
@@ -42,6 +45,7 @@ export default function HomeScreen({ navigation }) {
   const [progressos, setProgressos] = useState({});
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
+  const [escolhendoProjeto, setEscolhendoProjeto] = useState(false);
 
   async function carregar() {
     try {
@@ -90,6 +94,31 @@ export default function HomeScreen({ navigation }) {
     carregar();
   }
 
+  const nomeModeloDe = (p) => nomesModelos[String(p.IdModelo)] || 'Carro';
+  const idDe = (p) => p.IdProjeto ?? p.id;
+
+  function abrirBuscaDoProjeto(p) {
+    navigation.navigate('OficinasPorProjeto', { idProjeto: idDe(p) });
+  }
+
+  // 1 projeto: vai direto. 2 ou 3: escolhe na bottom sheet.
+  function handleOficinasParaProjeto() {
+    if (projetos.length === 1) {
+      abrirBuscaDoProjeto(projetos[0]);
+      return;
+    }
+    setEscolhendoProjeto(true);
+  }
+
+  const opcoesProjetos = projetos.map((p) => ({
+    chave: String(idDe(p)),
+    rotulo: p.Descricao || nomeModeloDe(p),
+    descricao: p.Descricao ? nomeModeloDe(p) : p.Estilo ? getNomeEstilo(p.Estilo) : 'Personalizado',
+    Icone: getEstiloVisual(p.Estilo).Icone,
+    chevron: true,
+    onPress: () => abrirBuscaDoProjeto(p),
+  }));
+
   const primeiroNome = (usuario?.Nome || usuario?.nome || 'Entusiasta').split(' ')[0];
   const totalPendentes = Object.values(progressos).reduce((soma, p) => soma + (p.total - p.concluidos), 0);
 
@@ -100,124 +129,140 @@ export default function HomeScreen({ navigation }) {
   })[0];
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{
-        paddingTop: insets.top + 16,
-        paddingHorizontal: layout.screenPadding,
-        paddingBottom: 24,
-      }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={atualizando} onRefresh={handleAtualizar} tintColor={colors.primary} />}
-    >
-      <View style={styles.header}>
-        <View style={styles.headerTextos}>
-          <Text style={[typography.body, { color: colors.textSecondary, fontFamily: fonts.medium }]}>
-            {getSaudacao()},
-          </Text>
-          <Text style={[typography.h1, { color: colors.text }]} numberOfLines={1}>
-            {primeiroNome}
-          </Text>
+    <>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 16,
+          paddingHorizontal: layout.screenPadding,
+          paddingBottom: 24,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={atualizando} onRefresh={handleAtualizar} tintColor={colors.primary} />}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerTextos}>
+            <Text style={[typography.body, { color: colors.textSecondary, fontFamily: fonts.medium }]}>
+              {getSaudacao()},
+            </Text>
+            <Text style={[typography.h1, { color: colors.text }]} numberOfLines={1}>
+              {primeiroNome}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => navigation.navigate('PerfilTab')}
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+            style={({ pressed }) => [
+              styles.avatar,
+              { backgroundColor: colors.primary, borderRadius: radius.pill, opacity: pressed ? 0.85 : 1 },
+            ]}
+          >
+            <Text style={[styles.avatarTexto, { color: colors.textOnPrimary, fontFamily: fonts.extrabold }]}>
+              {primeiroNome.charAt(0).toUpperCase()}
+            </Text>
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => navigation.navigate('PerfilTab')}
-          accessibilityRole="button"
-          accessibilityLabel="Abrir perfil"
-          style={({ pressed }) => [
-            styles.avatar,
-            { backgroundColor: colors.primary, borderRadius: radius.pill, opacity: pressed ? 0.85 : 1 },
-          ]}
-        >
-          <Text style={[styles.avatarTexto, { color: colors.textOnPrimary, fontFamily: fonts.extrabold }]}>
-            {primeiroNome.charAt(0).toUpperCase()}
-          </Text>
-        </Pressable>
-      </View>
 
-      {carregando ? (
-        <>
-          <View style={styles.statsRow}>
-            <Skeleton height={112} borderRadius={radius.lg} style={styles.flex} />
-            <View style={styles.gap} />
-            <Skeleton height={112} borderRadius={radius.lg} style={styles.flex} />
-          </View>
-          <View style={styles.secao}>
-            <Skeleton width={180} height={20} style={styles.skeletonTitulo} />
-            <ProjetoCardSkeleton />
-          </View>
-        </>
-      ) : (
-        <>
-          <View style={styles.statsRow}>
-            <StatCard valor={`${projetos.length}/${LIMITE_PROJETOS}`} rotulo="Projetos ativos" Icone={Car} />
-            <View style={styles.gap} />
-            <StatCard
-              valor={totalPendentes}
-              rotulo="Serviços pendentes"
-              destaque={totalPendentes > 0}
-              Icone={ListTodo}
-            />
-          </View>
-
-          {projetoMaisRecente ? (
+        {carregando ? (
+          <>
+            <View style={styles.statsRow}>
+              <Skeleton height={112} borderRadius={radius.lg} style={styles.flex} />
+              <View style={styles.gap} />
+              <Skeleton height={112} borderRadius={radius.lg} style={styles.flex} />
+            </View>
             <View style={styles.secao}>
-              <TituloSecao
-                titulo="Continue de onde parou"
-                acao="Ver todos"
-                onAcao={() => navigation.navigate('ProjetosTab')}
-              />
-              <ProjetoCard
-                nome={projetoMaisRecente.Descricao}
-                nomeCarro={nomesModelos[String(projetoMaisRecente.IdModelo)] || 'Carro'}
-                estilo={projetoMaisRecente.Estilo}
-                progresso={progressos[projetoMaisRecente.IdProjeto ?? projetoMaisRecente.id]}
-                onPress={() =>
-                  navigation.navigate('ProjetoDetalhe', {
-                    idProjeto: projetoMaisRecente.IdProjeto ?? projetoMaisRecente.id,
-                    nomeCarro:
-                      projetoMaisRecente.Descricao ||
-                      nomesModelos[String(projetoMaisRecente.IdModelo)] ||
-                      'Carro',
-                  })
-                }
+              <Skeleton width={180} height={20} style={styles.skeletonTitulo} />
+              <ProjetoCardSkeleton />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.statsRow}>
+              <StatCard valor={`${projetos.length}/${LIMITE_PROJETOS_ATIVOS}`} rotulo="Projetos ativos" Icone={Car} />
+              <View style={styles.gap} />
+              <StatCard
+                valor={totalPendentes}
+                rotulo="Serviços pendentes"
+                destaque={totalPendentes > 0}
+                Icone={ListTodo}
               />
             </View>
-          ) : (
-            <View
-              style={[
-                styles.vazioCard,
-                { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg },
-              ]}
-            >
-              <EmptyState
-                compacto
-                Icone={Car}
-                titulo="Comece seu primeiro projeto"
-                descricao="Escolha seu carro e monte a lista de customização."
-                acaoTitulo="Criar projeto"
-                onAcao={() => navigation.navigate('EscolhaCarro')}
-              />
-            </View>
-          )}
-        </>
-      )}
 
-      <View style={styles.secao}>
-        <TituloSecao titulo="Explorar" />
-        <QuickActionCard
-          Icone={Car}
-          titulo="Meus projetos"
-          subtitulo="Veja e gerencie suas customizações"
-          onPress={() => navigation.navigate('ProjetosTab')}
-        />
-        <QuickActionCard
-          Icone={MapPin}
-          titulo="Oficinas próximas"
-          subtitulo="Encontre onde executar seus serviços"
-          onPress={() => navigation.navigate('OficinasTab')}
-        />
-      </View>
-    </ScrollView>
+            {projetoMaisRecente ? (
+              <View style={styles.secao}>
+                <TituloSecao
+                  titulo="Continue de onde parou"
+                  acao="Ver todos"
+                  onAcao={() => navigation.navigate('ProjetosTab')}
+                />
+                <ProjetoCard
+                  nome={projetoMaisRecente.Descricao}
+                  nomeCarro={nomeModeloDe(projetoMaisRecente)}
+                  estilo={projetoMaisRecente.Estilo}
+                  progresso={progressos[idDe(projetoMaisRecente)]}
+                  onPress={() =>
+                    navigation.navigate('ProjetoDetalhe', {
+                      idProjeto: idDe(projetoMaisRecente),
+                      nomeCarro: projetoMaisRecente.Descricao || nomeModeloDe(projetoMaisRecente),
+                      nomeModelo: nomeModeloDe(projetoMaisRecente),
+                    })
+                  }
+                />
+              </View>
+            ) : (
+              <View
+                style={[
+                  styles.vazioCard,
+                  { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg },
+                ]}
+              >
+                <EmptyState
+                  compacto
+                  Icone={Car}
+                  titulo="Comece seu primeiro projeto"
+                  descricao="Escolha seu carro e monte a lista de customização."
+                  acaoTitulo="Criar projeto"
+                  onAcao={() => navigation.navigate('EscolhaCarro')}
+                />
+              </View>
+            )}
+          </>
+        )}
+
+        <View style={styles.secao}>
+          <TituloSecao titulo="Explorar" />
+          {!carregando && projetos.length > 0 ? (
+            <QuickActionCard
+              Icone={Search}
+              titulo="Oficinas para meu projeto"
+              subtitulo="Quem faz o que ainda falta no seu carro"
+              onPress={handleOficinasParaProjeto}
+            />
+          ) : null}
+          <QuickActionCard
+            Icone={Car}
+            titulo="Meus projetos"
+            subtitulo="Veja e gerencie suas customizações"
+            onPress={() => navigation.navigate('ProjetosTab')}
+          />
+          <QuickActionCard
+            Icone={MapPin}
+            titulo="Oficinas próximas"
+            subtitulo="Encontre onde executar seus serviços"
+            onPress={() => navigation.navigate('OficinasTab')}
+          />
+        </View>
+      </ScrollView>
+
+      <MenuAcoes
+        visivel={escolhendoProjeto}
+        onFechar={() => setEscolhendoProjeto(false)}
+        titulo="Escolha o projeto"
+        subtitulo="Vamos buscar oficinas que fazem os serviços que faltam nele."
+        opcoes={opcoesProjetos}
+      />
+    </>
   );
 }
 

@@ -35,3 +35,9 @@ export async function excluirProjetoDefinitivamente(idProjeto) {
   const { data } = await api.delete(`/projeto/${idProjeto}/definitivo`);
   return data;
 }
+
+// Só a descrição é editável (modelo, tipo e estilo são travados no backend). "" limpa o nome.
+export async function atualizarDescricaoProjeto(idProjeto, descricao) {
+  const { data } = await api.put(`/projeto/${idProjeto}`, { descricao });
+  return data;
+}
