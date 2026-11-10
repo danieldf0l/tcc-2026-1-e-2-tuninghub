@@ -35,6 +35,11 @@ const removerArquivoFisico = (urlImagem) => {
 class ImagemService {
   async listarImagensOficina(idOficina) {
     if (!idOficina) throw new ValidationError('O Id da oficina é obrigatório.');
+
+    // Sem plano Pro vigente as imagens ficam guardadas, mas não aparecem (voltam ao renovar)
+    const assinaturaPaga = await AssinaturaRepository.findAtivaPaga(idOficina);
+    if (!assinaturaPaga) return [];
+
     return await ImagemRepository.findAllByOficina(idOficina);
   }
 

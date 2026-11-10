@@ -25,6 +25,12 @@ class ProjetoRepository {
     return rows[0].total;
   }
 
+  async countInativosPorUsuario(idUsuario) {
+    const query = 'SELECT COUNT(*) AS total FROM projeto WHERE IdUsuario = ? AND Ativo = 0';
+    const [rows] = await db.execute(query, [idUsuario]);
+    return rows[0].total;
+  }
+
   async create({ idUsuario, idModelo, descricao, tipoCustomizacao, estilo }) {
     const query = `
       INSERT INTO projeto (IdUsuario, IdModelo, Descricao, TipoCustomizacao, Estilo)

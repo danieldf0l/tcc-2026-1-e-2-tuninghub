@@ -7,6 +7,7 @@ import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '.
 import { ROLES } from '../constants/roles.js';
 
 const LIMITE_PROJETOS_ATIVOS = 3;
+const LIMITE_PROJETOS_ARQUIVADOS = 3;
 const TIPOS_CUSTOMIZACAO = ['ESTILO', 'PERSONALIZADA'];
 const CAMPOS_TRAVADOS = ['idModelo', 'tipoCustomizacao', 'estilo'];
 
@@ -118,6 +119,14 @@ class ProjetoService {
     verificarDono(projeto, usuarioLogado);
 
     if (!projeto.Ativo) throw new ConflictError('Este projeto já está desativado.');
+
+    // Para arquivar mais um, o usuário precisa antes excluir algum já arquivado
+    const totalArquivados = await ProjetoRepository.countInativosPorUsuario(projeto.IdUsuario);
+    if (totalArquivados >= LIMITE_PROJETOS_ARQUIVADOS) {
+      throw new ConflictError(
+        `Limite de ${LIMITE_PROJETOS_ARQUIVADOS} projetos arquivados atingido. Exclua um projeto arquivado para poder arquivar este.`
+      );
+    }
 
     await ProjetoRepository.atualizarStatus(idProjeto, false);
     return { idProjeto: Number(idProjeto), ativo: false };

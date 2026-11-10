@@ -21,9 +21,9 @@ const CAMPOS_EDITAVEIS = ['nomeOficina', 'nomeProprietario', 'telefone', 'email'
 // Contato direto (Telefone e Email) só aparece para oficina com plano Pro ativo.
 // Sem plano pago, as chaves são REMOVIDAS do JSON (não vão como null), para o app checar pela ausência.
 // O plano de todas as oficinas da lista é resolvido em UMA consulta (sem N+1).
-const aplicarRegraDeContato = async (oficinas) => {
-  const ids = oficinas.map((oficina) => oficina.IdOficina);
-  const idsComPlanoPago = await AssinaturaRepository.findIdsComPlanoPago(ids);
+const aplicarRegraDeContato = async (oficinas, idsComPlanoPagoJaConsultados) => {
+  const idsComPlanoPago = idsComPlanoPagoJaConsultados
+    || await AssinaturaRepository.findIdsComPlanoPago(oficinas.map((oficina) => oficina.IdOficina));
 
   return oficinas.map((oficina) => {
     if (idsComPlanoPago.has(oficina.IdOficina)) return oficina;
@@ -113,8 +113,10 @@ class OficinaService {
 
     // mesma regra de contato do /buscar e do perfil público (plano das oficinas da página em UMA consulta)
     const semIdsAtendidos = linhas.map(({ IdsAtendidos: _descartado, ...resto }) => resto);
-    const comRegraDeContato = await aplicarRegraDeContato(semIdsAtendidos);
-    const logos = await OficinaRepository.buscarLogosAtivas(linhas.map((linha) => linha.IdOficina));
+    const idsComPlanoPago = await AssinaturaRepository.findIdsComPlanoPago(linhas.map((linha) => linha.IdOficina));
+    const comRegraDeContato = await aplicarRegraDeContato(semIdsAtendidos, idsComPlanoPago);
+    // logo só das oficinas Pro: as demais ficam com UrlLogo null
+    const logos = await OficinaRepository.buscarLogosAtivas([...idsComPlanoPago]);
 
     const oficinas = comRegraDeContato.map((oficina, indice) => {
       const idsAtendidos = new Set(String(linhas[indice].IdsAtendidos).split(',').map(Number));
