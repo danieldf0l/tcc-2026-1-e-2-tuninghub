@@ -6,6 +6,7 @@ import { useTheme } from '../theme/ThemeContext';
 
 const ToastContext = createContext(null);
 const DURACAO_MS = 2800;
+const DURACAO_COM_ACAO_MS = 5000;
 
 export function ToastProvider({ children }) {
   const { colors, fonts, radius, shadows } = useTheme();
@@ -20,13 +21,14 @@ export function ToastProvider({ children }) {
   }, [anim]);
 
   // tipo: 'sucesso' | 'erro' | 'info'
+  // opcoes.acao: { titulo: 'Desfazer', onPress: () => {} }
   const mostrar = useCallback(
-    (mensagem, tipo = 'sucesso') => {
+    (mensagem, tipo = 'sucesso', opcoes = {}) => {
       clearTimeout(timer.current);
-      setToast({ mensagem, tipo });
+      setToast({ mensagem, tipo, acao: opcoes.acao || null });
       anim.setValue(0);
       Animated.spring(anim, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
-      timer.current = setTimeout(esconder, DURACAO_MS);
+      timer.current = setTimeout(esconder, opcoes.acao ? DURACAO_COM_ACAO_MS : DURACAO_MS);
     },
     [anim, esconder]
   );
@@ -41,6 +43,12 @@ export function ToastProvider({ children }) {
     info: { Icone: Info, cor: colors.text, fundo: colors.surface },
   };
   const t = toast ? tipos[toast.tipo] || tipos.info : null;
+
+  function executarAcao() {
+    const acao = toast?.acao?.onPress;
+    esconder();
+    acao?.();
+  }
 
   return (
     <ToastContext.Provider value={value}>
@@ -64,11 +72,7 @@ export function ToastProvider({ children }) {
               accessibilityRole="alert"
               style={[
                 styles.toast,
-                {
-                  backgroundColor: colors.surfaceElevated,
-                  borderColor: colors.border,
-                  borderRadius: radius.md,
-                },
+                { backgroundColor: colors.surfaceElevated, borderColor: colors.border, borderRadius: radius.md },
                 shadows.md,
               ]}
             >
@@ -78,6 +82,13 @@ export function ToastProvider({ children }) {
               <Text style={[styles.texto, { color: colors.text, fontFamily: fonts.medium }]} numberOfLines={3}>
                 {toast.mensagem}
               </Text>
+              {toast.acao ? (
+                <Pressable onPress={executarAcao} hitSlop={10} accessibilityRole="button" style={styles.acao}>
+                  <Text style={[styles.acaoTexto, { color: colors.primary, fontFamily: fonts.bold }]}>
+                    {toast.acao.titulo}
+                  </Text>
+                </Pressable>
+              ) : null}
             </Pressable>
           </Animated.View>
         ) : null}
@@ -105,4 +116,6 @@ const styles = StyleSheet.create({
   },
   icone: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   texto: { flex: 1, fontSize: 14 },
+  acao: { paddingLeft: 6 },
+  acaoTexto: { fontSize: 14 },
 });

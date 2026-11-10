@@ -3,7 +3,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getEstiloVisual } from '../constants/estilos';
 import { useEstilos } from '../context/EstilosContext';
 
-export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPress }) {
+export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPress, style }) {
   const { colors, fonts, typography, radius, shadows } = useTheme();
   const { getNomeEstilo } = useEstilos();
 
@@ -29,6 +29,7 @@ export default function ProjetoCard({ nome, nomeCarro, estilo, progresso, onPres
         styles.sombraWrapper,
         { borderRadius: raioCard, backgroundColor: colors.surface, transform: [{ scale: pressed ? 0.985 : 1 }] },
         shadows.md,
+        style,
       ]}
     >
       <View style={[styles.interno, { borderRadius: raioCard, borderColor: colors.border }]}>

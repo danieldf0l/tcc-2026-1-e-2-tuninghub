@@ -16,6 +16,7 @@ import TermosScreen from '../screens/perfil/TermosScreen';
 import AjudaScreen from '../screens/perfil/AjudaScreen';
 import OficinaPerfilScreen from '../screens/oficina/OficinaPerfilScreen';
 import OficinasPorProjetoScreen from '../screens/oficina/OficinasPorProjetoScreen';
+import LiberarVagaScreen from '../screens/projeto/LiberarVagaScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ export default function AppNavigator() {
       <Stack.Screen name="ProjetoDetalhe" component={ProjetoDetalheScreen} />
       <Stack.Screen name="AdicionarServico" component={AdicionarServicoScreen} />
       <Stack.Screen name="ProjetosArquivados" component={ProjetosArquivadosScreen} />
+      <Stack.Screen name="LiberarVaga" component={LiberarVagaScreen} />
       <Stack.Screen name="MeusDados" component={MeusDadosScreen} />
       <Stack.Screen name="ConfirmarTrocaEmail" component={ConfirmarTrocaEmailScreen} />
       <Stack.Screen name="AlterarSenha" component={AlterarSenhaScreen} />
