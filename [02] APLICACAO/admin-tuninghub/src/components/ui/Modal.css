@@ -7,6 +7,7 @@
   justify-content: center;
   padding: var(--space-4);
   z-index: var(--z-modal);
+  animation: modal-fundo-entrar var(--duration-normal) var(--ease-out);
 }
 
 .modal-content {
@@ -14,35 +15,41 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: 24px;
+  padding: var(--space-6);
   width: 100%;
-  max-width: 400px;
+  max-width: 440px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
+  animation: modal-entrar var(--duration-normal) var(--ease-out);
+}
+
+.modal-content.modal-content-wide {
+  max-width: 560px;
+}
+
+.modal-content:focus {
+  outline: none;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
 .modal-header h2 {
   color: var(--text);
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
 }
 
-.modal-close {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-  border-radius: var(--radius-sm);
+@keyframes modal-entrar {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
 }
 
-.modal-close:hover {
-  color: var(--text);
+@keyframes modal-fundo-entrar {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
