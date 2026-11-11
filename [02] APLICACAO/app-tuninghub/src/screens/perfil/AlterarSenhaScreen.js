@@ -1,16 +1,22 @@
-import { useState } from 'react';
-import { Text, View, Alert, ScrollView, StyleSheet } from 'react-native';
-import { useTheme } from '../../theme/ThemeContext';
+import { useRef, useState } from 'react';
+import { KeyRound, Lock } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { alterarSenha } from '../../api/conta.api';
 import { getErrorMessage } from '../../utils/errorHandler';
+import { senhaValida } from '../../utils/validadores';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
+import RequisitosSenha from '../../components/RequisitosSenha';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-import BackButton from '../../components/BackButton';
 
 export default function AlterarSenhaScreen({ navigation }) {
-  const { colors } = useTheme();
   const { tipoConta, sair } = useAuth();
+  const { mostrar } = useToast();
+  const novaRef = useRef(null);
+  const confirmarRef = useRef(null);
 
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
@@ -32,6 +38,16 @@ export default function AlterarSenhaScreen({ navigation }) {
       setCamposComErro(vazios);
       return;
     }
+    if (!senhaValida(novaSenha)) {
+      setErro('A nova senha precisa ter 8 caracteres, com letra maiúscula, número e símbolo.');
+      setCamposComErro(['novaSenha']);
+      return;
+    }
+    if (novaSenha === senhaAtual) {
+      setErro('A nova senha precisa ser diferente da atual.');
+      setCamposComErro(['novaSenha']);
+      return;
+    }
     if (novaSenha !== confirmarNovaSenha) {
       setErro('As senhas não coincidem.');
       setCamposComErro(['novaSenha', 'confirmarNovaSenha']);
@@ -43,60 +59,67 @@ export default function AlterarSenhaScreen({ navigation }) {
       const resposta = await alterarSenha(tipoConta, { senhaAtual, novaSenha, confirmarNovaSenha });
       // O backend encerra as sessões antigas (inclusive esta): volta ao login
       await sair();
-      Alert.alert('Senha alterada', resposta.message);
+      mostrar(resposta?.message || 'Senha alterada. Entre de novo com a nova senha.');
     } catch (e) {
       setErro(getErrorMessage(e));
-    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.title, { color: colors.text }]}>Alterar senha</Text>
-      <Text style={[styles.aviso, { color: colors.textSecondary }]}>
-        A nova senha precisa ter no mínimo 8 caracteres, com maiúscula, número e caractere especial. Depois de
-        alterar, você entra de novo com a nova senha.
-      </Text>
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        Icone={KeyRound}
+        titulo="Alterar senha"
+        subtitulo="Depois de alterar, você entra de novo com a nova senha em todos os aparelhos."
+      />
 
       <Input
-        label="Senha atual"
+        Icone={Lock}
+        placeholder="Senha atual"
         value={senhaAtual}
         onChangeText={setSenhaAtual}
         secureText
+        autoComplete="current-password"
+        textContentType="password"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => novaRef.current?.focus()}
         error={camposComErro.includes('senhaAtual')}
       />
       <Input
-        label="Nova senha"
+        ref={novaRef}
+        Icone={Lock}
+        placeholder="Nova senha"
         value={novaSenha}
         onChangeText={setNovaSenha}
         secureText
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="next"
+        submitBehavior="submit"
+        onSubmitEditing={() => confirmarRef.current?.focus()}
         error={camposComErro.includes('novaSenha')}
       />
+      <RequisitosSenha senha={novaSenha} />
       <Input
-        label="Confirmar nova senha"
+        ref={confirmarRef}
+        Icone={Lock}
+        placeholder="Confirmar nova senha"
         value={confirmarNovaSenha}
         onChangeText={setConfirmarNovaSenha}
         secureText
+        autoComplete="new-password"
+        textContentType="newPassword"
+        returnKeyType="done"
+        onSubmitEditing={handleSalvar}
         error={camposComErro.includes('confirmarNovaSenha')}
       />
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+      <AvisoInline mensagem={erro} />
 
-      <View style={{ height: 12 }} />
       <Button title="Alterar senha" onPress={handleSalvar} loading={loading} />
-    </ScrollView>
+    </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 16, marginBottom: 8 },
-  aviso: { fontSize: 13, lineHeight: 19, marginBottom: 24 },
-  erro: { fontSize: 13, textAlign: 'center', marginBottom: 4 },
-});

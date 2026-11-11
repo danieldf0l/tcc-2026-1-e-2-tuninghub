@@ -1,27 +1,17 @@
-import { ScrollView, Text, StyleSheet } from 'react-native';
-import { useTheme } from '../../theme/ThemeContext';
 import { TERMOS_DE_USO, DATA_ATUALIZACAO } from '../../constants/textosLegais';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
 import DocumentoLegal from '../../components/DocumentoLegal';
-import BackButton from '../../components/BackButton';
 
 export default function TermosScreen({ navigation }) {
-  const { colors } = useTheme();
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.title, { color: colors.text }]}>Termos de Uso</Text>
-      <Text style={[styles.atualizado, { color: colors.textSecondary }]}>
-        Atualizado em: {DATA_ATUALIZACAO}
-      </Text>
-
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        titulo="Termos de Uso"
+        subtitulo={`Atualizados em ${DATA_ATUALIZACAO}`}
+      />
       <DocumentoLegal introducao={TERMOS_DE_USO.introducao} clausulas={TERMOS_DE_USO.clausulas} />
-    </ScrollView>
+    </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 16, marginBottom: 4 },
-  atualizado: { fontSize: 12, marginBottom: 20 },
-});

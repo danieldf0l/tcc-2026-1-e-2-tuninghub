@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, Pressable, Linking, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
+import { abrirEmailSuporte } from '../../../utils/contato';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -10,8 +11,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { useAssinaturaOficina } from '../../../hooks/useAssinaturaOficina';
 import MenuSection from '../../../components/MenuSection';
 import MenuListItem from '../../../components/MenuListItem';
-
-const EMAIL_SUPORTE = 'suporte@tuninghub.com';
 
 export default function PerfilOficinaScreen({ navigation }) {
   const { colors, fonts, typography, layout, radius } = useTheme();
@@ -30,20 +29,6 @@ export default function PerfilOficinaScreen({ navigation }) {
     : planoVencido
     ? { texto: 'Pro vencido', cor: colors.danger, fundo: colors.dangerSoft }
     : { texto: 'Gratuito', cor: colors.textSecondary, fundo: colors.surfaceElevated };
-
-  async function abrirEmailSuporte(assunto) {
-    const url = `mailto:${EMAIL_SUPORTE}?subject=${encodeURIComponent(assunto)}`;
-    try {
-      const suportado = await Linking.canOpenURL(url);
-      if (suportado) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('E-mail não configurado', `Entre em contato pelo e-mail: ${EMAIL_SUPORTE}`);
-      }
-    } catch {
-      Alert.alert('E-mail não configurado', `Entre em contato pelo e-mail: ${EMAIL_SUPORTE}`);
-    }
-  }
 
   function confirmarSaida() {
     Alert.alert('Sair da conta', 'Tem certeza que deseja sair?', [

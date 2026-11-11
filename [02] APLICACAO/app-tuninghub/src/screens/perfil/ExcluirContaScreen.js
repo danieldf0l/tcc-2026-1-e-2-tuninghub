@@ -1,15 +1,30 @@
 import { useState } from 'react';
-import { Text, View, Pressable, Alert, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Trash2, Lock, X } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { excluirMinhaConta } from '../../api/conta.api';
 import { getErrorMessage } from '../../utils/errorHandler';
+import ScreenContainer from '../../components/ScreenContainer';
+import ScreenHeader from '../../components/ScreenHeader';
+import AvisoInline from '../../components/AvisoInline';
 import Input from '../../components/Input';
-import BackButton from '../../components/BackButton';
+import Button from '../../components/Button';
+
+const ITENS_USUARIO = ['Seus projetos e as listas de serviços', 'Seus dados de cadastro', 'Seu acesso ao app'];
+
+const ITENS_OFICINA = [
+  'Perfil, logo e fotos da oficina',
+  'Serviços oferecidos e endereço',
+  'Assinaturas e histórico de plano',
+  'Seu acesso ao app',
+];
 
 export default function ExcluirContaScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography, radius } = useTheme();
   const { tipoConta, sair } = useAuth();
+  const { mostrar } = useToast();
 
   const [senha, setSenha] = useState('');
   const [confirmacao, setConfirmacao] = useState('');
@@ -17,6 +32,7 @@ export default function ExcluirContaScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const ehOficina = tipoConta === 'oficina';
+  const itens = ehOficina ? ITENS_OFICINA : ITENS_USUARIO;
   const podeExcluir = !!senha && confirmacao.trim() === 'EXCLUIR';
 
   async function handleExcluir() {
@@ -26,60 +42,74 @@ export default function ExcluirContaScreen({ navigation }) {
     try {
       const resposta = await excluirMinhaConta(tipoConta, senha);
       await sair();
-      Alert.alert('Conta excluída', resposta.message);
+      mostrar(resposta?.message || 'Conta excluída. Seus dados foram removidos.');
     } catch (e) {
       setErro(getErrorMessage(e));
-    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.title, { color: colors.danger }]}>Excluir conta</Text>
-      <Text style={[styles.aviso, { color: colors.textSecondary }]}>
-        Esta ação é <Text style={{ fontWeight: '800', color: colors.text }}>definitiva e não pode ser desfeita</Text>.{' '}
-        {ehOficina
-          ? 'Serão apagados o perfil, as fotos, os serviços, o endereço e as assinaturas da oficina. O registro financeiro dos pagamentos permanece no processador de pagamentos.'
-          : 'Serão apagados seus projetos, as listas de serviços e todos os seus dados.'}
-      </Text>
+    <ScreenContainer>
+      <ScreenHeader
+        onVoltar={() => navigation.goBack()}
+        Icone={Trash2}
+        titulo="Excluir conta"
+        subtitulo="Esta ação é definitiva e não pode ser desfeita."
+      />
 
-      <Input label="Sua senha" value={senha} onChangeText={setSenha} secureText />
+      <View style={[styles.lista, { backgroundColor: colors.dangerSoft, borderColor: colors.danger, borderRadius: radius.lg }]}>
+        <Text style={[typography.bodyStrong, { color: colors.text }]}>O que será apagado</Text>
+        {itens.map((item) => (
+          <View key={item} style={styles.item}>
+            <X size={15} color={colors.danger} strokeWidth={2.75} />
+            <Text style={[typography.body, styles.flex, { color: colors.text }]}>{item}</Text>
+          </View>
+        ))}
+        {ehOficina ? (
+          <Text style={[typography.caption, styles.nota, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+            O registro financeiro dos pagamentos permanece no processador de pagamentos.
+          </Text>
+        ) : null}
+      </View>
+
       <Input
-        label='Digite "EXCLUIR" para confirmar'
+        Icone={Lock}
+        placeholder="Sua senha"
+        value={senha}
+        onChangeText={setSenha}
+        secureText
+        autoComplete="current-password"
+        textContentType="password"
+      />
+      <Input
+        Icone={Trash2}
+        placeholder='Digite "EXCLUIR" para confirmar'
         value={confirmacao}
         onChangeText={setConfirmacao}
         autoCapitalize="characters"
+        autoCorrect={false}
       />
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
+      <AvisoInline mensagem={erro} />
 
-      <View style={{ height: 8 }} />
-      <Pressable
+      <Button
+        title="Excluir minha conta"
+        Icone={Trash2}
         onPress={handleExcluir}
+        loading={loading}
         disabled={!podeExcluir || loading}
-        style={[styles.botao, { backgroundColor: colors.danger, opacity: podeExcluir && !loading ? 1 : 0.4 }]}
-      >
-        {loading ? (
-          <ActivityIndicator color="#FEFEFE" />
-        ) : (
-          <Text style={styles.botaoTexto}>Excluir minha conta definitivamente</Text>
-        )}
-      </Pressable>
-    </ScrollView>
+      />
+      <View style={styles.espaco} />
+      <Button title="Cancelar" variant="ghost" onPress={() => navigation.goBack()} disabled={loading} />
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 16, marginBottom: 8 },
-  aviso: { fontSize: 13.5, lineHeight: 20, marginBottom: 24 },
-  erro: { fontSize: 13, textAlign: 'center', marginBottom: 4 },
-  botao: { height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  botaoTexto: { color: '#FEFEFE', fontSize: 15, fontWeight: '800' },
+  flex: { flex: 1 },
+  lista: { borderWidth: 1.5, padding: 16, marginBottom: 20, gap: 10 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  nota: { marginTop: 4 },
+  espaco: { height: 6 },
 });

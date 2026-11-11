@@ -1,4 +1,6 @@
-import { Linking, Platform, Share } from 'react-native';
+import { Alert, Linking, Platform, Share } from 'react-native';
+import Constants from 'expo-constants';
+import { EMAIL_SUPORTE } from '../constants/app';
 
 // contextoProjeto (opcional): { montadora, modelo, servicos: ['Película', 'Som'] }
 export function abrirWhatsApp(telefone, nomeOficina, contextoProjeto) {
@@ -42,4 +44,22 @@ export function abrirNoMapa(latitude, longitude, nome) {
 export function compartilharOficina({ nome, endereco }) {
   const linhas = [`${nome} — encontrei pelo TuningHub.`, endereco ? `📍 ${endereco}` : null].filter(Boolean);
   return Share.share({ message: linhas.join('\n') });
+}
+
+// Abre o app de e-mail com o assunto preenchido e, no corpo, versão do app e sistema
+// (ajuda a equipe a investigar problemas)
+export async function abrirEmailSuporte(assunto) {
+  const versao = Constants.expoConfig?.version || '1.0.0';
+  const corpo = `\n\n\n---\nTuningHub ${versao} · ${Platform.OS} ${Platform.Version}`;
+  const url = `mailto:${EMAIL_SUPORTE}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+
+  try {
+    if (await Linking.canOpenURL(url)) {
+      await Linking.openURL(url);
+      return;
+    }
+  } catch {
+    // cai no aviso abaixo
+  }
+  Alert.alert('E-mail não configurado', `Entre em contato pelo e-mail: ${EMAIL_SUPORTE}`);
 }

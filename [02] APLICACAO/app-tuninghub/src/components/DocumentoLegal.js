@@ -2,19 +2,24 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 
 export default function DocumentoLegal({ introducao, clausulas }) {
-  const { colors } = useTheme();
+  const { colors, typography, fonts, radius } = useTheme();
 
   return (
     <View>
       {introducao ? (
-        <Text style={[styles.introducao, { color: colors.textSecondary }]}>{introducao}</Text>
+        <View style={[styles.introducao, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg }]}>
+          <Text style={[typography.body, { color: colors.textSecondary }]}>{introducao}</Text>
+        </View>
       ) : null}
 
       {clausulas.map((clausula) => (
         <View key={clausula.titulo} style={styles.bloco}>
-          <Text style={[styles.tituloClausula, { color: colors.text }]}>{clausula.titulo}</Text>
+          <Text style={[typography.h3, styles.titulo, { color: colors.text }]}>{clausula.titulo}</Text>
           {clausula.itens.map((item, index) => (
-            <Text key={index} style={[styles.paragrafo, { color: colors.textSecondary }]}>
+            <Text
+              key={index}
+              style={[typography.body, styles.paragrafo, { color: colors.textSecondary, fontFamily: fonts.regular }]}
+            >
               {item}
             </Text>
           ))}
@@ -25,8 +30,8 @@ export default function DocumentoLegal({ introducao, clausulas }) {
 }
 
 const styles = StyleSheet.create({
-  introducao: { fontSize: 13.5, lineHeight: 21, marginBottom: 24, fontStyle: 'italic' },
-  bloco: { marginBottom: 22 },
-  tituloClausula: { fontSize: 14, fontWeight: '800', marginBottom: 10, letterSpacing: 0.2 },
-  paragrafo: { fontSize: 13.5, lineHeight: 21, marginBottom: 10 },
+  introducao: { borderWidth: 1, padding: 16, marginBottom: 28 },
+  bloco: { marginBottom: 24 },
+  titulo: { marginBottom: 10 },
+  paragrafo: { lineHeight: 23, marginBottom: 10 },
 });
