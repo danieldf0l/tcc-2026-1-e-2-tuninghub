@@ -1,0 +1,151 @@
+
+
+:root {
+  /* ---------- Paleta base ---------- */
+  --color-black: #050505;
+  --color-gray: #131314;
+  --color-gray-light: #ACA8A5;
+  --color-red-vivid: #E9302E;
+  --color-red: #8F2A28;
+  --color-white: #FEFEFE;
+
+  /* ---------- Tipografia ---------- */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.8125rem;   /* 13px */
+  --text-md: 0.875rem;    /* 14px - corpo padrão */
+  --text-lg: 1rem;        /* 16px */
+  --text-xl: 1.125rem;    /* 18px */
+  --text-2xl: 1.375rem;   /* 22px - título de página */
+  --text-3xl: 1.75rem;    /* 28px - número de KPI */
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+
+  /* ---------- Espaçamento (base 4px) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ---------- Raio ---------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* ---------- Layout ---------- */
+  --control-height: 38px;
+  --control-height-sm: 32px;
+  --sidebar-width: 248px;
+  --sidebar-width-collapsed: 72px;
+  --header-height: 60px;
+
+  /* ---------- Camadas ---------- */
+  --z-dropdown: 50;
+  --z-sticky: 60;
+  --z-drawer: 90;
+  --z-modal: 100;
+  --z-toast: 200;
+
+  /* ---------- Movimento ---------- */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* =================== Tema claro (padrão) =================== */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --background: #F5F4F3;
+  --surface: var(--color-white);
+  --surface-elevated: var(--color-white);
+  --border: #E3E0DE;
+  --divider: #EEECEA;
+
+  --text: var(--color-gray);
+  --text-secondary: #5E5A57;
+  --placeholder: #8E8A87;
+  --text-on-primary: var(--color-white);
+
+  --primary: var(--color-red-vivid);
+  --primary-pressed: var(--color-red);
+  --primary-soft: rgba(233, 48, 46, 0.1);
+  --secondary: var(--color-red);
+
+  --danger: #D02B29;
+  --danger-soft: rgba(233, 48, 46, 0.1);
+  --success: #1E8A4C;
+  --success-soft: rgba(30, 138, 76, 0.12);
+  --warning: #A86400;
+  --warning-soft: rgba(217, 138, 0, 0.14);
+  --neutral-soft: rgba(19, 19, 20, 0.06);
+
+  --overlay: rgba(5, 5, 5, 0.45);
+  --skeleton: #ECEAE8;
+  --focus-ring: rgba(233, 48, 46, 0.55);
+
+  --logo: var(--color-gray);
+  --logo-icone-bg: var(--color-gray);
+  --logo-icone-fg: var(--color-white);
+
+  --shadow-sm: 0 1px 2px rgba(19, 19, 20, 0.06);
+  --shadow-md: 0 4px 12px rgba(19, 19, 20, 0.08);
+  --shadow-lg: 0 12px 32px rgba(19, 19, 20, 0.14);
+}
+
+/* =================== Tema escuro =================== */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --background: var(--color-black);
+  --surface: var(--color-gray);
+  --surface-elevated: #1C1C1E;
+  --border: #2B2B2E;
+  --divider: #1F1F22;
+
+  --text: var(--color-white);
+  --text-secondary: var(--color-gray-light);
+  --placeholder: #75716E;
+  --text-on-primary: var(--color-white);
+
+  --primary: var(--color-red-vivid);
+  --primary-pressed: var(--color-red);
+  --primary-soft: rgba(233, 48, 46, 0.16);
+  --secondary: var(--color-red);
+
+  --danger: #F0504E;
+  --danger-soft: rgba(233, 48, 46, 0.16);
+  --success: #3DD07F;
+  --success-soft: rgba(61, 208, 127, 0.14);
+  --warning: #F5B342;
+  --warning-soft: rgba(245, 179, 66, 0.14);
+  --neutral-soft: rgba(254, 254, 254, 0.06);
+
+  --overlay: rgba(0, 0, 0, 0.65);
+  --skeleton: #1E1E21;
+  --focus-ring: rgba(233, 48, 46, 0.7);
+
+  --logo: var(--color-white);
+  --logo-icone-bg: var(--color-gray-light);
+  --logo-icone-fg: var(--color-gray);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
