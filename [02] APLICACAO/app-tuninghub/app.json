@@ -36,7 +36,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O TuningHub precisa acessar suas fotos para você enviar a logo e as imagens da sua oficina."
+          "photosPermission": "O TuningHub precisa acessar suas fotos para você enviar a logo e as imagens da sua oficina.",
+          "cameraPermission": "O TuningHub usa a câmera para você fotografar a sua oficina."
         }
       ],
       "expo-status-bar",
