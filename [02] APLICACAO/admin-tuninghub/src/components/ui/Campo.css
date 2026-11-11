@@ -103,3 +103,29 @@
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
+
+.campo__input--com-sufixo {
+  padding-right: 44px;
+}
+
+.campo__sufixo {
+  position: absolute;
+  right: 4px;
+  display: flex;
+}
+
+.campo__sufixo-botao {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 30px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+
+.campo__sufixo-botao:hover {
+  color: var(--text);
+  background: var(--neutral-soft);
+}

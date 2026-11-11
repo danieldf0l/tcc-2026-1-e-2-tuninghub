@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useId, useState } from 'react';
+import { ChevronDown, Eye, EyeOff } from 'lucide-react';
 import './Campo.css';
 
 /*
@@ -7,6 +7,7 @@ import './Campo.css';
 
   <Input label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} erro={erros.nome} required />
   <Input type="search" icone={Search} placeholder="Buscar..." semMargem />
+  <InputSenha label="Senha" value={senha} onChange={...} autoComplete="current-password" />
   <Textarea label="Descrição" rows={3} dica="Opcional" />
   <Select label="Montadora" value={id} onChange={(e) => setId(e.target.value)}>
     <option value="">Selecione</option>
@@ -35,9 +36,28 @@ const Campo = ({ id, label, erro, dica, obrigatorio, semMargem, children }) => (
 
 const idDescricao = (id, erro, dica) => (erro ? `${id}-erro` : dica ? `${id}-dica` : undefined);
 
-export const Input = ({ label, erro, dica, icone: Icone, semMargem, id, required, className = '', ...props }) => {
+export const Input = ({
+  label,
+  erro,
+  dica,
+  icone: Icone,
+  sufixo,
+  semMargem,
+  id,
+  required,
+  className = '',
+  ...props
+}) => {
   const idAuto = useId();
   const campoId = id || idAuto;
+  const classes = [
+    'campo__input',
+    Icone && 'campo__input--com-icone',
+    sufixo && 'campo__input--com-sufixo',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <Campo id={campoId} label={label} erro={erro} dica={dica} obrigatorio={required} semMargem={semMargem}>
@@ -46,13 +66,43 @@ export const Input = ({ label, erro, dica, icone: Icone, semMargem, id, required
         <input
           id={campoId}
           required={required}
-          className={`campo__input${Icone ? ' campo__input--com-icone' : ''} ${className}`}
+          className={classes}
           aria-invalid={erro ? true : undefined}
           aria-describedby={idDescricao(campoId, erro, dica)}
           {...props}
         />
+        {sufixo && <span className="campo__sufixo">{sufixo}</span>}
       </div>
     </Campo>
+  );
+};
+
+// Senha com botão de mostrar/ocultar e aviso de Caps Lock
+export const InputSenha = ({ dica, onKeyUp, ...props }) => {
+  const [visivel, setVisivel] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+
+  return (
+    <Input
+      {...props}
+      type={visivel ? 'text' : 'password'}
+      dica={capsLock ? 'Caps Lock está ativado.' : dica}
+      onKeyUp={(e) => {
+        setCapsLock(!!e.getModifierState?.('CapsLock'));
+        onKeyUp?.(e);
+      }}
+      sufixo={
+        <button
+          type="button"
+          className="campo__sufixo-botao"
+          onClick={() => setVisivel((v) => !v)}
+          aria-label={visivel ? 'Ocultar senha' : 'Mostrar senha'}
+          aria-pressed={visivel}
+        >
+          {visivel ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+        </button>
+      }
+    />
   );
 };
 

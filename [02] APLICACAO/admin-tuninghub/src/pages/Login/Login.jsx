@@ -1,85 +1,122 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Logo, LogoIcone } from '../../components/ui/Logo';
+import { Button } from '../../components/ui/Button';
+import { Input, InputSenha } from '../../components/ui/Campo';
+import ThemeToggle from '../../components/ui/ThemeToggle';
+import { mensagemErro } from '../../utils/erroApi';
 import './Login.css';
+
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
+  const [errosCampo, setErrosCampo] = useState({});
   const [carregando, setCarregando] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const location = useLocation();
+
+  // Volta para a tela que a pessoa tentou abrir antes do login (ProtectedRoute manda em state.from)
+  const origem = location.state?.from;
+  const destino = origem?.pathname && origem.pathname !== '/login'
+    ? `${origem.pathname}${origem.search || ''}`
+    : '/dashboard';
+
+  useEffect(() => {
+    document.title = 'Entrar · TuningHub Admin';
+  }, []);
+
+  if (loading) return null;
+  if (isAuthenticated) return <Navigate to={destino} replace />;
+
+  const validar = () => {
+    const novos = {};
+    if (!email.trim()) novos.email = 'Informe o e-mail.';
+    else if (!EMAIL_VALIDO.test(email.trim())) novos.email = 'E-mail inválido.';
+    if (!senha) novos.senha = 'Informe a senha.';
+    setErrosCampo(novos);
+    return Object.keys(novos).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErro('');
+    if (!validar()) return;
+
     setCarregando(true);
     try {
-      await login(email, senha);
-      navigate('/dashboard', { replace: true });
+      await login(email.trim(), senha);
+      navigate(destino, { replace: true });
     } catch (error) {
-      const mensagem = error.response?.data?.message || 'Erro ao fazer login. Tente novamente.';
-      setErro(mensagem);
-    } finally {
+      setErro(mensagemErro(error, 'Erro ao fazer login. Tente novamente.'));
       setCarregando(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <form className="login-card" onSubmit={handleSubmit}>
-        <h1>TuningHub Admin</h1>
-        <p className="login-subtitle">Acesso restrito à equipe administrativa</p>
+    <div className="login">
+      <aside className="login__marca" aria-hidden="true">
+        <LogoIcone tamanho={56} />
+        <div className="login__marca-textos">
+          <p className="login__marca-titulo">Gerencie oficinas, catálogo e assinaturas em um só lugar.</p>
+          <p className="login__marca-subtitulo">Painel administrativo do TuningHub.</p>
+        </div>
+        <p className="login__marca-rodape">TuningHub · TCC SENAC</p>
+      </aside>
 
-        {erro && <div className="login-erro">{erro}</div>}
-
-        <label htmlFor="email">E-mail</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="username"
-        />
-
-        <label htmlFor="senha">Senha</label>
-        <div className="senha-wrapper">
-        <input
-            id="senha"
-            type={mostrarSenha ? 'text' : 'password'}
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            autoComplete="current-password"
-        />
-        <button
-            type="button"
-            className="toggle-senha"
-            onClick={() => setMostrarSenha((prev) => !prev)}
-            aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-            tabIndex={-1}
-        >
-            {mostrarSenha ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-            </svg>
-            ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-            </svg>
-            )}
-        </button>
+      <main className="login__area">
+        <div className="login__topo">
+          <ThemeToggle />
         </div>
 
-        <button type="submit" disabled={carregando}>
-          {carregando ? 'Entrando...' : 'Entrar'}
-        </button>
-      </form>
+        <form className="login__form" onSubmit={handleSubmit} noValidate>
+          <Logo tamanho={28} className="login__logo" />
+
+          <h1 className="login__titulo">Entrar no painel</h1>
+          <p className="login__subtitulo">Acesso restrito à equipe administrativa.</p>
+
+          {erro && (
+            <div className="login__erro" role="alert">
+              <AlertCircle size={18} aria-hidden="true" />
+              <span>{erro}</span>
+            </div>
+          )}
+
+          <Input
+            label="E-mail"
+            type="email"
+            icone={Mail}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errosCampo.email) setErrosCampo((atual) => ({ ...atual, email: undefined }));
+            }}
+            erro={errosCampo.email}
+            autoComplete="username"
+            autoFocus
+          />
+
+          <InputSenha
+            label="Senha"
+            value={senha}
+            onChange={(e) => {
+              setSenha(e.target.value);
+              if (errosCampo.senha) setErrosCampo((atual) => ({ ...atual, senha: undefined }));
+            }}
+            erro={errosCampo.senha}
+            autoComplete="current-password"
+          />
+
+          <Button type="submit" larguraTotal carregando={carregando} className="login__entrar">
+            {carregando ? 'Entrando...' : 'Entrar'}
+          </Button>
+        </form>
+      </main>
     </div>
   );
 };
