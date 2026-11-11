@@ -21,11 +21,17 @@ const ConfirmDialog = ({
 
   useEffect(() => {
     const dialog = dialogRef.current;
+    const focoAnterior = document.activeElement;
     if (!dialog.open) dialog.showModal();
     // Em ação perigosa o foco começa no Cancelar (Enter não apaga nada sem querer)
     (perigo ? cancelarRef : confirmarRef).current?.focus();
     return () => {
       if (dialog.open) dialog.close();
+      // Devolve o foco para onde estava (ex.: campo dentro de um Drawer),
+      // só se o diálogo saiu mesmo da tela (o StrictMode remonta na hora)
+      setTimeout(() => {
+        if (!dialog.isConnected && focoAnterior?.isConnected) focoAnterior.focus();
+      });
     };
   }, [perigo]);
 

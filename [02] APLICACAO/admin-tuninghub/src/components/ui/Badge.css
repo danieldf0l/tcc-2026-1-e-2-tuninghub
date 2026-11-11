@@ -1,0 +1,27 @@
+.badge {
+  --badge-cor: var(--text-secondary);
+  --badge-fundo: var(--neutral-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--badge-fundo);
+  color: var(--badge-cor);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.badge--sucesso  { --badge-cor: var(--success); --badge-fundo: var(--success-soft); }
+.badge--aviso    { --badge-cor: var(--warning); --badge-fundo: var(--warning-soft); }
+.badge--perigo   { --badge-cor: var(--danger);  --badge-fundo: var(--danger-soft); }
+.badge--primario { --badge-cor: var(--primary); --badge-fundo: var(--primary-soft); }
+
+.badge__ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
