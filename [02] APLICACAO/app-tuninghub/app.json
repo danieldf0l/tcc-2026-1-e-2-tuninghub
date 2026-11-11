@@ -11,11 +11,16 @@
       "supportsTablet": false
     },
     "android": {
+      "package": "br.net.tuninghub.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#131314"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,25 +37,31 @@
         "expo-image-picker",
         {
           "photosPermission": "O TuningHub precisa acessar suas fotos para você enviar a logo e as imagens da sua oficina.",
-          "cameraPermission": "O TuningHub usa a câmera para você fotografar a sua oficina."
+          "cameraPermission": "O TuningHub usa a câmera para você fotografar a sua oficina.",
+          "microphonePermission": false
         }
       ],
       "expo-status-bar",
       "expo-font",
-          [
-      "expo-splash-screen",
-      {
-        "image": "./assets/splash-icon.png",
-        "imageWidth": 160,
-        "resizeMode": "contain",
-        "backgroundColor": "#FEFEFE",
-        "dark": {
+      [
+        "expo-splash-screen",
+        {
           "image": "./assets/splash-icon.png",
-          "backgroundColor": "#050505"
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#FEFEFE",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#050505"
+          }
         }
-      }
-    ],
+      ],
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "79fdac2c-03a0-4943-a340-361594691eee"
+      }
+    }
   }
 }
