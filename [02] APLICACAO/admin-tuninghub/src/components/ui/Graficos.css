@@ -1,0 +1,170 @@
+/* ---------- Moldura comum ---------- */
+.grafico {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.grafico__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.grafico__titulo {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--text);
+}
+
+.grafico__periodo {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.grafico__total {
+  color: var(--text);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.grafico__vazio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 120px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+/* ---------- Barras horizontais ---------- */
+.barras {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+}
+
+.barras__linha {
+  display: grid;
+  grid-template-columns: minmax(90px, 34%) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px var(--space-2);
+  margin: 0 calc(-1 * var(--space-2));
+  border-radius: var(--radius-sm);
+}
+
+.barras__linha:hover {
+  background: var(--neutral-soft);
+}
+
+.barras__rotulo {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barras__trilho {
+  height: 8px;
+  background: var(--neutral-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barras__barra {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width 0.4s var(--ease-out);
+}
+
+.barras__valor {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  min-width: 64px;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.barras__pct {
+  min-width: 32px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-regular);
+  text-align: right;
+}
+
+/* ---------- Colunas verticais ---------- */
+.colunas {
+  display: grid;
+  grid-template-columns: repeat(var(--quantidade), 1fr);
+  gap: var(--space-2);
+  height: 200px;
+  list-style: none;
+}
+
+.colunas__item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+}
+
+.colunas__area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.colunas__valor {
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.colunas__coluna {
+  width: min(36px, 70%);
+  background: var(--primary);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.4s var(--ease-out), opacity var(--duration-fast);
+}
+
+.colunas__item:hover .colunas__coluna {
+  opacity: 0.8;
+}
+
+.colunas__rotulo {
+  padding-top: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
