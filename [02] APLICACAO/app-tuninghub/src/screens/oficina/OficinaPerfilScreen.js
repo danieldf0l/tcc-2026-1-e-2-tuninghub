@@ -24,6 +24,7 @@ import AvisoInline from '../../components/AvisoInline';
 import Skeleton from '../../components/Skeleton';
 import Chip from '../../components/Chip';
 import Button from '../../components/Button';
+import { LogoIcone } from '../../components/Logo';
 
 const ALTURA_CAPA = 240;
 const TAMANHO_LOGO = 88;
@@ -119,7 +120,7 @@ function VisualizadorFotos({ fotos, indiceInicial, onFechar }) {
 }
 
 export default function OficinaPerfilScreen({ route, navigation }) {
-  const { colors, fonts, typography, layout, radius } = useTheme();
+  const { colors, fonts, typography, layout, radius, isDark } = useTheme();
   const { mostrar } = useToast();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -220,7 +221,7 @@ export default function OficinaPerfilScreen({ route, navigation }) {
     if (galeria.length === 0) {
       return (
         <View style={[styles.capaVazia, { height: ALTURA_CAPA, backgroundColor: colors.surface }]}>
-          <Wrench size={56} color={colors.border} strokeWidth={1.5} />
+          <LogoIcone tamanho={64} variante={isDark ? 'branco' : 'escuro'} />
         </View>
       );
     }

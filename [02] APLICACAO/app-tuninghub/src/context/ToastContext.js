@@ -3,6 +3,7 @@ import { Animated, View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, X, Info } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
+  import { toqueSucesso, toqueErro } from '../utils/haptics';
 
 const ToastContext = createContext(null);
 const DURACAO_MS = 2800;
@@ -25,6 +26,8 @@ export function ToastProvider({ children }) {
   const mostrar = useCallback(
     (mensagem, tipo = 'sucesso', opcoes = {}) => {
       clearTimeout(timer.current);
+      if (tipo === 'sucesso') toqueSucesso();
+      else if (tipo === 'erro') toqueErro();
       setToast({ mensagem, tipo, acao: opcoes.acao || null });
       anim.setValue(0);
       Animated.spring(anim, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();

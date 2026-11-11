@@ -1,13 +1,17 @@
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
+import { toqueSelecao } from '../utils/haptics';
 
 export default function ChecklistItem({ titulo, concluido, onToggle, style }) {
   const { colors, typography, fonts, radius } = useTheme();
 
   return (
     <Pressable
-      onPress={onToggle}
+      onPress={() => {
+        toqueSelecao();
+        onToggle?.();
+      }}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: !!concluido }}
       style={({ pressed }) => [

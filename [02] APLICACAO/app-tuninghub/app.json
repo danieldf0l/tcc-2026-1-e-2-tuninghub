@@ -7,18 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#050505"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#050505"
+        "backgroundColor": "#131314"
       },
       "edgeToEdgeEnabled": true
     },
@@ -42,7 +37,19 @@
       ],
       "expo-status-bar",
       "expo-font",
+          [
       "expo-splash-screen",
+      {
+        "image": "./assets/splash-icon.png",
+        "imageWidth": 160,
+        "resizeMode": "contain",
+        "backgroundColor": "#FEFEFE",
+        "dark": {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#050505"
+        }
+      }
+    ],
       "expo-web-browser"
     ]
   }

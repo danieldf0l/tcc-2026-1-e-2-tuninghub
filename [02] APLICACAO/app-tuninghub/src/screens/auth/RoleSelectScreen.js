@@ -29,7 +29,7 @@ export default function RoleSelectScreen({ navigation }) {
       ]}
     >
       <Animated.View style={{ opacity: fade, transform: [{ translateY: subir }] }}>
-        <Logo tamanho={28} />
+        <Logo tamanho={30} variante="marca" />
         <Text style={[typography.display, styles.titulo, { color: colors.text }]}>
           Seu carro do jeito que você imagina.
         </Text>

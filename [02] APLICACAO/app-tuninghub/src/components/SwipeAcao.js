@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Animated, PanResponder, View, Text, StyleSheet } from 'react-native';
 import { Archive } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
+import { toqueImpacto } from '../utils/haptics';
 
 const LIMIAR = 0.4; // fração da largura que dispara a ação
 
@@ -9,6 +10,7 @@ export default function SwipeAcao({ children, onAcao, rotulo = 'Arquivar', Icone
   const { colors, fonts } = useTheme();
   const translateX = useRef(new Animated.Value(0)).current;
   const larguraRef = useRef(0);
+    const passouRef = useRef(false); // para vibrar só uma vez ao cruzar o limiar
 
   // O PanResponder é criado uma vez; refs garantem que ele use as props mais recentes
   const onAcaoRef = useRef(onAcao);
@@ -26,8 +28,16 @@ export default function SwipeAcao({ children, onAcao, rotulo = 'Arquivar', Icone
       onMoveShouldSetPanResponder: (_, g) =>
         !desabilitadoRef.current && g.dx < -10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderTerminationRequest: () => false,
-      onPanResponderMove: (_, g) => translateX.setValue(Math.min(0, g.dx)),
+      onPanResponderMove: (_, g) => {
+        translateX.setValue(Math.min(0, g.dx));
+        const passou = -g.dx > (larguraRef.current || 1) * LIMIAR;
+        if (passou !== passouRef.current) {
+          passouRef.current = passou;
+          if (passou) toqueImpacto(); // "clique" ao chegar no ponto que dispara a ação
+        }
+      },
       onPanResponderRelease: (_, g) => {
+        passouRef.current = false;
         const largura = larguraRef.current || 1;
         const passouDoLimiar = -g.dx > largura * LIMIAR || g.vx < -1.2;
 
@@ -41,7 +51,10 @@ export default function SwipeAcao({ children, onAcao, rotulo = 'Arquivar', Icone
           if (ok === false) voltar();
         });
       },
-      onPanResponderTerminate: voltar,
+      onPanResponderTerminate: () => {
+        passouRef.current = false;
+        voltar();
+      },
     })
   ).current;
 
