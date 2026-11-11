@@ -1,0 +1,52 @@
+.skeleton {
+  display: block;
+  background: var(--skeleton);
+  border-radius: var(--radius-sm);
+  animation: skeleton-pulsar 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulsar {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+.skeleton-tabela {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.skeleton-tabela__linha {
+  display: grid;
+  grid-template-columns: repeat(var(--colunas), 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  padding: 15px var(--space-4);
+  border-bottom: 1px solid var(--divider);
+}
+
+.skeleton-tabela__linha:last-child {
+  border-bottom: none;
+}
+
+.skeleton-tabela__cabecalho {
+  padding-block: var(--space-3);
+  border-bottom-color: var(--border);
+}
+
+.skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}

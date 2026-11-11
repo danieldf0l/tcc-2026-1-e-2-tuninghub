@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../pages/Login/Login';
 import Dashboard from '../pages/Dashboard/Dashboard';
@@ -12,9 +13,23 @@ import AdminsPage from '../pages/Admins/AdminsPage';
 import UsuariosPage from '../pages/Usuarios/UsuariosPage';
 import AssinaturasPage from '../pages/Assinaturas/AssinaturasPage';
 
+// Vitrine de componentes: só em "npm run dev". No build de produção some por completo.
+const Vitrine = import.meta.env.DEV ? lazy(() => import('../pages/Vitrine/Vitrine')) : null;
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+
+    {Vitrine && (
+      <Route
+        path="/_ui"
+        element={
+          <Suspense fallback={null}>
+            <Vitrine />
+          </Suspense>
+        }
+      />
+    )}
 
     <Route
       element={
@@ -38,4 +53,4 @@ const AppRoutes = () => (
   </Routes>
 );
 
-export default AppRoutes; 
+export default AppRoutes;
