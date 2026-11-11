@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import Modal from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 
-const ReativarMontadoraModal = ({ montadora, modelosInativos, carregandoModelos, onConfirm, onClose, salvando }) => {
+/*
+  Reativar uma montadora: por padrão só ela volta. Opcionalmente,
+  escolhe quais modelos desativados voltam junto.
+  (O backend não reativa os modelos automaticamente.)
+*/
+const ReativarMontadoraModal = ({ montadora, modelosInativos, onConfirm, onClose, salvando }) => {
   const [selecionados, setSelecionados] = useState([]);
 
   const todosSelecionados = modelosInativos.length > 0 && selecionados.length === modelosInativos.length;
@@ -15,57 +21,55 @@ const ReativarMontadoraModal = ({ montadora, modelosInativos, carregandoModelos,
   };
 
   return (
-        <Modal title={`Reativar "${montadora.Nome}"`} onClose={onClose} wide>
-      <p className="modal-texto">
-        Por padrão, só a montadora é reativada. Se quiser, selecione abaixo quais modelos desativados
-        também devem voltar a ficar ativos.
-      </p>
+    <Modal title={`Reativar "${montadora.Nome}"`} onClose={onClose} wide>
+      {modelosInativos.length > 0 ? (
+        <>
+          <p className="modal-texto">
+            A montadora volta a aparecer no app. Escolha também quais modelos desativados devem voltar junto,
+            ou reative só a montadora.
+          </p>
 
-      {carregandoModelos ? (
-        <p className="empty-state">Carregando modelos...</p>
-      ) : modelosInativos.length > 0 ? (
-        <div className="lista-selecao">
-          <label className="lista-selecao-item lista-selecao-todos">
-            <input type="checkbox" checked={todosSelecionados} onChange={toggleTodos} />
-            Selecionar todos ({modelosInativos.length})
-          </label>
-          {modelosInativos.map((m) => (
-            <label key={m.IdModelo} className="lista-selecao-item">
-              <input
-                type="checkbox"
-                checked={selecionados.includes(m.IdModelo)}
-                onChange={() => toggleUm(m.IdModelo)}
-              />
-              {m.Modelo}
+          <div className="lista-selecao">
+            <label className="lista-selecao-item lista-selecao-todos">
+              <input type="checkbox" checked={todosSelecionados} onChange={toggleTodos} />
+              Selecionar todos ({modelosInativos.length})
             </label>
-          ))}
-        </div>
+            {modelosInativos.map((m) => (
+              <label key={m.IdModelo} className="lista-selecao-item">
+                <input
+                  type="checkbox"
+                  checked={selecionados.includes(m.IdModelo)}
+                  onChange={() => toggleUm(m.IdModelo)}
+                />
+                {m.Modelo}
+              </label>
+            ))}
+          </div>
+        </>
       ) : (
-        <p className="empty-state">Esta montadora não tem modelos desativados.</p>
+        <p className="modal-texto">
+          A montadora volta a aparecer no app. Ela não tem modelos desativados.
+        </p>
       )}
 
       <div className="form-actions">
-        <button type="button" className="btn-secondary" onClick={onClose} disabled={salvando}>
+        <Button variante="secundario" onClick={onClose} disabled={salvando}>
           Cancelar
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => onConfirm([])}
-          disabled={salvando || carregandoModelos}
-        >
-          Só a montadora
-        </button>
+        </Button>
         {modelosInativos.length > 0 && (
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => onConfirm(selecionados)}
-            disabled={salvando || carregandoModelos || selecionados.length === 0}
-          >
-            {salvando ? 'Reativando...' : `Reativar selecionados (${selecionados.length})`}
-          </button>
+          <Button variante="secundario" onClick={() => onConfirm([])} disabled={salvando}>
+            Só a montadora
+          </Button>
         )}
+        <Button
+          carregando={salvando}
+          disabled={modelosInativos.length > 0 && selecionados.length === 0}
+          onClick={() => onConfirm(modelosInativos.length > 0 ? selecionados : [])}
+        >
+          {modelosInativos.length === 0
+            ? 'Reativar'
+            : `Reativar com ${selecionados.length} ${selecionados.length === 1 ? 'modelo' : 'modelos'}`}
+        </Button>
       </div>
     </Modal>
   );

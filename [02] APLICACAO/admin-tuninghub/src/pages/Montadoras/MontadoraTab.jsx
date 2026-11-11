@@ -1,7 +1,22 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useState } from 'react';
+import { Car, CarFront, Pencil, Plus, Power, RotateCcw } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { useConfirmarDescarte } from '../../hooks/useConfirmarDescarte';
+import { mensagemErro } from '../../utils/erroApi';
+import { contem } from '../../utils/texto';
 import Modal from '../../components/ui/Modal';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
-import FiltroBar from '../../components/ui/FiltroBar';
+import BarraFiltros, { FiltroStatus } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Campo';
+import { StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import ReativarMontadoraModal from './ReativarMontadoraModal';
 import {
   listarMontadorasAdmin,
@@ -12,228 +27,286 @@ import {
 } from '../../api/montadoraService';
 import { listarModelosAdmin, reativarModelo } from '../../api/modeloService';
 
-const ITEMS_POR_PAGINA = 10;
+const COLUNAS = [
+  { chave: 'Nome', titulo: 'Montadora' },
+  {
+    chave: 'modelos',
+    titulo: 'Modelos',
+    valorOrdenacao: (m) => m.totalModelos,
+    render: (m) =>
+      m.totalModelos === 0 ? (
+        <span style={{ color: 'var(--text-secondary)' }}>Nenhum</span>
+      ) : (
+        <span>
+          {m.modelosAtivos.toLocaleString('pt-BR')}
+          <span style={{ color: 'var(--text-secondary)' }}> de {m.totalModelos.toLocaleString('pt-BR')} ativos</span>
+        </span>
+      ),
+  },
+  {
+    chave: 'Ativo',
+    titulo: 'Status',
+    valorOrdenacao: (m) => (m.Ativo ? 1 : 0),
+    render: (m) => <StatusBadge status={m.Ativo ? 'ativa' : 'inativa'} />,
+  },
+];
 
-const MontadoraTab = () => {
-  const [montadoras, setMontadoras] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+const filtrar = (m, { termo }) => contem(m.Nome, termo);
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [pagina, setPagina] = useState(1);
+const MontadoraTab = ({ onVerModelos }) => {
+  const { admin } = useAuth();
+  // Editar, desativar e reativar são só do ADMIN_MASTER no backend; criar é de qualquer admin
+  const ehMaster = admin?.role === 'ADMIN_MASTER';
+  const toast = useToast();
+  const confirmar = useConfirm();
+  const podeDescartar = useConfirmarDescarte();
 
-  const [modalAberto, setModalAberto] = useState(false);
-  const [editando, setEditando] = useState(null);
-  const [nome, setNome] = useState('');
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
+  const [modelos, setModelos] = useState([]);
 
-  const [montadoraReativando, setMontadoraReativando] = useState(null);
-  const [modelosInativosDaMontadora, setModelosInativosDaMontadora] = useState([]);
-  const [carregandoModelos, setCarregandoModelos] = useState(false);
-
-  const ultimoScroll = useRef(0);
-
-  const carregar = async () => {
-    setCarregando(true);
-    const dados = await listarMontadorasAdmin();
-    setMontadoras(dados);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregar();
+  // Montadoras + modelos (para mostrar a contagem e montar a reativação)
+  const carregar = useCallback(async () => {
+    const [dadosMontadoras, dadosModelos] = await Promise.all([listarMontadorasAdmin(), listarModelosAdmin()]);
+    setModelos(dadosModelos);
+    return dadosMontadoras.map((m) => {
+      const daMontadora = dadosModelos.filter((mo) => mo.IdMontadora === m.IdMontadora);
+      return {
+        ...m,
+        totalModelos: daMontadora.length,
+        modelosAtivos: daMontadora.filter((mo) => mo.Ativo).length,
+      };
+    });
   }, []);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro]);
+  const lista = useListaCatalogo({
+    carregar,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'Nome', direcao: 'asc' },
+  });
+
+  // ---------- Criar / editar ----------
+  const [modal, setModal] = useState(null); // null | { editando: montadora | null }
+  const [nome, setNome] = useState('');
+  const [erroNome, setErroNome] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const nomeOriginal = modal?.editando?.Nome ?? '';
+  const alterado = !!modal && nome.trim() !== nomeOriginal;
 
   const abrirCriar = () => {
-    setEditando(null);
+    setModal({ editando: null });
     setNome('');
-    setErro('');
-    setModalAberto(true);
+    setErroNome('');
   };
 
   const abrirEditar = (montadora) => {
-    setEditando(montadora);
+    setModal({ editando: montadora });
     setNome(montadora.Nome);
-    setErro('');
-    setModalAberto(true);
+    setErroNome('');
+  };
+
+  const fecharModal = async () => {
+    if (await podeDescartar(alterado)) setModal(null);
   };
 
   const handleSalvar = async (e) => {
     e.preventDefault();
-    setErro('');
+    const nomeLimpo = nome.trim();
+    if (!nomeLimpo) {
+      setErroNome('Informe o nome da montadora.');
+      return;
+    }
+
     setSalvando(true);
     try {
-      if (editando) {
-        await atualizarMontadora(editando.IdMontadora, nome);
+      if (modal.editando) {
+        await atualizarMontadora(modal.editando.IdMontadora, nomeLimpo);
+        toast.sucesso(`Montadora "${nomeLimpo}" atualizada.`);
       } else {
-        await criarMontadora(nome);
+        await criarMontadora(nomeLimpo);
+        toast.sucesso(`Montadora "${nomeLimpo}" criada.`);
       }
-      setModalAberto(false);
-      await carregar();
+      setModal(null);
+      lista.recarregar();
     } catch (error) {
-      setErro(error.response?.data?.message || 'Erro ao salvar montadora.');
+      setErroNome(mensagemErro(error, 'Erro ao salvar montadora.'));
     } finally {
       setSalvando(false);
     }
   };
 
+  // ---------- Desativar (com confirmação: desativa os modelos junto) ----------
   const handleDesativar = async (montadora) => {
-    const confirmar = window.confirm(
-      `Desativar "${montadora.Nome}"? Isso também desativa todos os modelos dessa montadora.`
-    );
-    if (!confirmar) return;
-    await desativarMontadora(montadora.IdMontadora);
-    await carregar();
-  };
+    const ok = await confirmar({
+      titulo: `Desativar "${montadora.Nome}"?`,
+      mensagem:
+        montadora.modelosAtivos > 0
+          ? `Os ${montadora.modelosAtivos} modelos ativos dela também serão desativados. Projetos existentes não são afetados.`
+          : 'Ela deixa de aparecer no app. Projetos existentes não são afetados.',
+      textoConfirmar: 'Desativar',
+      perigo: true,
+    });
+    if (!ok) return;
 
-  const abrirReativar = async (montadora) => {
-    setMontadoraReativando(montadora);
-    setCarregandoModelos(true);
-    const todosModelos = await listarModelosAdmin();
-    setModelosInativosDaMontadora(
-      todosModelos.filter((m) => m.IdMontadora === montadora.IdMontadora && !m.Ativo)
-    );
-    setCarregandoModelos(false);
-  };
-
-  const handleConfirmarReativar = async (idsModelosSelecionados) => {
-    setSalvando(true);
     try {
-      await reativarMontadora(montadoraReativando.IdMontadora);
-      if (idsModelosSelecionados.length > 0) {
-        await Promise.all(idsModelosSelecionados.map((id) => reativarModelo(id)));
-      }
-      setMontadoraReativando(null);
-      await carregar();
-    } finally {
-      setSalvando(false);
+      await desativarMontadora(montadora.IdMontadora);
+      toast.sucesso(`Montadora "${montadora.Nome}" desativada.`);
+      lista.recarregar();
+    } catch (error) {
+      toast.erro(mensagemErro(error, 'Erro ao desativar montadora.'));
     }
   };
 
-  const filtradas = montadoras.filter((m) => {
-    const passaBusca = m.Nome.toLowerCase().includes(busca.toLowerCase());
-    const passaStatus =
-      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!m.Ativo : !m.Ativo;
-    return passaBusca && passaStatus;
-  });
+  // ---------- Reativar (escolhendo quais modelos voltam junto) ----------
+  const [reativando, setReativando] = useState(null);
+  const [salvandoReativacao, setSalvandoReativacao] = useState(false);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtradas.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
+  const modelosInativosDe = (montadora) =>
+    modelos.filter((m) => m.IdMontadora === montadora.IdMontadora && !m.Ativo);
+
+  const handleConfirmarReativar = async (idsModelos) => {
+    setSalvandoReativacao(true);
+    try {
+      await reativarMontadora(reativando.IdMontadora);
+      if (idsModelos.length > 0) {
+        await Promise.all(idsModelos.map((id) => reativarModelo(id)));
+      }
+      toast.sucesso(
+        idsModelos.length > 0
+          ? `"${reativando.Nome}" reativada com ${idsModelos.length} ${idsModelos.length === 1 ? 'modelo' : 'modelos'}.`
+          : `Montadora "${reativando.Nome}" reativada.`
+      );
+      setReativando(null);
+      lista.recarregar();
+    } catch (error) {
+      toast.erro(mensagemErro(error, 'Erro ao reativar montadora.'));
+    } finally {
+      setSalvandoReativacao(false);
+    }
+  };
+
+  // ---------- Tela ----------
+  const botaoNovo = (
+    <Button icone={Plus} onClick={abrirCriar}>
+      Nova montadora
+    </Button>
   );
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={8} colunas={3} />;
 
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
     }
-  };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={Car}
+          titulo="Nenhuma montadora cadastrada"
+          descricao="Cadastre a primeira montadora para ela aparecer no app."
+          acao={botaoNovo}
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Montadoras"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdMontadora"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          onLinhaClick={ehMaster ? abrirEditar : undefined}
+          linhaInativa={(m) => !m.Ativo}
+          acoes={(m) => [
+            { rotulo: 'Ver modelos', icone: CarFront, onClick: () => onVerModelos(m.IdMontadora) },
+            { rotulo: 'Editar', icone: Pencil, onClick: () => abrirEditar(m), oculto: !ehMaster },
+            {
+              rotulo: 'Desativar',
+              icone: Power,
+              onClick: () => handleDesativar(m),
+              perigo: true,
+              oculto: !ehMaster || !m.Ativo,
+            },
+            { rotulo: 'Reativar', icone: RotateCcw, onClick: () => setReativando(m), oculto: !ehMaster || !!m.Ativo },
+          ]}
+          vazio={
+            <EmptyState
+              icone={Car}
+              titulo="Nenhuma montadora encontrada"
+              descricao="Tente outra busca ou mude o filtro de status."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="montadoras"
+        />
+      </>
+    );
+  };
 
   return (
     <div>
-      <div className="crud-header">
-        <div />
-        <button className="btn-primary" onClick={abrirCriar}>+ Nova Montadora</button>
-      </div>
-
-      <FiltroBar
-        busca={busca}
-        onBuscaChange={setBusca}
-        status={statusFiltro}
-        onStatusChange={setStatusFiltro}
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
         placeholder="Buscar montadora..."
-      />
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+        acoes={botaoNovo}
+      >
+        <FiltroStatus valor={lista.filtros.status} onChange={(v) => lista.mudarFiltro('status', v)} />
+      </BarraFiltros>
 
-      {filtradas.length === 0 ? (
-        <p className="empty-state">Nenhuma montadora encontrada.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((m) => (
-                <tr key={m.IdMontadora} className={!m.Ativo ? 'inativo' : ''}>
-                  <td>{m.Nome}</td>
-                  <td>
-                    <span className={`status-badge ${m.Ativo ? 'ativo' : 'inativo'}`}>
-                      {m.Ativo ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="crud-actions">
-                      <button className="link-action" onClick={() => abrirEditar(m)}>Editar</button>
-                      {m.Ativo ? (
-                        <button className="link-action" onClick={() => handleDesativar(m)}>Desativar</button>
-                      ) : (
-                        <button className="link-action" onClick={() => abrirReativar(m)}>Reativar</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
-        </div>
-      )}
+      {renderConteudo()}
 
-      {modalAberto && (
-        <Modal title={editando ? 'Editar Montadora' : 'Nova Montadora'} onClose={() => setModalAberto(false)}>
-          <form onSubmit={handleSalvar}>
-            {erro && <div className="form-erro">{erro}</div>}
-            <div className="form-field">
-              <label htmlFor="nomeMontadora">Nome</label>
-              <input
-                id="nomeMontadora"
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
+      {modal && (
+        <Modal title={modal.editando ? 'Editar montadora' : 'Nova montadora'} onClose={fecharModal}>
+          <form onSubmit={handleSalvar} noValidate>
+            <Input
+              label="Nome"
+              value={nome}
+              onChange={(e) => {
+                setNome(e.target.value);
+                setErroNome('');
+              }}
+              erro={erroNome}
+              placeholder="Ex.: Volkswagen"
+              required
+              autoFocus
+            />
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setModalAberto(false)}>
+              <Button variante="secundario" onClick={fecharModal}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn-primary" disabled={salvando}>
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
+              </Button>
+              <Button type="submit" carregando={salvando} disabled={!alterado || !nome.trim()}>
+                {modal.editando ? 'Salvar' : 'Criar montadora'}
+              </Button>
             </div>
           </form>
         </Modal>
       )}
 
-      {montadoraReativando && (
+      {reativando && (
         <ReativarMontadoraModal
-          montadora={montadoraReativando}
-          modelosInativos={modelosInativosDaMontadora}
-          carregandoModelos={carregandoModelos}
+          montadora={reativando}
+          modelosInativos={modelosInativosDe(reativando)}
           onConfirm={handleConfirmarReativar}
-          onClose={() => setMontadoraReativando(null)}
-          salvando={salvando}
+          onClose={() => setReativando(null)}
+          salvando={salvandoReativacao}
         />
       )}
     </div>

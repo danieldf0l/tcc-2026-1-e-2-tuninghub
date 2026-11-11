@@ -1,0 +1,33 @@
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.paginacao__info {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.paginacao__info strong {
+  color: var(--text);
+  font-weight: var(--font-semibold);
+}
+
+.paginacao__controles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.paginacao__pagina {
+  min-width: 110px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
