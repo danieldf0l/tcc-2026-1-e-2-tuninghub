@@ -4,6 +4,7 @@ import { MapPin, Check } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
 import Chip from './Chip';
 import { formatarFaixaPreco } from '../utils/faixaPreco';
+import { formatarDistancia } from '../utils/formatters';
 
 const SELO_FUNDO = 'rgba(5, 5, 5, 0.6)'; // fixo: fica sobre a foto, não sobre o tema
 const SELO_TEXTO = '#FEFEFE';
@@ -16,14 +17,6 @@ function obterIniciais(nome) {
     .map((p) => p[0])
     .join('')
     .toUpperCase();
-}
-
-function formatarDistancia(km) {
-  if (km === null || km === undefined || km === '') return null;
-  const n = Number(km);
-  if (Number.isNaN(n)) return `${km} km`;
-  if (n < 1) return `${Math.round(n * 1000)} m`;
-  return `${n.toFixed(1).replace('.', ',')} km`;
 }
 
 export default function OficinaCard({ oficina, fotoUrl, servicos = [], atendimento, onPress }) {

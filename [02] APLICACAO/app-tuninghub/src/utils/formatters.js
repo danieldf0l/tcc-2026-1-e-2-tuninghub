@@ -39,3 +39,12 @@ export function mascaraCep(valor) {
   const d = somenteDigitos(valor).slice(0, 8);
   return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
 }
+
+// 0.45 → "450 m" · 2.3 → "2,3 km"
+export function formatarDistancia(km) {
+  if (km === null || km === undefined || km === '') return null;
+  const n = Number(km);
+  if (Number.isNaN(n)) return `${km} km`;
+  if (n < 1) return `${Math.round(n * 1000)} m`;
+  return `${n.toFixed(1).replace('.', ',')} km`;
+}

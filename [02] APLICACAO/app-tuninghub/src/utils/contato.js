@@ -1,4 +1,4 @@
-import { Linking } from 'react-native';
+import { Linking, Platform, Share } from 'react-native';
 
 // contextoProjeto (opcional): { montadora, modelo, servicos: ['Película', 'Som'] }
 export function abrirWhatsApp(telefone, nomeOficina, contextoProjeto) {
@@ -21,8 +21,25 @@ export function abrirWhatsApp(telefone, nomeOficina, contextoProjeto) {
   return Linking.openURL(`https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`);
 }
 
-export function abrirNoMapa(latitude, longitude) {
-  return Linking.openURL(
-    `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
-  );
+// Abre o app de mapas nativo (Apple Maps no iOS, seletor de apps no Android).
+// Se não conseguir, cai no Google Maps pelo navegador.
+export function abrirNoMapa(latitude, longitude, nome) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  const rotulo = encodeURIComponent(nome || 'Oficina');
+  const google = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+  const url = Platform.select({
+    ios: `https://maps.apple.com/?ll=${lat},${lng}&q=${rotulo}`,
+    android: `geo:${lat},${lng}?q=${lat},${lng}(${rotulo})`,
+    default: google,
+  });
+
+  return Linking.openURL(url).catch(() => Linking.openURL(google));
+}
+
+// Menu nativo de compartilhar (WhatsApp, Instagram, copiar...)
+export function compartilharOficina({ nome, endereco }) {
+  const linhas = [`${nome} — encontrei pelo TuningHub.`, endereco ? `📍 ${endereco}` : null].filter(Boolean);
+  return Share.share({ message: linhas.join('\n') });
 }
