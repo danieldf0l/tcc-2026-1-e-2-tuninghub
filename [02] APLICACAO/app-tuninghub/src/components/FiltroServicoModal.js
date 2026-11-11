@@ -40,7 +40,7 @@ export default function FiltroServicoModal({ visivel, onFechar, onSelecionar, id
     });
     return Object.entries(grupos).map(([categoria, itens]) => {
       const info = getCategoriaInfo(categoria);
-      return { title: `${info.icone}  ${info.rotulo}`, data: itens };
+      return { title: info.rotulo, Icone: info.Icone, data: itens };
     });
   }, [servicos]);
 
@@ -122,9 +122,10 @@ export default function FiltroServicoModal({ visivel, onFechar, onSelecionar, id
             contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
             stickySectionHeadersEnabled={false}
             renderSectionHeader={({ section }) => (
-              <Text style={[typography.overline, styles.secao, { color: colors.textSecondary }]}>
-                {section.title}
-              </Text>
+              <View style={styles.secaoLinha}>
+                <section.Icone size={15} color={colors.textSecondary} strokeWidth={2.25} />
+                <Text style={[typography.overline, { color: colors.textSecondary }]}>{section.title}</Text>
+              </View>
             )}
             renderItem={({ item }) => (
               <Linha
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   fechar: { width: 40, height: 40, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   fecharEspaco: { width: 40 },
   carregando: { marginTop: 30 },
-  secao: { marginTop: 18, marginBottom: 8 },
+  secaoLinha: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, marginBottom: 8 },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
