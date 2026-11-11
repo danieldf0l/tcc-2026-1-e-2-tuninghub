@@ -1,16 +1,24 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Linking, Alert, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 import { listarPlanos } from '../../../api/plano.api';
-import { assinarPlanoGratuito, iniciarCheckout } from '../../../api/assinatura.api';
+import { assinarPlanoGratuito, iniciarCheckout, confirmarPagamento } from '../../../api/assinatura.api';
+import { abrirCheckout } from '../../../utils/pagamento';
 import { getErrorMessage } from '../../../utils/errorHandler';
+import ScreenContainer from '../../../components/ScreenContainer';
+import ScreenHeader from '../../../components/ScreenHeader';
 import PlanoCard from '../../../components/PlanoCard';
+import AvisoInline from '../../../components/AvisoInline';
+import Skeleton from '../../../components/Skeleton';
 import Button from '../../../components/Button';
+import Logo from '../../../components/Logo';
 
 export default function EscolhaPlanoGateScreen() {
-  const { colors } = useTheme();
+  const { colors, fonts, typography, radius } = useTheme();
   const { sair, verificarAssinatura } = useAuth();
+  const { mostrar } = useToast();
 
   const [planos, setPlanos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -32,35 +40,56 @@ export default function EscolhaPlanoGateScreen() {
     try {
       if (gratuito) {
         await assinarPlanoGratuito(plano.IdPlano);
-        await verificarAssinatura(); // RootNavigator libera o app assim que a assinatura existir no contexto
-      } else {
-        const resultado = await iniciarCheckout(plano.IdPlano);
-        await verificarAssinatura(); // fica PENDENTE e libera o app
-        if (resultado.checkoutUrl) {
-          await Linking.openURL(resultado.checkoutUrl);
-        }
-        Alert.alert(
-          'Checkout gerado',
-          'Depois de concluir o pagamento, volte ao app e vá em Perfil > Meu plano > "Verificar pagamento".'
-        );
+        mostrar('Plano gratuito ativado. Bem-vindo ao TuningHub!');
+        await verificarAssinatura(); // o RootNavigator libera o app
+        return;
       }
+
+      const resultado = await iniciarCheckout(plano.IdPlano);
+      await abrirCheckout(resultado.checkoutUrl);
+
+      // Ao fechar o navegador, já confere o PIX (silencioso se ainda não caiu)
+      let ativou = false;
+      try {
+        const conferencia = await confirmarPagamento(resultado.idAssinatura);
+        ativou = conferencia.status === 'ATIVA';
+      } catch {
+        // segue como pendente
+      }
+
+      mostrar(
+        ativou
+          ? 'Pagamento confirmado! Seu plano Pro está ativo.'
+          : 'Quando o PIX for confirmado, o Pro é ativado. Acompanhe em Perfil > Meu plano.',
+        ativou ? 'sucesso' : 'info'
+      );
+      await verificarAssinatura(); // PENDENTE ou ATIVA: libera o app
     } catch (e) {
       setErro(getErrorMessage(e));
-      await verificarAssinatura(); // se o erro foi 409, o contexto se corrige sozinho
+      await verificarAssinatura(); // se foi 409, o contexto se corrige sozinho
     } finally {
       setIdPlanoProcessando(null);
     }
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={[styles.title, { color: colors.text }]}>Escolha seu plano</Text>
-      <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>
-        Para começar a aparecer na busca dos usuários, escolha um plano para a sua oficina.
-      </Text>
+    <ScreenContainer rodape={<Button title="Sair da conta" variant="ghost" onPress={sair} />}>
+      <View style={styles.logo}>
+        <Logo tamanho={22} />
+      </View>
+
+      <ScreenHeader
+        titulo="Escolha seu plano"
+        subtitulo="Sua oficina começa a aparecer para os Entusiastas assim que você escolher um plano. Dá para fazer upgrade depois."
+      />
+
+      <AvisoInline mensagem={erro} />
 
       {carregando ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+        <>
+          <Skeleton height={200} borderRadius={radius.lg} style={styles.skeleton} />
+          <Skeleton height={220} borderRadius={radius.lg} style={styles.skeleton} />
+        </>
       ) : (
         planos.map((plano) => (
           <PlanoCard
@@ -72,17 +101,15 @@ export default function EscolhaPlanoGateScreen() {
         ))
       )}
 
-      {erro ? <Text style={[styles.erro, { color: colors.danger }]}>{erro}</Text> : null}
-
-      <View style={{ height: 20 }} />
-      <Button title="Sair da conta" variant="outline" onPress={sair} />
-    </ScrollView>
+      <Text style={[typography.caption, styles.nota, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+        Pagamento do Pro via PIX, aqui mesmo no app.
+      </Text>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 70 },
-  title: { fontSize: 26, fontWeight: '800', marginBottom: 6 },
-  subtitulo: { fontSize: 13.5, marginBottom: 24, lineHeight: 19 },
-  erro: { fontSize: 13, textAlign: 'center', marginTop: 12 },
+  logo: { marginBottom: 20 },
+  skeleton: { marginBottom: 14 },
+  nota: { textAlign: 'center', marginTop: 4 },
 });

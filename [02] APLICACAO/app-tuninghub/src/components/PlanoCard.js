@@ -6,7 +6,7 @@ import Button from './Button';
 
 // Reflete a regra do backend: plano pago (Valor > 0) libera contato e imagens
 const BENEFICIOS_GRATIS = ['Sua oficina aparece nas buscas', 'Gerencie os serviços que você oferece'];
-const BENEFICIOS_PRO = [
+export const BENEFICIOS_PRO = [
   'Tudo do plano gratuito',
   'Botão de WhatsApp no seu perfil',
   'Logo e até 6 fotos na galeria',

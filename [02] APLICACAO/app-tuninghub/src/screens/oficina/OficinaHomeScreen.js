@@ -93,16 +93,17 @@ export default function OficinaHomeScreen({ navigation }) {
         acao: 'Renovar plano', variante: 'primary',
       };
     } else if (temPlanoPro) {
+      // O backend só aceita novo checkout depois que o Pro vence (409 com Pro ATIVA)
       const textoVencimento =
         diasRestantes === 0
-          ? 'Vence hoje. Renove para não perder o destaque.'
-          : `Vence em ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'}. Renove para não perder o destaque.`;
+          ? 'Vence hoje. A partir de amanhã você já pode renovar em Meu plano.'
+          : `Vence em ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'} (${formatarData(assinatura?.DataFim)}). Depois disso, é só renovar em Meu plano.`;
       c = {
         Icone: Crown, cor: colors.primary, fundo: colors.primarySoft,
         borda: venceEmBreve ? colors.warning : colors.primary,
         titulo: assinatura?.NomePlano || 'Plano Pro',
         texto: venceEmBreve ? textoVencimento : `Ativo até ${formatarData(assinatura?.DataFim)}`,
-        acao: venceEmBreve ? 'Renovar' : null, variante: 'primary',
+        acao: null, variante: 'primary',
       };
     } else {
       c = {

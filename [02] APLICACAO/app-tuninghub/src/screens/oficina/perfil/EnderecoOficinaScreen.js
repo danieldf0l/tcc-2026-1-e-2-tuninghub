@@ -1,42 +1,66 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { MapPin, Hash, Map as MapaIcone, Building } from 'lucide-react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 import { buscarEnderecoDaOficina, salvarEnderecoDaOficina } from '../../../api/endereco.api';
 import { buscarEnderecoPorCep } from '../../../utils/cep';
+import { mascaraCep, somenteDigitos, formatarDistancia } from '../../../utils/formatters';
 import { getErrorMessage } from '../../../utils/errorHandler';
+import ScreenContainer from '../../../components/ScreenContainer';
+import ScreenHeader from '../../../components/ScreenHeader';
+import AvisoInline from '../../../components/AvisoInline';
+import MiniMapa from '../../../components/MiniMapa';
+import Skeleton from '../../../components/Skeleton';
 import Input from '../../../components/Input';
 import Button from '../../../components/Button';
-import BackButton from '../../../components/BackButton';
+
+const VAZIO = { rua: '', numero: '', bairro: '', cidade: '', estado: '', cep: '' };
+
+// "Assinatura" do endereço para saber se algo mudou (ignora máscara e espaços)
+const assinaturaEndereco = (f) =>
+  JSON.stringify([
+    f.rua.trim(),
+    f.numero.trim(),
+    f.bairro.trim(),
+    f.cidade.trim(),
+    f.estado.trim().toUpperCase(),
+    somenteDigitos(f.cep),
+  ]);
 
 export default function EnderecoOficinaScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, fonts, typography, radius } = useTheme();
   const { usuario } = useAuth();
+  const { mostrar } = useToast();
   const idOficina = usuario?.IdOficina;
+  const numeroRef = useRef(null);
 
-  const [rua, setRua] = useState('');
-  const [numero, setNumero] = useState('');
-  const [bairro, setBairro] = useState('');
-  const [cidade, setCidade] = useState('');
-  const [estado, setEstado] = useState('');
-  const [cep, setCep] = useState('');
+  const [form, setForm] = useState(VAZIO);
+  const [original, setOriginal] = useState(assinaturaEndereco(VAZIO));
+  const [coords, setCoords] = useState(null);
 
   const [carregando, setCarregando] = useState(true);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepNaoEncontrado, setCepNaoEncontrado] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
-  const [sucesso, setSucesso] = useState('');
 
   useEffect(() => {
     async function carregar() {
       try {
-        const endereco = await buscarEnderecoDaOficina(idOficina);
-        setRua(endereco.Rua || '');
-        setNumero(endereco.Numero || '');
-        setBairro(endereco.Bairro || '');
-        setCidade(endereco.Cidade || '');
-        setEstado(endereco.Estado || '');
-        setCep(endereco.CEP || '');
+        const e = await buscarEnderecoDaOficina(idOficina);
+        const dados = {
+          rua: e.Rua || '',
+          numero: e.Numero ? String(e.Numero) : '',
+          bairro: e.Bairro || '',
+          cidade: e.Cidade || '',
+          estado: e.Estado || '',
+          cep: mascaraCep(e.CEP || ''),
+        };
+        setForm(dados);
+        setOriginal(assinaturaEndereco(dados));
+        if (e.Latitude && e.Longitude) setCoords({ lat: e.Latitude, lng: e.Longitude });
       } catch {
         // Sem endereço cadastrado ainda — formulário fica vazio para preenchimento
       } finally {
@@ -46,37 +70,68 @@ export default function EnderecoOficinaScreen({ navigation }) {
     carregar();
   }, [idOficina]);
 
+  function atualizarCampo(campo, valor) {
+    setForm((prev) => ({ ...prev, [campo]: valor }));
+  }
+
   async function handleCepChange(valor) {
-    setCep(valor);
-    const cepLimpo = valor.replace(/\D/g, '');
+    const mascarado = mascaraCep(valor);
+    atualizarCampo('cep', mascarado);
+    setCepNaoEncontrado(false);
+
+    const cepLimpo = somenteDigitos(mascarado);
     if (cepLimpo.length === 8) {
       setBuscandoCep(true);
       const endereco = await buscarEnderecoPorCep(cepLimpo);
       if (endereco) {
-        setRua(endereco.rua);
-        setBairro(endereco.bairro);
-        setCidade(endereco.cidade);
-        setEstado(endereco.estado);
+        setForm((prev) => ({
+          ...prev,
+          rua: endereco.rua,
+          bairro: endereco.bairro,
+          cidade: endereco.cidade,
+          estado: endereco.estado,
+        }));
+        numeroRef.current?.focus();
+      } else {
+        setCepNaoEncontrado(true);
       }
       setBuscandoCep(false);
     }
   }
 
+  const alterado = assinaturaEndereco(form) !== original;
+
   async function handleSalvar() {
     setErro('');
-    setSucesso('');
+    const { rua, numero, bairro, cidade, estado, cep } = form;
 
-    if (!rua || !cidade || !estado || !cep) {
+    if (!rua.trim() || !cidade.trim() || !estado.trim() || !cep) {
       setErro('Preencha rua, cidade, estado e CEP.');
+      return;
+    }
+    if (somenteDigitos(cep).length !== 8) {
+      setErro('CEP incompleto.');
       return;
     }
 
     setSalvando(true);
     try {
       const resultado = await salvarEnderecoDaOficina(idOficina, {
-        rua, numero, bairro, cidade, estado, cep,
+        rua: rua.trim(),
+        numero: numero.trim(),
+        bairro: bairro.trim(),
+        cidade: cidade.trim(),
+        estado: estado.trim().toUpperCase(),
+        cep: somenteDigitos(cep),
       });
-      setSucesso(`Endereço salvo — ${resultado.distanciaKm}km do SENAC Nações Unidas.`);
+      setOriginal(assinaturaEndereco(form));
+
+      const lat = resultado?.latitude ?? resultado?.Latitude;
+      const lng = resultado?.longitude ?? resultado?.Longitude;
+      if (lat && lng) setCoords({ lat, lng });
+
+      const distancia = formatarDistancia(resultado?.distanciaKm);
+      mostrar(distancia ? `Endereço salvo · ${distancia} do SENAC` : 'Endereço salvo.');
     } catch (e) {
       setErro(getErrorMessage(e));
     } finally {
@@ -84,41 +139,108 @@ export default function EnderecoOficinaScreen({ navigation }) {
     }
   }
 
+  const rodape = (
+    <>
+      <AvisoInline mensagem={erro} />
+      <Button title="Salvar endereço" onPress={handleSalvar} loading={salvando} disabled={!alterado || salvando} />
+    </>
+  );
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: 40 }}>
-      <BackButton onPress={() => navigation.goBack()} />
-      <Text style={[styles.title, { color: colors.text }]}>Endereço</Text>
-      <Text style={[styles.subtitulo, { color: colors.textSecondary }]}>
-        Sua oficina precisa estar a até 4km do SENAC Nações Unidas.
-      </Text>
+    <ScreenContainer rodape={rodape}>
+      <ScreenHeader onVoltar={() => navigation.goBack()} titulo="Endereço" subtitulo="Onde os Entusiastas encontram sua oficina." />
+
+      <AvisoInline tipo="info" mensagem="A oficina precisa estar a até 4 km do SENAC Nações Unidas." />
 
       {carregando ? (
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 30 }} />
+        <>
+          <Skeleton height={160} borderRadius={radius.lg} style={styles.skeleton} />
+          <Skeleton height={52} borderRadius={radius.md} style={styles.skeleton} />
+          <Skeleton height={52} borderRadius={radius.md} style={styles.skeleton} />
+        </>
       ) : (
         <>
-          <Input placeholder="CEP" value={cep} onChangeText={handleCepChange} keyboardType="numeric" />
-          {buscandoCep ? <ActivityIndicator color={colors.primary} style={{ marginBottom: 12 }} /> : null}
+          {coords ? (
+            <View style={styles.mapa}>
+              <MiniMapa latitude={coords.lat} longitude={coords.lng} height={160} />
+            </View>
+          ) : null}
 
-          <Input placeholder="Rua" value={rua} onChangeText={setRua} />
-          <Input placeholder="Número" value={numero} onChangeText={setNumero} keyboardType="numeric" />
-          <Input placeholder="Bairro" value={bairro} onChangeText={setBairro} />
-          <Input placeholder="Cidade" value={cidade} onChangeText={setCidade} />
-          <Input placeholder="Estado (UF)" value={estado} onChangeText={setEstado} autoCapitalize="characters" />
+          <Input
+            Icone={MapPin}
+            placeholder="CEP"
+            value={form.cep}
+            onChangeText={handleCepChange}
+            keyboardType="number-pad"
+            autoComplete="postal-code"
+            textContentType="postalCode"
+            maxLength={9}
+          />
 
-          {erro ? <Text style={[styles.mensagem, { color: colors.danger }]}>{erro}</Text> : null}
-          {sucesso ? <Text style={[styles.mensagem, { color: colors.primary }]}>{sucesso}</Text> : null}
+          {buscandoCep ? (
+            <View style={styles.status}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+                Buscando endereço...
+              </Text>
+            </View>
+          ) : cepNaoEncontrado ? (
+            <View style={styles.status}>
+              <Text style={[typography.caption, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+                CEP não encontrado. Preencha o endereço abaixo.
+              </Text>
+            </View>
+          ) : null}
 
-          <View style={{ height: 12 }} />
-          <Button title="Salvar endereço" onPress={handleSalvar} loading={salvando} />
+          <Input Icone={MapaIcone} placeholder="Rua" value={form.rua} onChangeText={(v) => atualizarCampo('rua', v)} autoCapitalize="words" />
+
+          <View style={styles.linha}>
+            <View style={styles.colunaPequena}>
+              <Input
+                ref={numeroRef}
+                Icone={Hash}
+                placeholder="Nº"
+                value={form.numero}
+                onChangeText={(v) => atualizarCampo('numero', v)}
+                keyboardType="number-pad"
+              />
+            </View>
+            <View style={styles.colunaGrande}>
+              <Input placeholder="Bairro" value={form.bairro} onChangeText={(v) => atualizarCampo('bairro', v)} autoCapitalize="words" />
+            </View>
+          </View>
+
+          <View style={styles.linha}>
+            <View style={styles.colunaGrande}>
+              <Input
+                Icone={Building}
+                placeholder="Cidade"
+                value={form.cidade}
+                onChangeText={(v) => atualizarCampo('cidade', v)}
+                autoCapitalize="words"
+              />
+            </View>
+            <View style={styles.colunaPequena}>
+              <Input
+                placeholder="UF"
+                value={form.estado}
+                onChangeText={(v) => atualizarCampo('estado', v.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2))}
+                autoCapitalize="characters"
+                maxLength={2}
+              />
+            </View>
+          </View>
         </>
       )}
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60 },
-  title: { fontSize: 24, fontWeight: '800', marginTop: 16, marginBottom: 4 },
-  subtitulo: { fontSize: 13, marginBottom: 20 },
-  mensagem: { fontSize: 13, textAlign: 'center', marginTop: 8 },
+  skeleton: { marginBottom: 12 },
+  mapa: { marginBottom: 16 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -6, marginBottom: 14, paddingLeft: 4 },
+  linha: { flexDirection: 'row', gap: 10 },
+  colunaPequena: { flex: 1 },
+  colunaGrande: { flex: 2 },
 });
