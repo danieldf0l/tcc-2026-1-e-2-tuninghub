@@ -29,6 +29,7 @@ import { authLimiter } from './middlewares/rateLimiter.middleware.js';
 import geolocalizacaoRoute from './routes/geolocalizacao.routes.js';
 
 const app = express();
+app.set('trust proxy', 1); // confia no Nginx (1 proxy) para obter o IP real do cliente (rate limit por usuário)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
