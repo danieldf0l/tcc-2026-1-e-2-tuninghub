@@ -1,6 +1,22 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { Pencil, Plus, Power, RotateCcw, Wrench } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { useConfirmarDescarte } from '../../hooks/useConfirmarDescarte';
+import { useAlternarStatus } from '../../hooks/useAlternarStatus';
+import { mensagemErro } from '../../utils/erroApi';
+import { contem } from '../../utils/texto';
 import Modal from '../../components/ui/Modal';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
+import BarraFiltros, { FiltroSelect, FiltroStatus } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { Input, Select, Textarea } from '../../components/ui/Campo';
+import { Badge, StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import {
   listarServicosAdmin,
   criarServico,
@@ -9,261 +25,308 @@ import {
   reativarServico,
 } from '../../api/servicoService';
 import { listarCategoriasAtivas } from '../../api/categoriaServicoService';
+import './Servicos.css';
 
-const ITEMS_POR_PAGINA = 10;
+const COLUNAS = [
+  {
+    chave: 'Nome',
+    titulo: 'Serviço',
+    render: (s) => (
+      <div className="servico-celula">
+        <span className="servico-celula__nome">{s.Nome}</span>
+        {s.Descricao && <span className="servico-celula__descricao">{s.Descricao}</span>}
+      </div>
+    ),
+  },
+  { chave: 'Categoria', titulo: 'Categoria', render: (s) => <Badge>{s.Categoria}</Badge> },
+  {
+    chave: 'Ativo',
+    titulo: 'Status',
+    valorOrdenacao: (s) => (s.Ativo ? 1 : 0),
+    render: (s) => <StatusBadge status={s.Ativo ? 'ativo' : 'inativo'} />,
+  },
+];
+
+const filtrar = (s, { termo, categoria }) =>
+  (contem(s.Nome, termo) || contem(s.Descricao, termo) || contem(s.Categoria, termo)) &&
+  (!categoria || String(s.IdCategoria) === categoria);
+
+const FORM_VAZIO = { nome: '', descricao: '', idCategoria: '' };
 
 const ServicoTab = () => {
-  const [servicos, setServicos] = useState([]);
+  const { admin } = useAuth();
+  // Editar, desativar e reativar são só do ADMIN_MASTER no backend; criar é de qualquer admin
+  const ehMaster = admin?.role === 'ADMIN_MASTER';
+  const toast = useToast();
+  const podeDescartar = useConfirmarDescarte();
+
   const [categoriasAtivas, setCategoriasAtivas] = useState([]);
-  const [carregando, setCarregando] = useState(true);
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
-  const [pagina, setPagina] = useState(1);
-
-  const [modalAberto, setModalAberto] = useState(false);
-  const [editando, setEditando] = useState(null);
-  const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [idCategoria, setIdCategoria] = useState('');
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
-
-  const ultimoScroll = useRef(0);
-
-  const carregar = async () => {
-    setCarregando(true);
-    const [dadosServicos, dadosCategorias] = await Promise.all([
-      listarServicosAdmin(),
-      listarCategoriasAtivas(),
-    ]);
-    setServicos(dadosServicos);
+  const carregar = useCallback(async () => {
+    const [dadosServicos, dadosCategorias] = await Promise.all([listarServicosAdmin(), listarCategoriasAtivas()]);
     setCategoriasAtivas(dadosCategorias);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregar();
+    return dadosServicos;
   }, []);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro, categoriaFiltro]);
+  const lista = useListaCatalogo({
+    carregar,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'Nome', direcao: 'asc' },
+    porPagina: 15,
+    filtrosExtras: { categoria: '' },
+  });
+
+  const alternarStatus = useAlternarStatus(lista.recarregar);
+
+  // Categorias que aparecem nos serviços (inclui inativas), para o filtro
+  const categoriasDoFiltro = useMemo(() => {
+    const mapa = new Map();
+    lista.itens.forEach((s) => mapa.set(s.IdCategoria, s.Categoria));
+    return [...mapa.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'pt-BR'));
+  }, [lista.itens]);
+
+  // ---------- Criar / editar ----------
+  const [modal, setModal] = useState(null); // null | { editando: servico | null, inicial: {...} }
+  const [form, setForm] = useState(FORM_VAZIO);
+  const [erros, setErros] = useState({});
+  const [salvando, setSalvando] = useState(false);
+
+  const alterado =
+    !!modal &&
+    (form.nome.trim() !== modal.inicial.nome ||
+      form.descricao.trim() !== modal.inicial.descricao ||
+      String(form.idCategoria) !== String(modal.inicial.idCategoria));
 
   const abrirCriar = () => {
-    setEditando(null);
-    setNome('');
-    setDescricao('');
-    setIdCategoria(categoriasAtivas[0]?.IdCategoria ?? '');
-    setErro('');
-    setModalAberto(true);
+    // Se a lista está filtrada por uma categoria ativa, ela já vem escolhida
+    const filtrada = categoriasAtivas.find((c) => String(c.IdCategoria) === lista.filtros.categoria);
+    const inicial = {
+      nome: '',
+      descricao: '',
+      idCategoria: filtrada?.IdCategoria ?? categoriasAtivas[0]?.IdCategoria ?? '',
+    };
+    setModal({ editando: null, inicial });
+    setForm(inicial);
+    setErros({});
   };
 
   const abrirEditar = (servico) => {
-    setEditando(servico);
-    setNome(servico.Nome);
-    setDescricao(servico.Descricao || '');
-    setIdCategoria(servico.IdCategoria);
-    setErro('');
-    setModalAberto(true);
+    const inicial = {
+      nome: servico.Nome,
+      descricao: servico.Descricao || '',
+      idCategoria: servico.IdCategoria,
+    };
+    setModal({ editando: servico, inicial });
+    setForm(inicial);
+    setErros({});
   };
+
+  const mudarCampo = (campo, valor) => {
+    setForm((atual) => ({ ...atual, [campo]: valor }));
+    setErros((atual) => ({ ...atual, [campo]: undefined }));
+  };
+
+  const fecharModal = async () => {
+    if (await podeDescartar(alterado)) setModal(null);
+  };
+
+  // A categoria atual do serviço pode estar inativa: ela continua aparecendo no select da edição
+  const opcoesCategoria = useMemo(() => {
+    const editando = modal?.editando;
+    if (!editando || categoriasAtivas.some((c) => c.IdCategoria === editando.IdCategoria)) return categoriasAtivas;
+    return [{ IdCategoria: editando.IdCategoria, Nome: `${editando.Categoria} (inativa)` }, ...categoriasAtivas];
+  }, [modal, categoriasAtivas]);
 
   const handleSalvar = async (e) => {
     e.preventDefault();
-    setErro('');
+    const nome = form.nome.trim();
+    const descricao = form.descricao.trim();
+    const novos = {};
+    if (!nome) novos.nome = 'Informe o nome do serviço.';
+    if (!form.idCategoria) novos.idCategoria = 'Escolha a categoria.';
+    setErros(novos);
+    if (Object.keys(novos).length > 0) return;
+
     setSalvando(true);
     try {
-      if (editando) {
-        await atualizarServico(editando.IdServico, nome, descricao, idCategoria);
+      if (modal.editando) {
+        await atualizarServico(modal.editando.IdServico, nome, descricao, form.idCategoria);
+        toast.sucesso(`Serviço "${nome}" atualizado.`);
       } else {
-        await criarServico(nome, descricao, idCategoria);
+        await criarServico(nome, descricao, form.idCategoria);
+        toast.sucesso(`Serviço "${nome}" criado.`);
       }
-      setModalAberto(false);
-      await carregar();
+      setModal(null);
+      lista.recarregar();
     } catch (error) {
-      setErro(error.response?.data?.message || 'Erro ao salvar serviço.');
+      setErros({ nome: mensagemErro(error, 'Erro ao salvar serviço.') });
     } finally {
       setSalvando(false);
     }
   };
 
-  const handleToggleStatus = async (servico) => {
-    const confirmar = window.confirm(
-      servico.Ativo
-        ? `Desativar o serviço "${servico.Nome}"? Ele deixa de aparecer para novos vínculos, mas vínculos existentes não são afetados.`
-        : `Reativar o serviço "${servico.Nome}"?`
-    );
-    if (!confirmar) return;
+  const mudarStatus = (s) =>
+    alternarStatus({
+      ativo: !!s.Ativo,
+      rotulo: `Serviço "${s.Nome}"`,
+      desativar: () => desativarServico(s.IdServico),
+      reativar: () => reativarServico(s.IdServico),
+    });
 
-    if (servico.Ativo) {
-      await desativarServico(servico.IdServico);
-    } else {
-      await reativarServico(servico.IdServico);
-    }
-    await carregar();
-  };
-
-  const filtrados = servicos.filter((s) => {
-    const passaBusca = s.Nome.toLowerCase().includes(busca.toLowerCase());
-    const passaStatus =
-      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!s.Ativo : !s.Ativo;
-    const passaCategoria =
-      categoriaFiltro === 'todas' ? true : String(s.IdCategoria) === String(categoriaFiltro);
-    return passaBusca && passaStatus && passaCategoria;
-  });
-
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtrados.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
+  // ---------- Tela ----------
+  const semCategoriaAtiva = categoriasAtivas.length === 0;
+  const botaoNovo = (
+    <Button
+      icone={Plus}
+      onClick={abrirCriar}
+      disabled={lista.carregando || semCategoriaAtiva}
+      title={semCategoriaAtiva ? 'Cadastre uma categoria ativa antes de criar serviços.' : undefined}
+    >
+      Novo serviço
+    </Button>
   );
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={10} colunas={3} />;
 
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
     }
-  };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={Wrench}
+          titulo="Nenhum serviço cadastrado"
+          descricao={
+            semCategoriaAtiva
+              ? 'Cadastre uma categoria ativa (aba Categorias) antes de criar serviços.'
+              : 'Cadastre o primeiro serviço para as oficinas poderem oferecê-lo.'
+          }
+          acao={!semCategoriaAtiva && botaoNovo}
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Serviços"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdServico"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          onLinhaClick={ehMaster ? abrirEditar : undefined}
+          linhaInativa={(s) => !s.Ativo}
+          acoes={
+            ehMaster
+              ? (s) => [
+                  { rotulo: 'Editar', icone: Pencil, onClick: () => abrirEditar(s) },
+                  { rotulo: 'Desativar', icone: Power, onClick: () => mudarStatus(s), perigo: true, oculto: !s.Ativo },
+                  { rotulo: 'Reativar', icone: RotateCcw, onClick: () => mudarStatus(s), oculto: !!s.Ativo },
+                ]
+              : undefined
+          }
+          vazio={
+            <EmptyState
+              icone={Wrench}
+              titulo="Nenhum serviço encontrado"
+              descricao="Tente outra busca ou mude os filtros."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="serviços"
+        />
+      </>
+    );
+  };
 
   return (
     <div>
-      <div className="crud-header">
-        <div />
-        <button className="btn-primary" onClick={abrirCriar} disabled={categoriasAtivas.length === 0}>
-          + Novo Serviço
-        </button>
-      </div>
-
-      {categoriasAtivas.length === 0 && (
-        <p className="empty-state">Cadastre uma categoria ativa antes de criar serviços.</p>
-      )}
-
-      <div className="filtro-bar">
-        <input
-          type="text"
-          className="filtro-busca"
-          placeholder="Buscar serviço..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-        <select
-          className="filtro-status"
-          value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
+        placeholder="Buscar serviço..."
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+        acoes={botaoNovo}
+      >
+        <FiltroSelect
+          rotulo="Categoria"
+          valor={lista.filtros.categoria}
+          onChange={(v) => lista.mudarFiltro('categoria', v)}
         >
-          <option value="todas">Todas as categorias</option>
-          {categoriasAtivas.map((c) => (
-            <option key={c.IdCategoria} value={c.IdCategoria}>{c.Nome}</option>
+          <option value="">Todas as categorias</option>
+          {categoriasDoFiltro.map(([id, nome]) => (
+            <option key={id} value={String(id)}>
+              {nome}
+            </option>
           ))}
-        </select>
-        <select
-          className="filtro-status"
-          value={statusFiltro}
-          onChange={(e) => setStatusFiltro(e.target.value)}
-        >
-          <option value="todos">Todos</option>
-          <option value="ativos">Ativos</option>
-          <option value="inativos">Inativos</option>
-        </select>
-      </div>
+        </FiltroSelect>
+        <FiltroStatus valor={lista.filtros.status} onChange={(v) => lista.mudarFiltro('status', v)} />
+      </BarraFiltros>
 
-      {filtrados.length === 0 ? (
-        <p className="empty-state">Nenhum serviço encontrado.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Categoria</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((s) => (
-                <tr key={s.IdServico} className={!s.Ativo ? 'inativo' : ''}>
-                  <td>{s.Nome}</td>
-                  <td><span className="categoria-tag">{s.Categoria}</span></td>
-                  <td>
-                    <span className={`status-badge ${s.Ativo ? 'ativo' : 'inativo'}`}>
-                      {s.Ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="crud-actions">
-                      <button className="link-action" onClick={() => abrirEditar(s)}>Editar</button>
-                      <button className="link-action" onClick={() => handleToggleStatus(s)}>
-                        {s.Ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+      {renderConteudo()}
+
+      {modal && (
+        <Modal title={modal.editando ? 'Editar serviço' : 'Novo serviço'} onClose={fecharModal}>
+          <form onSubmit={handleSalvar} noValidate>
+            <Input
+              label="Nome"
+              value={form.nome}
+              onChange={(e) => mudarCampo('nome', e.target.value)}
+              erro={erros.nome}
+              placeholder="Ex.: Rebaixamento com molas"
+              required
+              autoFocus
+            />
+
+            <Select
+              label="Categoria"
+              value={form.idCategoria}
+              onChange={(e) => mudarCampo('idCategoria', e.target.value)}
+              erro={erros.idCategoria}
+              required
+            >
+              {opcoesCategoria.map((c) => (
+                <option key={c.IdCategoria} value={c.IdCategoria}>
+                  {c.Nome}
+                </option>
               ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
-        </div>
-      )}
+            </Select>
 
-      {modalAberto && (
-        <Modal title={editando ? 'Editar Serviço' : 'Novo Serviço'} onClose={() => setModalAberto(false)}>
-          <form onSubmit={handleSalvar}>
-            {erro && <div className="form-erro">{erro}</div>}
+            <Textarea
+              label="Descrição"
+              value={form.descricao}
+              onChange={(e) => mudarCampo('descricao', e.target.value)}
+              dica="Opcional. Aparece para o entusiasta no app."
+              rows={3}
+            />
 
-            <div className="form-field">
-              <label htmlFor="nomeServico">Nome</label>
-              <input
-                id="nomeServico"
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="categoriaServico">Categoria</label>
-              <select
-                id="categoriaServico"
-                value={idCategoria}
-                onChange={(e) => setIdCategoria(e.target.value)}
-                required
-              >
-                {categoriasAtivas.map((c) => (
-                  <option key={c.IdCategoria} value={c.IdCategoria}>{c.Nome}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="descricaoServico">Descrição (opcional)</label>
-              <textarea
-                id="descricaoServico"
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-              />
-            </div>
+            {modal.editando && !modal.editando.Ativo && (
+              <p className="modal-texto">Este serviço está inativo: não aparece para novos vínculos.</p>
+            )}
 
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setModalAberto(false)}>
+              <Button variante="secundario" onClick={fecharModal}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn-primary" disabled={salvando}>
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
+              </Button>
+              <Button type="submit" carregando={salvando} disabled={!alterado || !form.nome.trim()}>
+                {modal.editando ? 'Salvar' : 'Criar serviço'}
+              </Button>
             </div>
           </form>
         </Modal>

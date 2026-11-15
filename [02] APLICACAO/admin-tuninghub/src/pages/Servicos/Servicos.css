@@ -1,0 +1,21 @@
+/* Nome do serviço com a descrição logo abaixo, em uma linha só */
+.servico-celula {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 520px;
+}
+
+.servico-celula__nome {
+  color: inherit;
+  font-weight: var(--font-medium);
+}
+
+.servico-celula__descricao {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

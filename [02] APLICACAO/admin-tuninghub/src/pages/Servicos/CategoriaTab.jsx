@@ -1,7 +1,22 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
+import { Pencil, Plus, Power, RotateCcw, Tags, Wrench } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { useConfirmarDescarte } from '../../hooks/useConfirmarDescarte';
+import { useAlternarStatus } from '../../hooks/useAlternarStatus';
+import { mensagemErro } from '../../utils/erroApi';
+import { contem } from '../../utils/texto';
 import Modal from '../../components/ui/Modal';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
-import FiltroBar from '../../components/ui/FiltroBar';
+import BarraFiltros, { FiltroStatus } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Campo';
+import { StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import {
   listarCategoriasAdmin,
   criarCategoria,
@@ -9,193 +24,233 @@ import {
   desativarCategoria,
   reativarCategoria,
 } from '../../api/categoriaServicoService';
+import { listarServicosAdmin } from '../../api/servicoService';
 
-const ITEMS_POR_PAGINA = 10;
+const COLUNAS = [
+  { chave: 'Nome', titulo: 'Categoria' },
+  {
+    chave: 'servicos',
+    titulo: 'Serviços',
+    valorOrdenacao: (c) => c.totalServicos,
+    render: (c) =>
+      c.totalServicos === 0 ? (
+        <span style={{ color: 'var(--text-secondary)' }}>Nenhum</span>
+      ) : (
+        <span>
+          {c.servicosAtivos}
+          <span style={{ color: 'var(--text-secondary)' }}> de {c.totalServicos} ativos</span>
+        </span>
+      ),
+  },
+  {
+    chave: 'Ativo',
+    titulo: 'Status',
+    valorOrdenacao: (c) => (c.Ativo ? 1 : 0),
+    render: (c) => <StatusBadge status={c.Ativo ? 'ativa' : 'inativa'} />,
+  },
+];
 
-const CategoriaTab = () => {
-  const [categorias, setCategorias] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+const filtrar = (c, { termo }) => contem(c.Nome, termo);
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [pagina, setPagina] = useState(1);
+// Categorias + serviços (para mostrar quantos serviços cada uma tem)
+const carregar = async () => {
+  const [categorias, servicos] = await Promise.all([listarCategoriasAdmin(), listarServicosAdmin()]);
+  return categorias.map((c) => {
+    const daCategoria = servicos.filter((s) => s.IdCategoria === c.IdCategoria);
+    return {
+      ...c,
+      totalServicos: daCategoria.length,
+      servicosAtivos: daCategoria.filter((s) => s.Ativo).length,
+    };
+  });
+};
 
-  const [modalAberto, setModalAberto] = useState(false);
-  const [editando, setEditando] = useState(null);
+const CategoriaTab = ({ onVerServicos }) => {
+  const { admin } = useAuth();
+  const ehMaster = admin?.role === 'ADMIN_MASTER';
+  const toast = useToast();
+  const podeDescartar = useConfirmarDescarte();
+
+  const lista = useListaCatalogo({
+    carregar,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'Nome', direcao: 'asc' },
+  });
+
+  const alternarStatus = useAlternarStatus(lista.recarregar);
+
+  // ---------- Criar / editar ----------
+  const [modal, setModal] = useState(null); // null | { editando: categoria | null }
   const [nome, setNome] = useState('');
-  const [erro, setErro] = useState('');
+  const [erroNome, setErroNome] = useState('');
   const [salvando, setSalvando] = useState(false);
 
-  const ultimoScroll = useRef(0);
-
-  const carregar = async () => {
-    setCarregando(true);
-    const dados = await listarCategoriasAdmin();
-    setCategorias(dados);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregar();
-  }, []);
-
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro]);
+  const alterado = !!modal && nome.trim() !== (modal.editando?.Nome ?? '');
 
   const abrirCriar = () => {
-    setEditando(null);
+    setModal({ editando: null });
     setNome('');
-    setErro('');
-    setModalAberto(true);
+    setErroNome('');
   };
 
   const abrirEditar = (categoria) => {
-    setEditando(categoria);
+    setModal({ editando: categoria });
     setNome(categoria.Nome);
-    setErro('');
-    setModalAberto(true);
+    setErroNome('');
+  };
+
+  const fecharModal = async () => {
+    if (await podeDescartar(alterado)) setModal(null);
   };
 
   const handleSalvar = async (e) => {
     e.preventDefault();
-    setErro('');
+    const nomeLimpo = nome.trim();
+    if (!nomeLimpo) {
+      setErroNome('Informe o nome da categoria.');
+      return;
+    }
+
     setSalvando(true);
     try {
-      if (editando) {
-        await atualizarCategoria(editando.IdCategoria, nome);
+      if (modal.editando) {
+        await atualizarCategoria(modal.editando.IdCategoria, nomeLimpo);
+        toast.sucesso(`Categoria "${nomeLimpo}" atualizada.`);
       } else {
-        await criarCategoria(nome);
+        await criarCategoria(nomeLimpo);
+        toast.sucesso(`Categoria "${nomeLimpo}" criada.`);
       }
-      setModalAberto(false);
-      await carregar();
+      setModal(null);
+      lista.recarregar();
     } catch (error) {
-      setErro(error.response?.data?.message || 'Erro ao salvar categoria.');
+      setErroNome(mensagemErro(error, 'Erro ao salvar categoria.'));
     } finally {
       setSalvando(false);
     }
   };
 
-  const handleToggleStatus = async (categoria) => {
-    const confirmar = window.confirm(
-      categoria.Ativo
-        ? `Desativar a categoria "${categoria.Nome}"? Ela deixa de aparecer para novos serviços, mas serviços já cadastrados com ela não são afetados.`
-        : `Reativar a categoria "${categoria.Nome}"?`
-    );
-    if (!confirmar) return;
+  // Desativar não mexe nos serviços já cadastrados com ela; só some para serviços novos
+  const mudarStatus = (c) =>
+    alternarStatus({
+      ativo: !!c.Ativo,
+      rotulo: `Categoria "${c.Nome}"`,
+      feminino: true,
+      desativar: () => desativarCategoria(c.IdCategoria),
+      reativar: () => reativarCategoria(c.IdCategoria),
+    });
 
-    if (categoria.Ativo) {
-      await desativarCategoria(categoria.IdCategoria);
-    } else {
-      await reativarCategoria(categoria.IdCategoria);
-    }
-    await carregar();
-  };
-
-  const filtradas = categorias.filter((c) => {
-    const passaBusca = c.Nome.toLowerCase().includes(busca.toLowerCase());
-    const passaStatus =
-      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!c.Ativo : !c.Ativo;
-    return passaBusca && passaStatus;
-  });
-
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtradas.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
+  // ---------- Tela ----------
+  const botaoNovo = (
+    <Button icone={Plus} onClick={abrirCriar}>
+      Nova categoria
+    </Button>
   );
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={8} colunas={3} />;
 
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
     }
-  };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={Tags}
+          titulo="Nenhuma categoria cadastrada"
+          descricao="As categorias organizam os serviços (ex.: Suspensão, Motor, Rodas)."
+          acao={botaoNovo}
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Categorias"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdCategoria"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          onLinhaClick={ehMaster ? abrirEditar : undefined}
+          linhaInativa={(c) => !c.Ativo}
+          acoes={(c) => [
+            { rotulo: 'Ver serviços', icone: Wrench, onClick: () => onVerServicos(c.IdCategoria) },
+            { rotulo: 'Editar', icone: Pencil, onClick: () => abrirEditar(c), oculto: !ehMaster },
+            {
+              rotulo: 'Desativar',
+              icone: Power,
+              onClick: () => mudarStatus(c),
+              perigo: true,
+              oculto: !ehMaster || !c.Ativo,
+            },
+            { rotulo: 'Reativar', icone: RotateCcw, onClick: () => mudarStatus(c), oculto: !ehMaster || !!c.Ativo },
+          ]}
+          vazio={
+            <EmptyState
+              icone={Tags}
+              titulo="Nenhuma categoria encontrada"
+              descricao="Tente outra busca ou mude o filtro de status."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="categorias"
+        />
+      </>
+    );
+  };
 
   return (
     <div>
-      <div className="crud-header">
-        <div />
-        <button className="btn-primary" onClick={abrirCriar}>+ Nova Categoria</button>
-      </div>
-
-      <FiltroBar
-        busca={busca}
-        onBuscaChange={setBusca}
-        status={statusFiltro}
-        onStatusChange={setStatusFiltro}
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
         placeholder="Buscar categoria..."
-      />
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+        acoes={botaoNovo}
+      >
+        <FiltroStatus valor={lista.filtros.status} onChange={(v) => lista.mudarFiltro('status', v)} />
+      </BarraFiltros>
 
-      {filtradas.length === 0 ? (
-        <p className="empty-state">Nenhuma categoria encontrada.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((c) => (
-                <tr key={c.IdCategoria} className={!c.Ativo ? 'inativo' : ''}>
-                  <td>{c.Nome}</td>
-                  <td>
-                    <span className={`status-badge ${c.Ativo ? 'ativo' : 'inativo'}`}>
-                      {c.Ativo ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="crud-actions">
-                      <button className="link-action" onClick={() => abrirEditar(c)}>Editar</button>
-                      <button className="link-action" onClick={() => handleToggleStatus(c)}>
-                        {c.Ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
-        </div>
-      )}
+      {renderConteudo()}
 
-      {modalAberto && (
-        <Modal title={editando ? 'Editar Categoria' : 'Nova Categoria'} onClose={() => setModalAberto(false)}>
-          <form onSubmit={handleSalvar}>
-            {erro && <div className="form-erro">{erro}</div>}
-            <div className="form-field">
-              <label htmlFor="nomeCategoria">Nome</label>
-              <input
-                id="nomeCategoria"
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
+      {modal && (
+        <Modal title={modal.editando ? 'Editar categoria' : 'Nova categoria'} onClose={fecharModal}>
+          <form onSubmit={handleSalvar} noValidate>
+            <Input
+              label="Nome"
+              value={nome}
+              onChange={(e) => {
+                setNome(e.target.value);
+                setErroNome('');
+              }}
+              erro={erroNome}
+              placeholder="Ex.: Suspensão"
+              dica={modal.editando ? 'O novo nome aparece em todos os serviços desta categoria.' : undefined}
+              required
+              autoFocus
+            />
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setModalAberto(false)}>
+              <Button variante="secundario" onClick={fecharModal}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn-primary" disabled={salvando}>
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
+              </Button>
+              <Button type="submit" carregando={salvando} disabled={!alterado || !nome.trim()}>
+                {modal.editando ? 'Salvar' : 'Criar categoria'}
+              </Button>
             </div>
           </form>
         </Modal>
