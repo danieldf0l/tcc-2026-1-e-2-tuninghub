@@ -1,0 +1,510 @@
+/* Código do estilo (ex.: OFF_ROAD) */
+.codigo-estilo {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-soft);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* =================== Kit de serviços =================== */
+.kit {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* ---------- Lista de estilos ---------- */
+.kit__estilos {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.kit__estilo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+  text-align: left;
+}
+
+.kit__estilo:hover {
+  background: var(--neutral-soft);
+  color: var(--text);
+}
+
+.kit__estilo--ativo,
+.kit__estilo--ativo:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: var(--font-semibold);
+}
+
+.kit__estilo-nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bolinha de "alterações não salvas" ao lado do nome do estilo */
+.kit__ponto-alteracao {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--warning);
+}
+
+.kit__estilo-total {
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-soft);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-align: center;
+}
+
+.kit__estilo--ativo .kit__estilo-total {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+/* ---------- Painel ---------- */
+.kit__painel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.kit__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.kit__titulo {
+  font-size: var(--text-xl);
+}
+
+.kit__subtitulo {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.kit__importar {
+  width: 230px;
+}
+
+/* ---------- Resumo do kit ---------- */
+.kit__resumo {
+  padding: var(--space-4);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.kit__resumo-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.kit__resumo-titulo strong {
+  color: var(--text);
+}
+
+.kit__resumo-diff {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.kit__diff {
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+.kit__diff--mais  { background: var(--success-soft); color: var(--success); }
+.kit__diff--menos { background: var(--danger-soft);  color: var(--danger); }
+
+.kit__resumo-vazio {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.kit__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  max-height: 168px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.kit__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.kit__chip button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+}
+
+.kit__chip button:hover {
+  background: var(--neutral-soft);
+  color: var(--text);
+}
+
+/* Entrando no kit (ainda não salvo) */
+.kit__chip--novo {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+/* Saindo do kit (ainda não salvo) */
+.kit__chip--saindo {
+  border-style: dashed;
+  color: var(--text-secondary);
+}
+
+.kit__chip--saindo > span {
+  text-decoration: line-through;
+}
+
+.kit__chip--inativo {
+  color: var(--text-secondary);
+}
+
+.kit__chip-extra {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ---------- Filtros ---------- */
+.kit__filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.kit__busca {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
+.kit__categoria-filtro {
+  width: 200px;
+}
+
+.seletor-visao {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--neutral-soft);
+  border-radius: var(--radius-md);
+}
+
+.seletor-visao__opcao {
+  height: 32px;
+  padding: 0 var(--space-3);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+}
+
+.seletor-visao__opcao:hover {
+  color: var(--text);
+}
+
+.seletor-visao__opcao--ativa {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Categorias (recolhíveis) ---------- */
+.kit__categorias {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.kit__grupo + .kit__grupo {
+  border-top: 1px solid var(--border);
+}
+
+.kit__grupo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-left: var(--space-3);
+  background: var(--surface);
+}
+
+.kit__grupo--aberto .kit__grupo-cabecalho {
+  background: var(--neutral-soft);
+}
+
+.kit__grupo-botao {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 46px;
+  padding: 0 var(--space-3) 0 var(--space-1);
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+}
+
+.kit__grupo-botao:disabled {
+  cursor: default;
+}
+
+.kit__grupo-nome {
+  font-weight: var(--font-semibold);
+}
+
+.kit__grupo-total {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.kit__grupo-seta {
+  margin-left: auto;
+  color: var(--text-secondary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.kit__grupo--aberto .kit__grupo-seta {
+  transform: rotate(180deg);
+}
+
+.kit__grupo-itens {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2px var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+/* ---------- Serviço (checkbox nativo escondido + marca desenhada) ---------- */
+.kit__servico {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.kit__servico:hover {
+  background: var(--neutral-soft);
+}
+
+.kit__servico--marcado,
+.kit__servico--marcado:hover {
+  background: var(--primary-soft);
+}
+
+.kit__servico--alterado {
+  border-style: dashed;
+  border-color: var(--warning);
+}
+
+.kit__marca-wrapper {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.kit__checkbox {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.kit__marca {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--placeholder);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text-on-primary);
+  transition: background-color var(--duration-fast), border-color var(--duration-fast);
+}
+
+.kit__marca--ligada {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.kit__checkbox:focus-visible + .kit__marca {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.kit__servico-textos {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kit__servico-nome {
+  color: var(--text);
+  font-weight: var(--font-medium);
+}
+
+.kit__servico-descricao {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kit__servico-mudou {
+  flex-shrink: 0;
+  color: var(--warning);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+/* ---------- Barra de salvar (gruda no rodapé da tela) ---------- */
+.kit__barra {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  animation: kit-barra-entrar var(--duration-normal) var(--ease-out);
+}
+
+.kit__barra-texto {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.kit__barra-texto strong {
+  color: var(--text);
+}
+
+.kit__barra-acoes {
+  display: flex;
+  gap: var(--space-2);
+}
+
+@keyframes kit-barra-entrar {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (max-width: 900px) {
+  .kit {
+    grid-template-columns: 1fr;
+  }
+
+  /* No celular os estilos viram uma faixa que rola para o lado */
+  .kit__estilos {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .kit__estilo {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .kit__importar,
+  .kit__categoria-filtro,
+  .kit__busca {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+  }
+
+  .kit__barra-acoes {
+    width: 100%;
+  }
+
+  .kit__barra-acoes > * {
+    flex: 1;
+  }
+}
