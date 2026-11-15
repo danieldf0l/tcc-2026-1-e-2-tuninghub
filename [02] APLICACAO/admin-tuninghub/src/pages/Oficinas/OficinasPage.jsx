@@ -34,7 +34,7 @@ const COLUNAS = [
   {
     chave: 'CNPJ',
     titulo: 'CNPJ',
-    render: (o) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatarCnpj(o.CNPJ)}</span>,
+    render: (o) => <span style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatarCnpj(o.CNPJ)}</span>,
   },
   {
     chave: 'FaixaPreco',

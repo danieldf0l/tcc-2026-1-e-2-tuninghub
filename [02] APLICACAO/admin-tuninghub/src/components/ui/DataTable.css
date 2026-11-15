@@ -149,3 +149,11 @@
   color: var(--warning);
   font-weight: var(--font-medium);
 }
+
+/* Telas estreitas: a tabela mantém uma largura mínima e rola de lado dentro do cartão,
+   em vez de espremer as colunas e quebrar datas e CNPJs em duas linhas */
+@media (max-width: 900px) {
+  .tabela {
+    min-width: 720px;
+  }
+}

@@ -57,3 +57,19 @@
     flex: 1;
   }
 }
+
+/* Espaço para o placeholder longo não passar por baixo do atalho "/" */
+.barra-filtros__busca .campo__input {
+  padding-right: 40px;
+}
+
+/* Sem teclado físico (celular/tablet) o atalho "/" não faz sentido e cobre o placeholder */
+@media (hover: none), (max-width: 600px) {
+  .barra-filtros__atalho {
+    display: none;
+  }
+
+  .barra-filtros__busca .campo__input {
+    padding-right: var(--space-3);
+  }
+}
