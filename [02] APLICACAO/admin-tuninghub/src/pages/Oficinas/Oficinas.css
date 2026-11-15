@@ -1,0 +1,332 @@
+/* ---------- Célula com duas linhas (nome + e-mail) ---------- */
+.celula-dupla {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.celula-dupla__principal {
+  font-weight: var(--font-medium);
+}
+
+.celula-dupla__secundario {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =================== Drawer da oficina =================== */
+.drawer-oficina__abas {
+  margin: calc(-1 * var(--space-6)) calc(-1 * var(--space-6)) var(--space-6);
+  padding: 0 var(--space-6);
+  background: var(--surface);
+  position: sticky;
+  top: calc(-1 * var(--space-6));
+  z-index: 2;
+}
+
+.drawer-oficina__secoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ---------- Seções ---------- */
+.secao {
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--divider);
+}
+
+.secao:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.secao__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+}
+
+.secao__contador {
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-soft);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+.secao__descricao {
+  margin-bottom: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.secao__acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.secao__atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.secao--perigo,
+.secao--perigo:last-child {
+  padding: var(--space-4) var(--space-4) var(--space-5);
+  border: 1px solid var(--danger-soft);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+}
+
+/* ---------- Lista de dados (rótulo: valor) ---------- */
+.lista-dados {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.lista-dados__item {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.lista-dados dt {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.lista-dados dd {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.lista-dados a {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+}
+
+.lista-dados a:hover {
+  text-decoration-color: var(--primary);
+}
+
+.lista-dados__com-acao {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ---------- Faixa de preço (3 cartões) ---------- */
+.opcoes-faixa {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.opcao-faixa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast);
+}
+
+.opcao-faixa:hover {
+  border-color: var(--placeholder);
+}
+
+.opcao-faixa input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+
+.opcao-faixa:has(input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.opcao-faixa--ativa,
+.opcao-faixa--ativa:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.opcao-faixa__titulo {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+}
+
+.opcao-faixa--ativa .opcao-faixa__titulo {
+  color: var(--primary);
+}
+
+.opcao-faixa__descricao {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+
+/* ---------- Endereço ---------- */
+.grade-endereco {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  column-gap: var(--space-3);
+}
+
+.grade-endereco__cep    { grid-column: span 2; }
+.grade-endereco__rua    { grid-column: span 4; }
+.grade-endereco__numero { grid-column: span 2; }
+.grade-endereco__bairro { grid-column: span 4; }
+.grade-endereco__cidade { grid-column: span 5; }
+.grade-endereco__uf     { grid-column: span 1; }
+
+.localizacao {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--success-soft);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.localizacao svg:first-child {
+  color: var(--success);
+}
+
+.localizacao a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  color: var(--text);
+  font-weight: var(--font-medium);
+}
+
+/* ---------- Serviços ---------- */
+.lista-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.chip-simples {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+}
+
+/* ---------- Assinaturas ---------- */
+.plano-atual {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+}
+
+.plano-atual__rotulo {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.plano-atual__linha {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.plano-atual__nome {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+}
+
+.plano-atual__detalhe {
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.historico {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.historico__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.historico__item + .historico__item {
+  border-top: 1px solid var(--divider);
+}
+
+.historico__textos {
+  display: flex;
+  flex-direction: column;
+}
+
+.historico__plano {
+  font-weight: var(--font-medium);
+}
+
+.historico__periodo {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .lista-dados__item {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .grade-endereco {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grade-endereco__cep,
+  .grade-endereco__numero,
+  .grade-endereco__uf {
+    grid-column: span 1;
+  }
+
+  .grade-endereco__rua,
+  .grade-endereco__bairro,
+  .grade-endereco__cidade {
+    grid-column: span 2;
+  }
+}

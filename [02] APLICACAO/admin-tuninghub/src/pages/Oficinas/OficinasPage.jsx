@@ -1,161 +1,228 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Eye, Power, RotateCcw, Store } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { mensagemErro } from '../../utils/erroApi';
+import { contem } from '../../utils/texto';
+import { formatarCnpj, formatarData, somenteDigitos } from '../../utils/formatadores';
+import PageHeader from '../../components/ui/PageHeader';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
-import FiltroBar from '../../components/ui/FiltroBar';
-import OficinaDetalheModal from './OficinaDetalheModal';
+import BarraFiltros, { FiltroSelect, FiltroStatus } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { Badge, StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
+import OficinaDetalheDrawer from './OficinaDetalheDrawer';
 import { listarOficinasAdmin, desativarOficina, reativarOficina } from '../../api/oficinaService';
+import './Oficinas.css';
 
-const ITEMS_POR_PAGINA = 10;
+const COLUNAS = [
+  {
+    chave: 'NomeOficina',
+    titulo: 'Oficina',
+    render: (o) => (
+      <div className="celula-dupla">
+        <span className="celula-dupla__principal">{o.NomeOficina}</span>
+        <span className="celula-dupla__secundario">{o.Email}</span>
+      </div>
+    ),
+  },
+  {
+    chave: 'CNPJ',
+    titulo: 'CNPJ',
+    render: (o) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatarCnpj(o.CNPJ)}</span>,
+  },
+  {
+    chave: 'FaixaPreco',
+    titulo: 'Faixa',
+    valorOrdenacao: (o) => (o.FaixaPreco ? o.FaixaPreco.length : null),
+    render: (o) => (o.FaixaPreco ? <Badge>{o.FaixaPreco}</Badge> : <span style={{ color: 'var(--text-secondary)' }}>—</span>),
+  },
+  {
+    chave: 'DataCriacao',
+    titulo: 'Cadastro',
+    valorOrdenacao: (o) => (o.DataCriacao ? new Date(o.DataCriacao).getTime() : null),
+    render: (o) => formatarData(o.DataCriacao),
+  },
+  {
+    chave: 'Ativo',
+    titulo: 'Status',
+    valorOrdenacao: (o) => (o.Ativo ? 1 : 0),
+    render: (o) => <StatusBadge status={o.Ativo ? 'ativa' : 'inativa'} />,
+  },
+];
 
-const formatarCnpj = (cnpj) => {
-  const digitos = String(cnpj || '').replace(/\D/g, '');
-  if (digitos.length !== 14) return cnpj;
-  return digitos.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+// Busca por nome, e-mail, proprietário ou CNPJ (com ou sem pontuação)
+const filtrar = (o, { termo, busca, faixa }) => {
+  const digitos = somenteDigitos(busca);
+  const passaBusca =
+    contem(o.NomeOficina, termo) ||
+    contem(o.Email, termo) ||
+    contem(o.NomeProprietario, termo) ||
+    (digitos.length >= 3 && somenteDigitos(o.CNPJ).includes(digitos));
+  const passaFaixa = !faixa || (faixa === 'sem' ? !o.FaixaPreco : o.FaixaPreco === faixa);
+  return passaBusca && passaFaixa;
 };
 
 const OficinasPage = () => {
-  const [oficinas, setOficinas] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+  const toast = useToast();
+  const confirmar = useConfirm();
+  const [params, setParams] = useSearchParams();
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [pagina, setPagina] = useState(1);
-
-  const [oficinaSelecionada, setOficinaSelecionada] = useState(null);
-
-  const ultimoScroll = useRef(0);
-
-  const carregar = async () => {
-    setCarregando(true);
-    const dados = await listarOficinasAdmin();
-    setOficinas(dados);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregar();
-  }, []);
-
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro]);
-
-  const handleToggleStatus = async (oficina) => {
-    const confirmar = window.confirm(
-      oficina.Ativo
-        ? `Desativar a conta de "${oficina.NomeOficina}"? Ela perde acesso ao login imediatamente.`
-        : `Reativar a conta de "${oficina.NomeOficina}"?`
-    );
-    if (!confirmar) return;
-
-    if (oficina.Ativo) {
-      await desativarOficina(oficina.IdOficina);
-    } else {
-      await reativarOficina(oficina.IdOficina);
-    }
-    await carregar();
-  };
-
-  const filtradas = oficinas.filter((o) => {
-    const termo = busca.toLowerCase();
-    const passaBusca =
-      o.NomeOficina.toLowerCase().includes(termo) ||
-      o.Email.toLowerCase().includes(termo) ||
-      String(o.CNPJ).includes(busca.replace(/\D/g, ''));
-    const passaStatus =
-      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!o.Ativo : !o.Ativo;
-    return passaBusca && passaStatus;
+  const lista = useListaCatalogo({
+    carregar: listarOficinasAdmin,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'NomeOficina', direcao: 'asc' },
+    porPagina: 15,
+    filtrosExtras: { faixa: '' },
   });
 
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtradas.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
+  // ---------- Drawer de detalhe (fica na URL: ?oficina=12) ----------
+  const idAberta = params.get('oficina');
+  const oficinaAberta = useMemo(
+    () => (idAberta ? lista.itens.find((o) => String(o.IdOficina) === idAberta) : null),
+    [idAberta, lista.itens]
   );
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
+  // Abrir entra no histórico (o "voltar" do navegador fecha o drawer)
+  const abrirDetalhe = (oficina) =>
+    setParams((atuais) => {
+      const novos = new URLSearchParams(atuais);
+      novos.set('oficina', String(oficina.IdOficina));
+      return novos;
+    });
 
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
+  const fecharDetalhe = useCallback(
+    () =>
+      setParams(
+        (atuais) => {
+          const novos = new URLSearchParams(atuais);
+          novos.delete('oficina');
+          return novos;
+        },
+        { replace: true }
+      ),
+    [setParams]
+  );
+
+  // ---------- Desativar / reativar conta ----------
+  const alternarStatus = async (oficina) => {
+    if (oficina.Ativo) {
+      const ok = await confirmar({
+        titulo: `Desativar "${oficina.NomeOficina}"?`,
+        mensagem: 'A oficina perde o acesso ao app na hora e some das buscas dos entusiastas. Dá para reativar depois.',
+        textoConfirmar: 'Desativar conta',
+        perigo: true,
+      });
+      if (!ok) return;
+    }
+
+    try {
+      if (oficina.Ativo) await desativarOficina(oficina.IdOficina);
+      else await reativarOficina(oficina.IdOficina);
+      await lista.recarregar();
+      toast.sucesso(`Conta de "${oficina.NomeOficina}" ${oficina.Ativo ? 'desativada' : 'reativada'}.`);
+    } catch (error) {
+      toast.erro(mensagemErro(error, 'Não foi possível alterar o status da oficina.'));
     }
   };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+  // ---------- Tela ----------
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={10} colunas={5} />;
+
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
+    }
+
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={Store}
+          titulo="Nenhuma oficina cadastrada"
+          descricao="As oficinas se cadastram pelo app. Elas aparecem aqui depois do cadastro."
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Oficinas"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdOficina"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          onLinhaClick={abrirDetalhe}
+          linhaInativa={(o) => !o.Ativo}
+          acoes={(o) => [
+            { rotulo: 'Ver detalhes', icone: Eye, onClick: () => abrirDetalhe(o) },
+            { rotulo: 'Desativar conta', icone: Power, onClick: () => alternarStatus(o), perigo: true, oculto: !o.Ativo },
+            { rotulo: 'Reativar conta', icone: RotateCcw, onClick: () => alternarStatus(o), oculto: !!o.Ativo },
+          ]}
+          vazio={
+            <EmptyState
+              icone={Store}
+              titulo="Nenhuma oficina encontrada"
+              descricao="Tente outra busca ou mude os filtros."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="oficinas"
+        />
+      </>
+    );
+  };
 
   return (
     <div>
-      <div className="crud-header">
-        <h1>Oficinas</h1>
-      </div>
-
-      <FiltroBar
-        busca={busca}
-        onBuscaChange={setBusca}
-        status={statusFiltro}
-        onStatusChange={setStatusFiltro}
-        placeholder="Buscar por nome, e-mail ou CNPJ..."
+      <PageHeader
+        titulo="Oficinas"
+        subtitulo="Oficinas cadastradas no app. Clique numa linha para ver os detalhes."
       />
 
-      {filtradas.length === 0 ? (
-        <p className="empty-state">Nenhuma oficina encontrada.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>CNPJ</th>
-                <th>E-mail</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((o) => (
-                <tr key={o.IdOficina} className={!o.Ativo ? 'inativo' : ''}>
-                  <td>{o.NomeOficina}</td>
-                  <td>{formatarCnpj(o.CNPJ)}</td>
-                  <td>{o.Email}</td>
-                  <td>
-                    <span className={`status-badge ${o.Ativo ? 'ativo' : 'inativo'}`}>
-                      {o.Ativo ? 'Ativa' : 'Inativa'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="crud-actions">
-                      <button className="link-action" onClick={() => setOficinaSelecionada(o)}>
-                        Ver detalhes
-                      </button>
-                      <button className="link-action" onClick={() => handleToggleStatus(o)}>
-                        {o.Ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
-        </div>
-      )}
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
+        placeholder="Buscar por nome, e-mail, proprietário ou CNPJ..."
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+      >
+        <FiltroSelect rotulo="Faixa de preço" valor={lista.filtros.faixa} onChange={(v) => lista.mudarFiltro('faixa', v)}>
+          <option value="">Todas as faixas</option>
+          <option value="$">$ Econômico</option>
+          <option value="$$">$$ Intermediário</option>
+          <option value="$$$">$$$ Premium</option>
+          <option value="sem">Sem faixa</option>
+        </FiltroSelect>
+        <FiltroStatus valor={lista.filtros.status} onChange={(v) => lista.mudarFiltro('status', v)} />
+      </BarraFiltros>
 
-      {oficinaSelecionada && (
-        <OficinaDetalheModal
-          oficina={oficinaSelecionada}
-          onClose={() => setOficinaSelecionada(null)}
-          onAtualizado={async () => {
-            await carregar();
-            setOficinaSelecionada(null);
-          }}
-        />
-      )}
+      {renderConteudo()}
+
+      <OficinaDetalheDrawer
+        oficina={oficinaAberta}
+        onFechar={fecharDetalhe}
+        onAtualizado={lista.recarregar}
+        onAlternarStatus={alternarStatus}
+      />
     </div>
   );
 };
