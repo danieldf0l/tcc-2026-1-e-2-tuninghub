@@ -1,130 +1,231 @@
-import { useEffect, useState, useRef } from 'react';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Receipt, Store } from 'lucide-react';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { contem, normalizar } from '../../utils/texto';
+import { diasAte, formatarData } from '../../utils/formatadores';
+import PageHeader from '../../components/ui/PageHeader';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
+import BarraFiltros, { FiltroSelect } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { listarAssinaturasAdmin } from '../../api/assinaturaService';
+import './Assinaturas.css';
 
-const ITEMS_POR_PAGINA = 10;
+const DIAS_ALERTA = 7;
 
-const STATUS_BADGE = { ATIVA: 'ativo', PENDENTE: 'pendente', EXPIRADA: 'inativo', CANCELADA: 'inativo' };
+// Assinatura ativa que vence nos próximos 7 dias (inclui hoje)
+const vencendo = (a) => {
+  if (a.Status !== 'ATIVA' || !a.DataFim) return false;
+  const dias = diasAte(a.DataFim);
+  return dias >= 0 && dias <= DIAS_ALERTA;
+};
 
-const formatarData = (data) => (data ? new Date(data).toLocaleDateString('pt-BR') : '—');
+const SITUACOES = [
+  { valor: '', rotulo: 'Todas' },
+  { valor: 'ATIVA', rotulo: 'Ativas' },
+  { valor: 'vencendo', rotulo: `Vencendo em ${DIAS_ALERTA} dias` },
+  { valor: 'PENDENTE', rotulo: 'Pendentes' },
+  { valor: 'EXPIRADA', rotulo: 'Expiradas' },
+  { valor: 'CANCELADA', rotulo: 'Canceladas' },
+];
 
+const passaSituacao = (a, situacao) => {
+  if (!situacao) return true;
+  if (situacao === 'vencendo') return vencendo(a);
+  return a.Status === situacao;
+};
+
+const tempo = (data) => (data ? new Date(data).getTime() : null);
+
+const notaVencimento = (a) => {
+  if (a.Status === 'PENDENTE') return { texto: 'Aguardando pagamento' };
+  if (a.Status !== 'ATIVA') return null;
+  if (!a.DataFim) return { texto: 'Sem vencimento' };
+  const dias = diasAte(a.DataFim);
+  if (dias < 0) return null;
+  if (dias === 0) return { texto: 'Vence hoje', aviso: true };
+  return { texto: `em ${dias} ${dias === 1 ? 'dia' : 'dias'}`, aviso: dias <= DIAS_ALERTA };
+};
+
+const COLUNAS = [
+  {
+    chave: 'NomeOficina',
+    titulo: 'Oficina',
+    render: (a) => <span className="celula-dupla__principal">{a.NomeOficina}</span>,
+  },
+  { chave: 'NomePlano', titulo: 'Plano' },
+  {
+    chave: 'DataInicio',
+    titulo: 'Início',
+    largura: '130px',
+    valorOrdenacao: (a) => tempo(a.DataInicio),
+    render: (a) => formatarData(a.DataInicio),
+  },
+  {
+    chave: 'DataFim',
+    titulo: 'Vencimento',
+    largura: '170px',
+    valorOrdenacao: (a) => tempo(a.DataFim),
+    render: (a) => {
+      const nota = notaVencimento(a);
+      return (
+        <>
+          {formatarData(a.DataFim)}
+          {nota && <span className={`celula-nota${nota.aviso ? ' celula-nota--aviso' : ''}`}>{nota.texto}</span>}
+        </>
+      );
+    },
+  },
+  {
+    chave: 'Status',
+    titulo: 'Status',
+    largura: '130px',
+    render: (a) => <StatusBadge status={a.Status} />,
+  },
+];
+
+// Busca pelo nome da oficina + filtros de plano e situação
+const filtrar = (a, { termo, plano, situacao }) =>
+  contem(a.NomeOficina, termo) && (!plano || a.NomePlano === plano) && passaSituacao(a, situacao);
+
+// Assinaturas são somente leitura: o ciclo de pagamento é da oficina (checkout)
 const AssinaturasPage = () => {
-  const [assinaturas, setAssinaturas] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+  const navigate = useNavigate();
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [planoFiltro, setPlanoFiltro] = useState('todos');
-  const [pagina, setPagina] = useState(1);
-
-  const ultimoScroll = useRef(0);
-
-  useEffect(() => {
-    const carregar = async () => {
-      setCarregando(true);
-      const dados = await listarAssinaturasAdmin();
-      setAssinaturas(dados);
-      setCarregando(false);
-    };
-    carregar();
-  }, []);
-
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro, planoFiltro]);
-
-  const planosDisponiveis = [...new Set(assinaturas.map((a) => a.NomePlano))];
-  const statusDisponiveis = [...new Set(assinaturas.map((a) => a.Status))];
-
-  const filtradas = assinaturas.filter((a) => {
-    const passaBusca = a.NomeOficina.toLowerCase().includes(busca.toLowerCase());
-    const passaStatus = statusFiltro === 'todos' ? true : a.Status === statusFiltro;
-    const passaPlano = planoFiltro === 'todos' ? true : a.NomePlano === planoFiltro;
-    return passaBusca && passaStatus && passaPlano;
+  const lista = useListaCatalogo({
+    carregar: listarAssinaturasAdmin,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'DataInicio', direcao: 'desc' },
+    porPagina: 20,
+    filtrosExtras: { plano: '', situacao: '' },
   });
 
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtradas.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
+  const { busca, plano } = lista.filtros;
+
+  // Planos que aparecem nas assinaturas (para o select)
+  const planos = useMemo(
+    () => [...new Set(lista.itens.map((a) => a.NomePlano).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [lista.itens]
   );
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
+  // Contadores das situações, respeitando a busca e o plano escolhidos
+  const contagens = useMemo(() => {
+    const termo = normalizar(busca);
+    const base = lista.itens.filter((a) => filtrar(a, { termo, plano, situacao: '' }));
+    return Object.fromEntries(SITUACOES.map((s) => [s.valor, base.filter((a) => passaSituacao(a, s.valor)).length]));
+  }, [lista.itens, busca, plano]);
 
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
-    }
+  const abrirOficina = (a) => {
+    if (a.IdOficina) navigate(`/oficinas?oficina=${a.IdOficina}`);
   };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={10} colunas={5} />;
+
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
+    }
+
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={Receipt}
+          titulo="Nenhuma assinatura ainda"
+          descricao="As assinaturas aparecem aqui quando uma oficina escolhe um plano no app."
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Assinaturas"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdAssinatura"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          onLinhaClick={abrirOficina}
+          linhaInativa={(a) => a.Status === 'EXPIRADA' || a.Status === 'CANCELADA'}
+          acoes={(a) => [{ rotulo: 'Ver oficina', icone: Store, onClick: () => abrirOficina(a), oculto: !a.IdOficina }]}
+          vazio={
+            <EmptyState
+              icone={Receipt}
+              titulo="Nenhuma assinatura encontrada"
+              descricao="Tente outra busca ou mude os filtros."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="assinaturas"
+        />
+      </>
+    );
+  };
 
   return (
     <div>
-      <div className="crud-header">
-        <h1>Assinaturas</h1>
-      </div>
+      <PageHeader
+        titulo="Assinaturas"
+        subtitulo="Planos contratados pelas oficinas. Clique numa linha para abrir a oficina."
+      />
 
-      <div className="filtro-bar-larga">
-        <input
-          type="text"
-          className="filtro-busca"
-          placeholder="Buscar por nome da oficina..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-        <select className="filtro-status" value={planoFiltro} onChange={(e) => setPlanoFiltro(e.target.value)}>
-          <option value="todos">Todos os planos</option>
-          {planosDisponiveis.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-        <select className="filtro-status" value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}>
-          <option value="todos">Todos os status</option>
-          {statusDisponiveis.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-      </div>
-
-      {filtradas.length === 0 ? (
-        <p className="empty-state">Nenhuma assinatura encontrada.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Oficina</th>
-                <th>Plano</th>
-                <th>Início</th>
-                <th>Fim</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((a) => (
-                <tr key={a.IdAssinatura}>
-                  <td>{a.NomeOficina}</td>
-                  <td>{a.NomePlano}</td>
-                  <td>{formatarData(a.DataInicio)}</td>
-                  <td>{formatarData(a.DataFim)}</td>
-                  <td>
-                    <span className={`status-badge ${STATUS_BADGE[a.Status] || 'inativo'}`}>{a.Status}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
+      {!lista.carregando && lista.itens.length > 0 && (
+        <div className="filtro-situacao" role="group" aria-label="Filtrar por situação">
+          {SITUACOES.map((s) => {
+            const ativo = lista.filtros.situacao === s.valor;
+            return (
+              <button
+                key={s.valor || 'todas'}
+                type="button"
+                className={`filtro-situacao__chip${ativo ? ' filtro-situacao__chip--ativo' : ''}${
+                  s.valor === 'vencendo' && contagens.vencendo > 0 ? ' filtro-situacao__chip--alerta' : ''
+                }`}
+                aria-pressed={ativo}
+                onClick={() => lista.mudarFiltro('situacao', s.valor)}
+              >
+                {s.rotulo}
+                <span className="filtro-situacao__contador">{contagens[s.valor]}</span>
+              </button>
+            );
+          })}
         </div>
       )}
+
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
+        placeholder="Buscar por oficina..."
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+      >
+        <FiltroSelect rotulo="Plano" valor={lista.filtros.plano} onChange={(v) => lista.mudarFiltro('plano', v)}>
+          <option value="">Todos os planos</option>
+          {planos.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </FiltroSelect>
+      </BarraFiltros>
+
+      {renderConteudo()}
     </div>
   );
 };

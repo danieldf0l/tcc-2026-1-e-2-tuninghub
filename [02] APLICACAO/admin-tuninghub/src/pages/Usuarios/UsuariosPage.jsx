@@ -1,135 +1,195 @@
-import { useEffect, useState, useRef } from 'react';
+import { useMemo } from 'react';
+import { Copy, Mail, Power, RotateCcw, Users } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmContext';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { mensagemErro } from '../../utils/erroApi';
+import { contem } from '../../utils/texto';
+import { diasAte, formatarData, iniciais } from '../../utils/formatadores';
+import PageHeader from '../../components/ui/PageHeader';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
-import FiltroBar from '../../components/ui/FiltroBar';
+import BarraFiltros, { FiltroSelect, FiltroStatus } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
 import { listarUsuariosAdmin, desativarUsuario, reativarUsuario } from '../../api/usuarioService';
 
-const ITEMS_POR_PAGINA = 10;
+const COLUNAS = [
+  {
+    chave: 'Nome',
+    titulo: 'Usuário',
+    render: (u) => (
+      <div className="celula-avatar">
+        <span className="celula-avatar__iniciais" aria-hidden="true">
+          {iniciais(u.Nome)}
+        </span>
+        <div className="celula-dupla">
+          <span className="celula-dupla__principal">{u.Nome}</span>
+          <span className="celula-dupla__secundario">{u.Email}</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    chave: 'DataCriacao',
+    titulo: 'Cadastro',
+    largura: '160px',
+    valorOrdenacao: (u) => (u.DataCriacao ? new Date(u.DataCriacao).getTime() : null),
+    render: (u) => formatarData(u.DataCriacao),
+  },
+  {
+    chave: 'Ativo',
+    titulo: 'Status',
+    largura: '130px',
+    valorOrdenacao: (u) => (u.Ativo ? 1 : 0),
+    render: (u) => <StatusBadge status={u.Ativo ? 'ativo' : 'inativo'} />,
+  },
+];
+
+// Busca por nome ou e-mail + período de cadastro (últimos N dias)
+const filtrar = (u, { termo, periodo }) => {
+  const passaBusca = contem(u.Nome, termo) || contem(u.Email, termo);
+  const passaPeriodo = !periodo || (u.DataCriacao && -diasAte(u.DataCriacao) <= Number(periodo));
+  return passaBusca && passaPeriodo;
+};
 
 const UsuariosPage = () => {
-  const [usuarios, setUsuarios] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+  const toast = useToast();
+  const confirmar = useConfirm();
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [pagina, setPagina] = useState(1);
-
-  const ultimoScroll = useRef(0);
-
-  const carregar = async () => {
-    setCarregando(true);
-    const dados = await listarUsuariosAdmin();
-    setUsuarios(dados);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregar();
-  }, []);
-
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro]);
-
-  const handleToggleStatus = async (usuario) => {
-    const confirmar = window.confirm(
-      usuario.Ativo
-        ? `Desativar a conta de "${usuario.Nome}"? Ele perde acesso ao login imediatamente.`
-        : `Reativar a conta de "${usuario.Nome}"?`
-    );
-    if (!confirmar) return;
-
-    if (usuario.Ativo) {
-      await desativarUsuario(usuario.IdUsuario);
-    } else {
-      await reativarUsuario(usuario.IdUsuario);
-    }
-    await carregar();
-  };
-
-  const filtrados = usuarios.filter((u) => {
-    const termo = busca.toLowerCase();
-    const passaBusca = u.Nome.toLowerCase().includes(termo) || u.Email.toLowerCase().includes(termo);
-    const passaStatus =
-      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!u.Ativo : !u.Ativo;
-    return passaBusca && passaStatus;
+  const lista = useListaCatalogo({
+    carregar: listarUsuariosAdmin,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'DataCriacao', direcao: 'desc' },
+    porPagina: 20,
+    filtrosExtras: { periodo: '' },
   });
 
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtrados.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
-  );
+  // Resumo do cabeçalho: total e novos nos últimos 30 dias
+  const resumo = useMemo(() => {
+    const novos = lista.itens.filter((u) => u.DataCriacao && -diasAte(u.DataCriacao) <= 30).length;
+    return { total: lista.itens.length, novos };
+  }, [lista.itens]);
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
-
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
+  const copiarEmail = async (usuario) => {
+    try {
+      await navigator.clipboard.writeText(usuario.Email);
+      toast.info('E-mail copiado.');
+    } catch {
+      toast.erro('Não foi possível copiar.');
     }
   };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+  const alternarStatus = async (usuario) => {
+    if (usuario.Ativo) {
+      const ok = await confirmar({
+        titulo: `Desativar "${usuario.Nome}"?`,
+        mensagem: 'O usuário perde o acesso ao app na hora. Dá para reativar depois.',
+        textoConfirmar: 'Desativar usuário',
+        perigo: true,
+      });
+      if (!ok) return;
+    }
+
+    try {
+      if (usuario.Ativo) await desativarUsuario(usuario.IdUsuario);
+      else await reativarUsuario(usuario.IdUsuario);
+      await lista.recarregar();
+      toast.sucesso(`Usuário "${usuario.Nome}" ${usuario.Ativo ? 'desativado' : 'reativado'}.`);
+    } catch (error) {
+      toast.erro(mensagemErro(error, 'Não foi possível alterar o status do usuário.'));
+    }
+  };
+
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={10} colunas={3} />;
+
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
+    }
+
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={Users}
+          titulo="Nenhum usuário cadastrado"
+          descricao="Os entusiastas se cadastram pelo app. Eles aparecem aqui depois do cadastro."
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Usuários"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdUsuario"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          linhaInativa={(u) => !u.Ativo}
+          acoes={(u) => [
+            { rotulo: 'Copiar e-mail', icone: Copy, onClick: () => copiarEmail(u) },
+            { rotulo: 'Enviar e-mail', icone: Mail, onClick: () => (window.location.href = `mailto:${u.Email}`) },
+            { rotulo: 'Desativar usuário', icone: Power, onClick: () => alternarStatus(u), perigo: true, oculto: !u.Ativo },
+            { rotulo: 'Reativar usuário', icone: RotateCcw, onClick: () => alternarStatus(u), oculto: !!u.Ativo },
+          ]}
+          vazio={
+            <EmptyState
+              icone={Users}
+              titulo="Nenhum usuário encontrado"
+              descricao="Tente outra busca ou mude os filtros."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="usuários"
+        />
+      </>
+    );
+  };
+
+  const subtitulo = lista.carregando
+    ? 'Entusiastas cadastrados no app.'
+    : `${resumo.total} ${resumo.total === 1 ? 'usuário' : 'usuários'} · ${resumo.novos} ${
+        resumo.novos === 1 ? 'novo' : 'novos'
+      } nos últimos 30 dias`;
 
   return (
     <div>
-      <div className="crud-header">
-        <h1>Usuários</h1>
-      </div>
+      <PageHeader titulo="Usuários" subtitulo={subtitulo} />
 
-      <FiltroBar
-        busca={busca}
-        onBuscaChange={setBusca}
-        status={statusFiltro}
-        onStatusChange={setStatusFiltro}
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
         placeholder="Buscar por nome ou e-mail..."
-      />
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+      >
+        <FiltroSelect rotulo="Período de cadastro" valor={lista.filtros.periodo} onChange={(v) => lista.mudarFiltro('periodo', v)}>
+          <option value="">Qualquer data</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+        </FiltroSelect>
+        <FiltroStatus valor={lista.filtros.status} onChange={(v) => lista.mudarFiltro('status', v)} />
+      </BarraFiltros>
 
-      {filtrados.length === 0 ? (
-        <p className="empty-state">Nenhum usuário encontrado.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Cadastrado em</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((u) => (
-                <tr key={u.IdUsuario} className={!u.Ativo ? 'inativo' : ''}>
-                  <td>{u.Nome}</td>
-                  <td>{u.Email}</td>
-                  <td>{new Date(u.DataCriacao).toLocaleDateString('pt-BR')}</td>
-                  <td>
-                    <span className={`status-badge ${u.Ativo ? 'ativo' : 'inativo'}`}>
-                      {u.Ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="crud-actions">
-                      <button className="link-action" onClick={() => handleToggleStatus(u)}>
-                        {u.Ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
-        </div>
-      )}
+      {renderConteudo()}
     </div>
   );
 };

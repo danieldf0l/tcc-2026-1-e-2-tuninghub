@@ -22,3 +22,21 @@ export const mascaraCep = (valor) => {
 };
 
 export const formatarData = (data) => (data ? new Date(data).toLocaleDateString('pt-BR') : '—');
+
+// "Ana Paula Souza" -> "AS"
+export const iniciais = (nome) => {
+  const partes = String(nome ?? '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '?';
+  const primeira = partes[0][0];
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : '';
+  return (primeira + ultima).toUpperCase();
+};
+
+// Dias inteiros entre hoje e a data (negativo = já passou)
+export const diasAte = (data) => {
+  const alvo = new Date(data);
+  const hoje = new Date();
+  alvo.setHours(0, 0, 0, 0);
+  hoje.setHours(0, 0, 0, 0);
+  return Math.round((alvo - hoje) / 86400000);
+};

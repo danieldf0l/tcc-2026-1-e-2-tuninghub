@@ -1,0 +1,57 @@
+/* ---------- Chips de situação (filtro com contador) ---------- */
+.filtro-situacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.filtro-situacao__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), background-color var(--duration-fast), color var(--duration-fast);
+}
+
+.filtro-situacao__chip:hover {
+  border-color: var(--placeholder);
+  color: var(--text);
+}
+
+.filtro-situacao__chip--ativo,
+.filtro-situacao__chip--ativo:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--text);
+}
+
+.filtro-situacao__contador {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--neutral-soft);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.filtro-situacao__chip--alerta .filtro-situacao__contador {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.filtro-situacao__chip--ativo .filtro-situacao__contador {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
