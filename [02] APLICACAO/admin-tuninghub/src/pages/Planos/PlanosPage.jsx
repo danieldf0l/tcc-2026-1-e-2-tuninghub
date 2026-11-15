@@ -1,8 +1,26 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
+import { BadgeDollarSign, Link2, Pencil, Plus, Power, RotateCcw } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { useListaCatalogo } from '../../hooks/useListaCatalogo';
+import { useConfirmarDescarte } from '../../hooks/useConfirmarDescarte';
+import { useAlternarStatus } from '../../hooks/useAlternarStatus';
+import { mensagemErro } from '../../utils/erroApi';
+import { contem } from '../../utils/texto';
+import PageHeader from '../../components/ui/PageHeader';
 import Modal from '../../components/ui/Modal';
+import DataTable from '../../components/ui/DataTable';
 import Pagination from '../../components/ui/Pagination';
-import FiltroBar from '../../components/ui/FiltroBar';
+import BarraFiltros, { FiltroStatus } from '../../components/ui/BarraFiltros';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Campo';
+import { Badge, StatusBadge } from '../../components/ui/Badge';
+import { SkeletonTabela } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import ErrorState from '../../components/ui/ErrorState';
+import Aviso from '../../components/ui/Aviso';
 import VincularProdutoModal from './VincularProdutoModal';
+import { apelidoDuracao, ehGratuito, formatarMoeda } from './planoUtils';
 import {
   listarPlanosAdmin,
   criarPlano,
@@ -12,302 +30,395 @@ import {
   reativarPlano,
 } from '../../api/planoService';
 
-const ITEMS_POR_PAGINA = 10;
+const COLUNAS = [
+  {
+    chave: 'Nome',
+    titulo: 'Plano',
+    render: (p) => (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        <span style={{ fontWeight: 'var(--font-medium)' }}>{p.Nome}</span>
+        {ehGratuito(p) && <Badge>Gratuito</Badge>}
+      </span>
+    ),
+  },
+  {
+    chave: 'Valor',
+    titulo: 'Valor',
+    valorOrdenacao: (p) => Number(p.Valor),
+    render: (p) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatarMoeda(p.Valor)}</span>,
+  },
+  {
+    chave: 'DuracaoDias',
+    titulo: 'Duração',
+    valorOrdenacao: (p) => Number(p.DuracaoDias),
+    render: (p) => (
+      <span>
+        {p.DuracaoDias} dias
+        {apelidoDuracao(p.DuracaoDias) && (
+          <span style={{ color: 'var(--text-secondary)' }}> · {apelidoDuracao(p.DuracaoDias)}</span>
+        )}
+      </span>
+    ),
+  },
+  {
+    chave: 'IdProdutoExterno',
+    titulo: 'AbacatePay',
+    valorOrdenacao: (p) => (p.IdProdutoExterno ? 1 : 0),
+    render: (p) =>
+      p.IdProdutoExterno ? (
+        <span title={`Produto: ${p.IdProdutoExterno}`}>
+          <StatusBadge status="vinculado" />
+        </span>
+      ) : ehGratuito(p) ? (
+        <span style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>Não precisa</span>
+      ) : (
+        <StatusBadge status="nao_vinculado" />
+      ),
+  },
+  {
+    chave: 'Ativo',
+    titulo: 'Status',
+    valorOrdenacao: (p) => (p.Ativo ? 1 : 0),
+    render: (p) => <StatusBadge status={p.Ativo ? 'ativo' : 'inativo'} />,
+  },
+];
 
-const formatarValor = (valor) =>
-  Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const filtrar = (p, { termo }) => contem(p.Nome, termo);
+
+const FORM_VAZIO = { nome: '', valor: '', duracaoDias: '', idProdutoExterno: '' };
 
 const PlanosPage = () => {
-  const [planos, setPlanos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+  const { admin } = useAuth();
+  // Editar, desativar e reativar são só do ADMIN_MASTER no backend; criar e vincular são de qualquer admin
+  const ehMaster = admin?.role === 'ADMIN_MASTER';
+  const toast = useToast();
+  const podeDescartar = useConfirmarDescarte();
 
-  const [busca, setBusca] = useState('');
-  const [statusFiltro, setStatusFiltro] = useState('todos');
-  const [pagina, setPagina] = useState(1);
+  const lista = useListaCatalogo({
+    carregar: listarPlanosAdmin,
+    filtrar,
+    colunas: COLUNAS,
+    ordenacaoPadrao: { chave: 'Valor', direcao: 'asc' },
+  });
 
-  const [modalAberto, setModalAberto] = useState(false);
-  const [editando, setEditando] = useState(null);
-  const [nome, setNome] = useState('');
-  const [valor, setValor] = useState('');
-  const [duracaoDias, setDuracaoDias] = useState('');
-  const [idProdutoExternoInicial, setIdProdutoExternoInicial] = useState('');
-  const [erro, setErro] = useState('');
+  const alternarStatus = useAlternarStatus(lista.recarregar);
+  const [vinculando, setVinculando] = useState(null);
+
+  // Plano pago e ativo sem produto no AbacatePay: o checkout dele não funciona
+  const pagosSemVinculo = lista.itens.filter((p) => p.Ativo && !ehGratuito(p) && !p.IdProdutoExterno);
+
+  // ---------- Criar / editar ----------
+  const [modal, setModal] = useState(null); // null | { editando: plano | null, inicial: {...} }
+  const [form, setForm] = useState(FORM_VAZIO);
+  const [erros, setErros] = useState({});
   const [salvando, setSalvando] = useState(false);
 
-  const [planoVinculando, setPlanoVinculando] = useState(null);
-
-  const ultimoScroll = useRef(0);
-
-  const carregar = async () => {
-    setCarregando(true);
-    const dados = await listarPlanosAdmin();
-    setPlanos(dados);
-    setCarregando(false);
-  };
-
-  useEffect(() => {
-    carregar();
-  }, []);
-
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, statusFiltro]);
+  const alterado =
+    !!modal &&
+    Object.keys(FORM_VAZIO).some((campo) => String(form[campo]).trim() !== String(modal.inicial[campo]).trim());
 
   const abrirCriar = () => {
-    setEditando(null);
-    setNome('');
-    setValor('');
-    setDuracaoDias('');
-    setIdProdutoExternoInicial('');
-    setErro('');
-    setModalAberto(true);
+    setModal({ editando: null, inicial: FORM_VAZIO });
+    setForm(FORM_VAZIO);
+    setErros({});
   };
 
   const abrirEditar = (plano) => {
-    setEditando(plano);
-    setNome(plano.Nome);
-    setDuracaoDias(String(plano.DuracaoDias));
-    setErro('');
-    setModalAberto(true);
+    const inicial = {
+      nome: plano.Nome,
+      valor: String(plano.Valor),
+      duracaoDias: String(plano.DuracaoDias),
+      idProdutoExterno: '',
+    };
+    setModal({ editando: plano, inicial });
+    setForm(inicial);
+    setErros({});
+  };
+
+  const mudarCampo = (campo, valor) => {
+    setForm((atual) => ({ ...atual, [campo]: valor }));
+    setErros((atual) => ({ ...atual, [campo]: undefined }));
+  };
+
+  const fecharModal = async () => {
+    if (await podeDescartar(alterado)) setModal(null);
+  };
+
+  const validar = () => {
+    const novos = {};
+    if (!form.nome.trim()) novos.nome = 'Informe o nome do plano.';
+    if (!modal.editando) {
+      const valor = Number(String(form.valor).replace(',', '.'));
+      if (form.valor === '' || Number.isNaN(valor) || valor < 0) novos.valor = 'Informe um valor igual ou maior que zero.';
+    }
+    const dias = Number(form.duracaoDias);
+    if (!Number.isInteger(dias) || dias < 1) novos.duracaoDias = 'Informe um número inteiro de dias (mínimo 1).';
+    setErros(novos);
+    return Object.keys(novos).length === 0;
   };
 
   const handleSalvar = async (e) => {
     e.preventDefault();
-    setErro('');
+    if (!validar()) return;
+
+    const nome = form.nome.trim();
+    const duracaoDias = Number(form.duracaoDias);
+
     setSalvando(true);
     try {
-      if (editando) {
-        await atualizarPlano(editando.IdPlano, nome, Number(duracaoDias));
-      } else {
-        const resultado = await criarPlano(nome, valor === '' ? 0 : Number(valor), Number(duracaoDias));
-        const idNovoPlano = resultado.plano?.id;
-
-        if (idProdutoExternoInicial.trim()) {
-          try {
-            await vincularProdutoExterno(idNovoPlano, idProdutoExternoInicial.trim());
-          } catch (erroVinculo) {
-            setModalAberto(false);
-            await carregar();
-            alert(
-              `O plano "${nome}" foi criado, mas houve um erro ao vincular o AbacatePay: ${
-                erroVinculo.response?.data?.message || 'tente novamente pela lista.'
-              }`
-            );
-            return;
-          }
-        }
+      if (modal.editando) {
+        await atualizarPlano(modal.editando.IdPlano, nome, duracaoDias);
+        toast.sucesso(`Plano "${nome}" atualizado.`);
+        setModal(null);
+        lista.recarregar();
+        return;
       }
-      setModalAberto(false);
-      await carregar();
+
+      const valor = Number(String(form.valor).replace(',', '.'));
+      const resultado = await criarPlano(nome, valor, duracaoDias);
+      const idNovoPlano = resultado?.plano?.id;
+      const idProduto = form.idProdutoExterno.trim();
+      setModal(null);
+
+      // Vínculo opcional: se falhar, o plano já foi criado e o vínculo pode ser feito depois
+      if (idProduto && idNovoPlano) {
+        try {
+          await vincularProdutoExterno(idNovoPlano, idProduto);
+          toast.sucesso(`Plano "${nome}" criado e vinculado ao AbacatePay.`);
+        } catch (erroVinculo) {
+          toast.aviso(
+            `Plano "${nome}" criado, mas o vínculo com o AbacatePay falhou: ${mensagemErro(erroVinculo, 'tente de novo.')}`,
+            {
+              duracao: 10000,
+              acao: {
+                rotulo: 'Vincular agora',
+                onClick: () => setVinculando({ IdPlano: idNovoPlano, Nome: nome, Valor: valor, IdProdutoExterno: null }),
+              },
+            }
+          );
+        }
+      } else {
+        toast.sucesso(`Plano "${nome}" criado.`);
+      }
+      lista.recarregar();
     } catch (error) {
-      setErro(error.response?.data?.message || 'Erro ao salvar plano.');
+      setErros({ nome: mensagemErro(error, 'Erro ao salvar plano.') });
     } finally {
       setSalvando(false);
     }
   };
 
-  const handleToggleStatus = async (plano) => {
-    const confirmar = window.confirm(
-      plano.Ativo
-        ? `Desativar o plano "${plano.Nome}"? Ele some da listagem pública e fica bloqueado para novas assinaturas.`
-        : `Reativar o plano "${plano.Nome}"?`
-    );
-    if (!confirmar) return;
+  const mudarStatus = (p) =>
+    alternarStatus({
+      ativo: !!p.Ativo,
+      rotulo: `Plano "${p.Nome}"`,
+      desativar: () => desativarPlano(p.IdPlano),
+      reativar: () => reativarPlano(p.IdPlano),
+    });
 
-    if (plano.Ativo) {
-      await desativarPlano(plano.IdPlano);
-    } else {
-      await reativarPlano(plano.IdPlano);
-    }
-    await carregar();
-  };
-
-  const filtrados = planos.filter((p) => {
-    const passaBusca = p.Nome.toLowerCase().includes(busca.toLowerCase());
-    const passaStatus =
-      statusFiltro === 'todos' ? true : statusFiltro === 'ativos' ? !!p.Ativo : !p.Ativo;
-    return passaBusca && passaStatus;
-  });
-
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / ITEMS_POR_PAGINA));
-  const paginaSegura = Math.min(pagina, totalPaginas);
-  const itensPagina = filtrados.slice(
-    (paginaSegura - 1) * ITEMS_POR_PAGINA,
-    paginaSegura * ITEMS_POR_PAGINA
+  // ---------- Tela ----------
+  const botaoNovo = (
+    <Button icone={Plus} onClick={abrirCriar}>
+      Novo plano
+    </Button>
   );
 
-  const handleScrollPagina = (e) => {
-    const agora = Date.now();
-    if (agora - ultimoScroll.current < 500) return;
-    if (Math.abs(e.deltaY) < 20) return;
+  const renderConteudo = () => {
+    if (lista.carregando) return <SkeletonTabela linhas={4} colunas={5} />;
 
-    if (e.deltaY > 0 && paginaSegura < totalPaginas) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura + 1);
-    } else if (e.deltaY < 0 && paginaSegura > 1) {
-      ultimoScroll.current = agora;
-      setPagina(paginaSegura - 1);
+    if (lista.erro && lista.itens.length === 0) {
+      return <ErrorState descricao={lista.erro} onTentarNovamente={lista.tentarNovamente} />;
     }
-  };
 
-  if (carregando) return <p className="empty-state">Carregando...</p>;
+    if (lista.itens.length === 0) {
+      return (
+        <EmptyState
+          icone={BadgeDollarSign}
+          titulo="Nenhum plano cadastrado"
+          descricao="Crie o plano gratuito e os planos pagos que as oficinas podem assinar."
+          acao={botaoNovo}
+        />
+      );
+    }
+
+    return (
+      <>
+        <DataTable
+          rotulo="Planos"
+          colunas={COLUNAS}
+          dados={lista.itensPagina}
+          chaveLinha="IdPlano"
+          ordenacao={lista.ordenacao}
+          onOrdenar={lista.setOrdenacao}
+          onLinhaClick={ehMaster ? abrirEditar : undefined}
+          linhaInativa={(p) => !p.Ativo}
+          acoes={(p) => [
+            { rotulo: 'Editar', icone: Pencil, onClick: () => abrirEditar(p), oculto: !ehMaster },
+            {
+              rotulo: p.IdProdutoExterno ? 'Alterar produto AbacatePay' : 'Vincular AbacatePay',
+              icone: Link2,
+              onClick: () => setVinculando(p),
+            },
+            {
+              rotulo: 'Desativar',
+              icone: Power,
+              onClick: () => mudarStatus(p),
+              perigo: true,
+              oculto: !ehMaster || !p.Ativo,
+            },
+            { rotulo: 'Reativar', icone: RotateCcw, onClick: () => mudarStatus(p), oculto: !ehMaster || !!p.Ativo },
+          ]}
+          vazio={
+            <EmptyState
+              icone={BadgeDollarSign}
+              titulo="Nenhum plano encontrado"
+              descricao="Tente outra busca ou mude o filtro de status."
+              acao={
+                <Button variante="secundario" onClick={lista.limparFiltros}>
+                  Limpar filtros
+                </Button>
+              }
+            />
+          }
+        />
+        <Pagination
+          paginaAtual={lista.pagina}
+          totalPaginas={lista.totalPaginas}
+          onChange={lista.irParaPagina}
+          totalItens={lista.totalFiltrados}
+          porPagina={lista.porPagina}
+          rotuloItens="planos"
+        />
+      </>
+    );
+  };
 
   return (
     <div>
-      <div className="crud-header">
-        <h1>Planos</h1>
-        <button className="btn-primary" onClick={abrirCriar}>+ Novo Plano</button>
-      </div>
-
-      <FiltroBar
-        busca={busca}
-        onBuscaChange={setBusca}
-        status={statusFiltro}
-        onStatusChange={setStatusFiltro}
-        placeholder="Buscar plano..."
+      <PageHeader
+        titulo="Planos"
+        subtitulo="Planos que as oficinas assinam. O preço cobrado vem do produto vinculado no AbacatePay."
       />
 
-      {filtrados.length === 0 ? (
-        <p className="empty-state">Nenhum plano encontrado.</p>
-      ) : (
-        <div className="crud-table-wrapper" onWheel={handleScrollPagina}>
-          <table className="crud-table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Valor</th>
-                <th>Duração</th>
-                <th>AbacatePay</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {itensPagina.map((p) => (
-                <tr key={p.IdPlano} className={!p.Ativo ? 'inativo' : ''}>
-                  <td>{p.Nome}</td>
-                  <td>{formatarValor(p.Valor)}</td>
-                  <td>{p.DuracaoDias} dias</td>
-                  <td>
-                    <span className={`status-badge ${p.IdProdutoExterno ? 'ativo' : 'pendente'}`}>
-                      {p.IdProdutoExterno ? 'Vinculado' : 'Não vinculado'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${p.Ativo ? 'ativo' : 'inativo'}`}>
-                      {p.Ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="crud-actions">
-                      <button className="link-action" onClick={() => abrirEditar(p)}>Editar</button>
-                      <button className="link-action" onClick={() => setPlanoVinculando(p)}>
-                        {p.IdProdutoExterno ? 'Alterar produto' : 'Vincular AbacatePay'}
-                      </button>
-                      <button className="link-action" onClick={() => handleToggleStatus(p)}>
-                        {p.Ativo ? 'Desativar' : 'Reativar'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination paginaAtual={paginaSegura} totalPaginas={totalPaginas} onChange={setPagina} />
-        </div>
+      {pagosSemVinculo.length > 0 && (
+        <Aviso
+          tom="aviso"
+          titulo={
+            pagosSemVinculo.length === 1
+              ? `O plano "${pagosSemVinculo[0].Nome}" está sem produto no AbacatePay`
+              : `${pagosSemVinculo.length} planos pagos estão sem produto no AbacatePay`
+          }
+          acao={
+            pagosSemVinculo.length === 1 && (
+              <Button tamanho="sm" variante="secundario" icone={Link2} onClick={() => setVinculando(pagosSemVinculo[0])}>
+                Vincular
+              </Button>
+            )
+          }
+        >
+          {pagosSemVinculo.length === 1
+            ? 'O checkout desse plano não funciona até o produto ser vinculado.'
+            : `O checkout não funciona até vincular: ${pagosSemVinculo.map((p) => p.Nome).join(', ')}.`}
+        </Aviso>
       )}
 
-      {modalAberto && (
-        <Modal title={editando ? 'Editar Plano' : 'Novo Plano'} onClose={() => setModalAberto(false)}>
-          <form onSubmit={handleSalvar}>
-            {erro && <div className="form-erro">{erro}</div>}
+      <BarraFiltros
+        busca={lista.busca}
+        onBusca={lista.setBusca}
+        placeholder="Buscar plano..."
+        filtrosAtivos={lista.filtrosAtivos}
+        onLimpar={lista.limparFiltros}
+        acoes={botaoNovo}
+      >
+        <FiltroStatus valor={lista.filtros.status} onChange={(v) => lista.mudarFiltro('status', v)} />
+      </BarraFiltros>
 
-            <div className="form-field">
-              <label htmlFor="nomePlano">Nome</label>
-              <input
-                id="nomePlano"
-                type="text"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                required
-                autoFocus
+      {renderConteudo()}
+
+      {modal && (
+        <Modal title={modal.editando ? 'Editar plano' : 'Novo plano'} onClose={fecharModal}>
+          <form onSubmit={handleSalvar} noValidate>
+            <Input
+              label="Nome"
+              value={form.nome}
+              onChange={(e) => mudarCampo('nome', e.target.value)}
+              erro={erros.nome}
+              placeholder="Ex.: Pro Mensal"
+              required
+              autoFocus
+            />
+
+            {modal.editando ? (
+              <Input
+                label="Valor"
+                value={formatarMoeda(modal.editando.Valor)}
+                disabled
+                readOnly
+                dica="O valor não muda depois de criado. Para mudar o preço, crie um plano novo e desative este."
               />
-            </div>
-
-            {editando ? (
-              <div className="form-field">
-                <label>Valor</label>
-                <div className="form-field-readonly">{formatarValor(editando.Valor)}</div>
-              </div>
             ) : (
-              <div className="form-field">
-                <label htmlFor="valorPlano">Valor (R$)</label>
-                <input
-                  id="valorPlano"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={valor}
-                  onChange={(e) => setValor(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-            {!editando && (
-              <p className="form-hint">
-                O valor é só informativo (exibição no app). O preço realmente cobrado no checkout vem do produto vinculado no AbacatePay.
-              </p>
-            )}
-
-            <div className="form-field">
-              <label htmlFor="duracaoPlano">Duração (dias)</label>
-              <input
-                id="duracaoPlano"
+              <Input
+                label="Valor (R$)"
                 type="number"
-                min="1"
-                value={duracaoDias}
-                onChange={(e) => setDuracaoDias(e.target.value)}
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={form.valor}
+                onChange={(e) => mudarCampo('valor', e.target.value)}
+                erro={erros.valor}
+                placeholder="0,00"
+                dica="Só para exibição no app. O preço cobrado vem do produto no AbacatePay. Use 0 para o plano gratuito."
                 required
               />
-            </div>
-            {editando && (
-              <p className="form-hint">
-                Alterar a duração só afeta novas assinaturas — assinaturas ativas já têm a data de expiração fixada.
-              </p>
             )}
 
-            {!editando && (
-              <div className="form-field">
-                <label htmlFor="produtoExternoInicial">Id do Produto Externo (AbacatePay) — opcional</label>
-                <input
-                  id="produtoExternoInicial"
-                  type="text"
-                  value={idProdutoExternoInicial}
-                  onChange={(e) => setIdProdutoExternoInicial(e.target.value)}
-                  placeholder="Deixe em branco para vincular depois"
-                />
-              </div>
+            <Input
+              label="Duração (dias)"
+              type="number"
+              inputMode="numeric"
+              min="1"
+              step="1"
+              value={form.duracaoDias}
+              onChange={(e) => mudarCampo('duracaoDias', e.target.value)}
+              erro={erros.duracaoDias}
+              placeholder="Ex.: 30 ou 365"
+              dica={
+                modal.editando
+                  ? 'Só afeta novas assinaturas. As ativas mantêm a data de vencimento.'
+                  : '30 para mensal, 365 para anual.'
+              }
+              required
+            />
+
+            {!modal.editando && (
+              <Input
+                label="Id do produto no AbacatePay"
+                value={form.idProdutoExterno}
+                onChange={(e) => mudarCampo('idProdutoExterno', e.target.value)}
+                placeholder="Opcional: pode vincular depois"
+                dica="Necessário para planos pagos. Copie do painel do AbacatePay."
+              />
             )}
 
             <div className="form-actions">
-              <button type="button" className="btn-secondary" onClick={() => setModalAberto(false)}>
+              <Button variante="secundario" onClick={fecharModal}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn-primary" disabled={salvando}>
-                {salvando ? 'Salvando...' : 'Salvar'}
-              </button>
+              </Button>
+              <Button type="submit" carregando={salvando} disabled={!alterado}>
+                {modal.editando ? 'Salvar' : 'Criar plano'}
+              </Button>
             </div>
           </form>
         </Modal>
       )}
 
-      {planoVinculando && (
+      {vinculando && (
         <VincularProdutoModal
-          plano={planoVinculando}
-          onClose={() => setPlanoVinculando(null)}
+          plano={vinculando}
+          onClose={() => setVinculando(null)}
           onSalvo={() => {
-            setPlanoVinculando(null);
-            carregar();
+            setVinculando(null);
+            lista.recarregar();
           }}
         />
       )}
