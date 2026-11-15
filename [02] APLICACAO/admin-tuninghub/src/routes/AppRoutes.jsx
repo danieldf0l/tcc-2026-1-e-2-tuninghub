@@ -12,6 +12,7 @@ import OficinasPage from '../pages/Oficinas/OficinasPage';
 import AdminsPage from '../pages/Admins/AdminsPage';
 import UsuariosPage from '../pages/Usuarios/UsuariosPage';
 import AssinaturasPage from '../pages/Assinaturas/AssinaturasPage';
+import AuditoriaPage from '../pages/Auditoria/AuditoriaPage';
 
 // Vitrine de componentes: só em "npm run dev". No build de produção some por completo.
 const Vitrine = import.meta.env.DEV ? lazy(() => import('../pages/Vitrine/Vitrine')) : null;
@@ -47,6 +48,7 @@ const AppRoutes = () => (
       <Route path="/admins" element={<AdminsPage />} />
       <Route path="/usuarios" element={<UsuariosPage />} />
       <Route path="/assinaturas" element={<AssinaturasPage />} />
+      <Route path="/auditoria" element={<AuditoriaPage />} />
     </Route>
 
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

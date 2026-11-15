@@ -7,6 +7,7 @@ import {
   PanelLeftOpen,
   Palette,
   Receipt,
+  History,
   ShieldCheck,
   Store,
   Users,
@@ -44,7 +45,10 @@ const SECOES = [
   {
     titulo: 'Sistema',
     somenteMaster: true,
-    links: [{ to: '/admins', rotulo: 'Administradores', icone: ShieldCheck }],
+    links: [
+      { to: '/admins', rotulo: 'Administradores', icone: ShieldCheck },
+      { to: '/auditoria', rotulo: 'Auditoria', icone: History },
+    ],
   },
 ];
 

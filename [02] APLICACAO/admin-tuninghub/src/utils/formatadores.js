@@ -40,3 +40,30 @@ export const diasAte = (data) => {
   hoje.setHours(0, 0, 0, 0);
   return Math.round((alvo - hoje) / 86400000);
 };
+
+
+// 15/11/2026 18:32
+export const formatarDataHora = (data) =>
+  data
+    ? new Date(data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+
+// "agora", "há 5 min", "há 3 h", "ontem", "há 4 dias"
+export const tempoRelativo = (data) => {
+  const minutos = Math.floor((Date.now() - new Date(data).getTime()) / 60000);
+  if (minutos < 1) return 'agora';
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `há ${horas} h`;
+  const dias = -diasAte(data);
+  if (dias <= 1) return 'ontem';
+  return `há ${dias} dias`;
+};
+
+// Data local no formato da API (AAAA-MM-DD), sem passar por UTC
+export const dataIso = (data = new Date()) => {
+  const d = new Date(data);
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+};

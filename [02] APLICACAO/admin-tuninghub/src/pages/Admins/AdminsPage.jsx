@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Pencil, Plus, Power, RotateCcw, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { History, Pencil, Plus, Power, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -35,6 +36,7 @@ const AdminsPage = () => {
   const { admin: logado } = useAuth();
   const toast = useToast();
   const confirmar = useConfirm();
+  const navigate = useNavigate();
   const ehMaster = logado?.role === 'ADMIN_MASTER';
   const ehVoce = useCallback((a) => String(a.IdAdmin) === String(logado?.id), [logado?.id]);
 
@@ -138,6 +140,7 @@ const AdminsPage = () => {
             ehMaster
               ? (a) => [
                   { rotulo: 'Editar', icone: Pencil, onClick: () => abrirEditar(a) },
+                  { rotulo: 'Ver atividade', icone: History, onClick: () => navigate(`/auditoria?admin=${a.IdAdmin}`) },
                   {
                     rotulo: ehVoce(a) ? 'Você não pode se desativar' : 'Desativar',
                     icone: Power,
