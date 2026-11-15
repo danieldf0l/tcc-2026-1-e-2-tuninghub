@@ -1,4 +1,5 @@
 import { AlertCircle, RotateCw } from 'lucide-react';
+import { Button } from './Button';
 import './EmptyState.css';
 
 /*
@@ -19,10 +20,9 @@ const ErrorState = ({
     {descricao && <p className="estado-vazio__descricao">{descricao}</p>}
     {onTentarNovamente && (
       <div className="estado-vazio__acao">
-        <button type="button" className="btn-secondary estado-vazio__botao" onClick={onTentarNovamente}>
-          <RotateCw size={16} aria-hidden="true" />
+        <Button variante="secundario" icone={RotateCw} onClick={onTentarNovamente}>
           Tentar de novo
-        </button>
+        </Button>
       </div>
     )}
   </div>

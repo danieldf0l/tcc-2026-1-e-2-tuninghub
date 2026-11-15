@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { Button } from './Button';
 import './ConfirmDialog.css';
 
 /*
@@ -66,12 +67,12 @@ const ConfirmDialog = ({
       </div>
 
       <div className="confirmar__acoes">
-        <button ref={cancelarRef} type="button" className="btn-secondary" onClick={() => onResponder(false)}>
+        <Button ref={cancelarRef} variante="secundario" onClick={() => onResponder(false)}>
           {textoCancelar}
-        </button>
-        <button ref={confirmarRef} type="button" className="btn-primary" onClick={() => onResponder(true)}>
+        </Button>
+        <Button ref={confirmarRef} onClick={() => onResponder(true)}>
           {textoConfirmar}
-        </button>
+        </Button>
       </div>
     </dialog>
   );

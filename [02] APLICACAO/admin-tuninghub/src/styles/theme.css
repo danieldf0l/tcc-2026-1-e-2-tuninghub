@@ -1,7 +1,0 @@
-:root {
-  --bg-primary: var(--background);
-  --bg-secondary: var(--surface);
-  --text-primary: var(--text);
-  --accent: var(--primary);
-  --accent-hover: var(--primary-pressed);
-}

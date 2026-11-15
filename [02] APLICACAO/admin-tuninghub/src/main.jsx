@@ -9,8 +9,7 @@ import App from './App.jsx';
 import '@fontsource-variable/inter';
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/theme.css';
-import './styles/crud.css';
+import './styles/formularios.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
