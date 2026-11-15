@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { View, TextInput, Text, Pressable, StyleSheet } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { useTheme } from '../theme/ThemeContext';
+import { useScreenContainer } from './ScreenContainer';
 
 export default function Input({ label, secureText, error, Icone, onFocus, onBlur, ...props }) {
   const { colors, typography, fonts, layout, radius } = useTheme();
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [focado, setFocado] = useState(false);
+  const { garantirCampoVisivel } = useScreenContainer();
 
   const temErro = !!error;
   const mensagemErro = typeof error === 'string' ? error : null;
@@ -57,6 +59,7 @@ export default function Input({ label, secureText, error, Icone, onFocus, onBlur
           autoCapitalize="none"
           onFocus={(e) => {
             setFocado(true);
+            garantirCampoVisivel();
             onFocus?.(e);
           }}
           onBlur={(e) => {
