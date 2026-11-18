@@ -45,6 +45,15 @@ class AssinaturaController {
     next(error);
   }
 };
+
+  cancelarMinha = async (req, res, next) => {
+    try {
+      const resultado = await AssinaturaService.cancelarMinhaAssinatura(req.body, req.usuarioLogado);
+      res.status(200).json(resultado);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default new AssinaturaController();

@@ -11,5 +11,6 @@ router.post('/gratuita', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MA
 router.post('/checkout', verificarToken, checkRole(ROLES.OFICINA, ROLES.ADMIN_MASTER, ROLES.ADMIN), AssinaturaController.checkout);
 router.post('/:id/confirmar-pagamento', verificarToken, AssinaturaController.confirmarPagamento);
 router.get('/minha', verificarToken, checkRole(ROLES.OFICINA), AssinaturaController.minhaAssinatura);
+router.post('/minha/cancelar', verificarToken, checkRole(ROLES.OFICINA), AssinaturaController.cancelarMinha);
 
 export default router;
