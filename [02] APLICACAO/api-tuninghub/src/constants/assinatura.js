@@ -1,0 +1,4 @@
+export const DIAS_RENOVACAO_ANTECIPADA = 7;
+export const DIAS_ARREPENDIMENTO = 7;
+export const PERCENTUAL_MULTA_RESCISORIA = 0; // 0 = sem multa
+export const CONFIRMACAO_CANCELAMENTO = 'CANCELAR';

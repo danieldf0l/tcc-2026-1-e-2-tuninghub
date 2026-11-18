@@ -4,6 +4,8 @@ import PlanoRepository from '../repositories/plano.repository.js';
 import AbacatePayService from './abacatePay.service.js';
 import { ValidationError, ConflictError, NotFoundError, ForbiddenError } from '../errors/AppError.js';
 import { ROLES } from '../constants/roles.js';
+import { DIAS_RENOVACAO_ANTECIPADA, CONFIRMACAO_CANCELAMENTO } from '../constants/assinatura.js';
+import { calcularReembolsoTotal, formatarReais } from '../utils/reembolso.js';
 
 const STATUS_PAGO = ['PAID', 'COMPLETED'];
 
@@ -18,15 +20,60 @@ const resolverIdOficina = (dados, usuarioLogado) => {
   return ehAdmin ? dados.idOficina : usuarioLogado.id;
 };
 
+// Campos calculados no banco só para as regras; não vão no JSON da assinatura principal.
+const CAMPOS_INTERNOS = ['DiasParaVencer', 'DiasDesdePagamento', 'InicioBR', 'RenovacaoLiberadaEm', 'RenovacaoLiberadaEmBR'];
+const semCamposInternos = (linha) => {
+  const copia = { ...linha };
+  CAMPOS_INTERNOS.forEach((campo) => delete copia[campo]);
+  return copia;
+};
+
+const resumirAssinatura = (linha) => ({
+  IdAssinatura: linha.IdAssinatura,
+  IdPlano: linha.IdPlano,
+  NomePlano: linha.NomePlano,
+  ValorPlano: linha.ValorPlano,
+  DataInicio: linha.DataInicio,
+  DataFim: linha.DataFim,
+  Status: linha.Status,
+});
+
 class AssinaturaService {
   async listarAssinaturas() {
     return await AssinaturaRepository.findAll();
   }
 
+  // GET /assinatura/minha: a fonte do plano no app.
+  // Prioridade da principal: Pro vigente > cobrança PIX pendente > plano gratuito > último Pro vencido (EXPIRADA).
   async buscarPorOficina(idOficina) {
     await AssinaturaRepository.expirarVencidas(idOficina);
-    const [assinatura] = await AssinaturaRepository.findAtivaOuPendentePorOficinaDetalhada(idOficina);
-    return assinatura || null;
+
+    const [pros, pendentes, gratuita] = await Promise.all([
+      AssinaturaRepository.findProVigentesDetalhadas(idOficina, DIAS_RENOVACAO_ANTECIPADA),
+      AssinaturaRepository.findPendentesDetalhadas(idOficina),
+      AssinaturaRepository.findGratuitaVigenteDetalhada(idOficina),
+    ]);
+
+    const pro = pros[0] || null;
+    const renovacaoPaga = pros[1] || null; // renovação já paga que ainda vai começar
+    const pendente = pendentes[0] || null;
+
+    const principal = pro || pendente || gratuita || (await AssinaturaRepository.findUltimaExpiradaPagaDetalhada(idOficina));
+    if (!principal) return null;
+
+    const ehPro = Boolean(pro);
+    const dentroDaJanela = ehPro && Number(pro.DiasParaVencer) <= DIAS_RENOVACAO_ANTECIPADA;
+
+    return {
+      ...semCamposInternos(principal),
+      diasParaVencer: ehPro ? Number(pro.DiasParaVencer) : null,
+      podeRenovar: ehPro ? dentroDaJanela && !renovacaoPaga : principal.Status === 'EXPIRADA',
+      podeCancelar: ehPro || principal === pendente,
+      renovacaoLiberadaEm: ehPro && !dentroDaJanela ? pro.RenovacaoLiberadaEm : null,
+      renovacaoPendente: ehPro && pendente ? resumirAssinatura(pendente) : null,
+      renovacaoPaga: renovacaoPaga ? resumirAssinatura(renovacaoPaga) : null,
+      reembolsoEstimado: ehPro ? calcularReembolsoTotal(pros) : null,
+    };
   }
 
   async criarAssinaturaGratuita(dados, usuarioLogado) {
@@ -80,12 +127,16 @@ class AssinaturaService {
 
     await AssinaturaRepository.expirarVencidas(idOficina);
 
-    const bloqueios = await AssinaturaRepository.findBloqueiaCheckoutPorOficina(idOficina);
-
-    if (bloqueios.some((a) => a.Status === 'ATIVA')) {
-      throw new ConflictError('Esta oficina já possui um plano pago ativo.');
+    // Renovação antecipada: com Pro vigente, só nos últimos DIAS_RENOVACAO_ANTECIPADA dias, e uma de cada vez.
+    const pros = await AssinaturaRepository.findProVigentesDetalhadas(idOficina, DIAS_RENOVACAO_ANTECIPADA);
+    if (pros.length > 1) {
+      throw new ConflictError(`Sua renovação já está paga e começa em ${pros[1].InicioBR}.`);
+    }
+    if (pros.length === 1 && Number(pros[0].DiasParaVencer) > DIAS_RENOVACAO_ANTECIPADA) {
+      throw new ConflictError(`Você poderá renovar a partir de ${pros[0].RenovacaoLiberadaEmBR}.`);
     }
 
+    const bloqueios = await AssinaturaRepository.findBloqueiaCheckoutPorOficina(idOficina);
     const pendente = bloqueios.find((a) => a.Status === 'PENDENTE');
     if (pendente) {
       const reaproveitado = await this.tratarPendente(pendente, idPlano);
@@ -136,13 +187,15 @@ class AssinaturaService {
     return { idAssinatura, checkoutUrl: checkout.url };
   }
 
+  // Pagamento confirmado: ativa. Com Pro vigente, o novo período SOMA ao DataFim atual (renovação antecipada).
+  // Devolve { dataInicio, dataFim, renovacao } ou null se já tinha sido ativada por outra chamada.
   async ativarAssinatura(assinatura) {
     const plano = await PlanoRepository.findById(assinatura.IdPlano);
-    // validade conta a partir da data do pagamento confirmado, não da criação do checkout
-    const hoje = new Date().toISOString().slice(0, 10);
-    const dataFim = somarDias(hoje, plano.DuracaoDias);
-    await AssinaturaRepository.ativarCancelandoAnteriores(assinatura.IdAssinatura, assinatura.IdOficina, dataFim);
-    return dataFim;
+    return await AssinaturaRepository.ativarPagamentoConfirmado({
+      idAssinatura: assinatura.IdAssinatura,
+      idOficina: assinatura.IdOficina,
+      duracaoDias: plano.DuracaoDias,
+    });
   }
 
   async confirmarPagamento(idAssinatura, usuarioLogado) {
@@ -154,7 +207,10 @@ class AssinaturaService {
       throw new ForbiddenError('Você não tem permissão para confirmar esta assinatura.');
     }
 
-    if (assinatura.Status !== 'PENDENTE') {
+    // CANCELADA que nunca foi paga ainda pode ser confirmada: se o PIX foi pago depois do cancelamento,
+    // o cliente pagou, então a assinatura é ativada normalmente.
+    const cobrancaNuncaPaga = assinatura.Status === 'CANCELADA' && !assinatura.DataPagamento && assinatura.IdCobrancaExterna;
+    if (assinatura.Status !== 'PENDENTE' && !cobrancaNuncaPaga) {
       throw new ValidationError(`Esta assinatura já está com status ${assinatura.Status}.`);
     }
 
@@ -164,8 +220,86 @@ class AssinaturaService {
       return { status: checkout.status, message: 'Pagamento ainda não confirmado.' };
     }
 
-    const dataFim = await this.ativarAssinatura(assinatura);
-    return { status: 'ATIVA', dataFim };
+    const ativada = await this.ativarAssinatura(assinatura);
+    if (!ativada) return { status: 'ATIVA', message: 'Esta assinatura já foi ativada.' };
+    return { status: 'ATIVA', ...ativada };
+  }
+
+  // Cancelamento pela própria oficina (POST /assinatura/minha/cancelar). O id vem sempre do token.
+  // - Pro vigente: cancela o período atual e qualquer renovação paga ou pendente, calcula o reembolso (CDC)
+  //   e coloca a oficina no plano gratuito. A API só CALCULA o valor; não estorna nada.
+  // - Só cobrança PIX pendente: cancela a cobrança (e volta ao gratuito se não restar plano nenhum).
+  // - apenasRenovacaoPendente: cancela só o PIX de renovação, mantendo o Pro.
+  async cancelarMinhaAssinatura(dados, usuarioLogado) {
+    const idOficina = usuarioLogado.id;
+    const { confirmacao, apenasRenovacaoPendente = false } = dados || {};
+
+    if (confirmacao !== CONFIRMACAO_CANCELAMENTO) {
+      throw new ValidationError(`Para cancelar, envie confirmacao: "${CONFIRMACAO_CANCELAMENTO}".`);
+    }
+
+    await AssinaturaRepository.expirarVencidas(idOficina);
+
+    const [pros, pendentes, gratuita] = await Promise.all([
+      AssinaturaRepository.findProVigentesDetalhadas(idOficina, DIAS_RENOVACAO_ANTECIPADA),
+      AssinaturaRepository.findPendentesDetalhadas(idOficina),
+      AssinaturaRepository.findGratuitaVigenteDetalhada(idOficina),
+    ]);
+
+    const prosParaCancelar = apenasRenovacaoPendente === true ? [] : pros;
+
+    if (prosParaCancelar.length === 0 && pendentes.length === 0) {
+      if (apenasRenovacaoPendente === true) throw new ConflictError('Você não tem renovação pendente para cancelar.');
+      if (gratuita) throw new ConflictError('O plano gratuito não pode ser cancelado.');
+      throw new ConflictError('Você não tem assinatura ativa ou pendente para cancelar.');
+    }
+
+    // PIX que na verdade já foi pago não é cancelado: ativa (o cliente pagou) e avisa.
+    // Se o AbacatePay estiver fora do ar, o 503 propaga e nada é cancelado às cegas.
+    for (const pendente of pendentes) {
+      if (!pendente.IdCobrancaExterna) continue;
+      const checkout = await AbacatePayService.obterCheckout(pendente.IdCobrancaExterna);
+      if (STATUS_PAGO.includes(checkout.status)) {
+        await this.ativarAssinatura(pendente);
+        throw new ConflictError(
+          'O pagamento desta assinatura já foi confirmado e ela foi ativada. Se quiser encerrá-la, cancele novamente.'
+        );
+      }
+    }
+
+    const reembolso = prosParaCancelar.length > 0 ? calcularReembolsoTotal(prosParaCancelar) : null;
+    const cancelamentos = [
+      ...(reembolso ? reembolso.periodos.map((p) => ({ idAssinatura: p.IdAssinatura, valorReembolso: p.valorReembolso })) : []),
+      ...pendentes.map((p) => ({ idAssinatura: p.IdAssinatura, valorReembolso: null })),
+    ];
+
+    // Sobrou algum plano vigente? Se não, a oficina vai para o gratuito (o app bloqueia oficina sem assinatura).
+    const restaPlano = (apenasRenovacaoPendente === true && pros.length > 0) || Boolean(gratuita);
+    let gratuito = null;
+    if (!restaPlano) {
+      const planoGratuito = await AssinaturaRepository.findPlanoGratuitoAtivo();
+      if (!planoGratuito) {
+        throw new ConflictError('Não há plano gratuito disponível para receber a sua oficina. Contate o suporte.');
+      }
+      gratuito = { idPlano: planoGratuito.IdPlano, duracaoDias: planoGratuito.DuracaoDias };
+    }
+
+    const cancelou = await AssinaturaRepository.cancelarAssinaturas({ idOficina, cancelamentos, gratuito });
+    if (!cancelou) {
+      throw new ConflictError('Sua assinatura mudou durante o cancelamento. Confira o plano e tente novamente.');
+    }
+
+    let message;
+    if (reembolso) {
+      message = reembolso.valor > 0
+        ? `Assinatura Pro cancelada. Valor a ser devolvido: ${formatarReais(reembolso.valor)}. O estorno é tratado pelo suporte.`
+        : 'Assinatura Pro cancelada. Não há valor a devolver.';
+    } else {
+      message = 'Cobrança pendente cancelada.';
+    }
+    if (gratuito) message += ' Sua oficina voltou para o plano gratuito.';
+
+    return { message, reembolso, assinatura: await this.buscarPorOficina(idOficina) };
   }
 }
 
