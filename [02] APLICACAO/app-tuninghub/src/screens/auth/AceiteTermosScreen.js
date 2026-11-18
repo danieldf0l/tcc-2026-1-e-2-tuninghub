@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { aceitarTermos as aceitarTermosUsuario } from '../../api/usuario.api';
 import { aceitarTermosOficina } from '../../api/oficina.api';
 import { getErrorMessage } from '../../utils/errorHandler';
-import { TERMOS_DE_USO, DATA_ATUALIZACAO } from '../../constants/textosLegais';
+import { getDocumentosLegais, DATA_ATUALIZACAO } from '../../constants/textosLegais';
 import ScreenContainer from '../../components/ScreenContainer';
 import ScreenHeader from '../../components/ScreenHeader';
 import AvisoInline from '../../components/AvisoInline';
@@ -20,6 +20,7 @@ export default function AceiteTermosScreen() {
   const [marcado, setMarcado] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
+  const { termos, privacidade } = getDocumentosLegais(tipoConta);
 
   async function confirmar() {
     if (!marcado) {
@@ -64,20 +65,26 @@ export default function AceiteTermosScreen() {
       <ScreenHeader
         Icone={FileText}
         titulo="Atualizamos nossos termos"
-        subtitulo="Para continuar usando o TuningHub, leia e aceite os Termos de Uso abaixo."
+        subtitulo="Para continuar usando o TuningHub, leia e aceite os Termos de Uso e a Política de Privacidade abaixo."
       />
 
       <Text style={[typography.caption, styles.atualizado, { color: colors.textSecondary }]}>
         Atualizado em: {DATA_ATUALIZACAO}
       </Text>
 
-      <DocumentoLegal introducao={TERMOS_DE_USO.introducao} clausulas={TERMOS_DE_USO.clausulas} />
+      <DocumentoLegal introducao={termos.introducao} clausulas={termos.clausulas} />
+
+      <Text style={[typography.h1, styles.segundoDocumento, { color: colors.text }]}>
+        Política de Privacidade
+      </Text>
+      <DocumentoLegal introducao={privacidade.introducao} clausulas={privacidade.clausulas} />
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   atualizado: { marginTop: -12, marginBottom: 20 },
+  segundoDocumento: { marginTop: 8, marginBottom: 16 },
   espaco: { height: 8 },
   espacoPequeno: { height: 4 },
 });

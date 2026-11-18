@@ -31,6 +31,14 @@ export function analisarAssinatura(assinatura) {
     planoVencido: paga && (assinatura?.Status === 'EXPIRADA' || (ativa && !dentroDaValidade)),
     diasRestantes,
     venceEmBreve: temPlanoPro && diasRestantes !== null && diasRestantes <= 7,
+
+    // Regras de renovação/cancelamento: calculadas no backend (GET /assinatura/minha)
+    podeRenovar: !!assinatura?.podeRenovar,
+    podeCancelar: !!assinatura?.podeCancelar,
+    renovacaoLiberadaEm: assinatura?.renovacaoLiberadaEm || null, // 'AAAA-MM-DD'
+    renovacaoPendente: assinatura?.renovacaoPendente || null, // PIX de renovação ainda não pago
+    renovacaoPaga: assinatura?.renovacaoPaga || null, // próximo período já pago
+    reembolsoEstimado: assinatura?.reembolsoEstimado || null, // { valor, ... } se cancelar agora
   };
 }
 

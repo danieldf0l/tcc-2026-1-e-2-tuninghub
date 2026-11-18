@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, AppState, StyleSheet } from 'react-native';
+import { View, Text, Pressable, AppState, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Clock, Crown, CalendarX, Check } from 'lucide-react-native';
+import { Clock, Crown, CalendarX, Check, CalendarCheck, RefreshCw } from 'lucide-react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../context/ToastContext';
@@ -12,6 +12,7 @@ import {
   assinarPlanoGratuito,
   iniciarCheckout,
   confirmarPagamento,
+  cancelarAssinatura,
 } from '../../../api/assinatura.api';
 import { abrirCheckout } from '../../../utils/pagamento';
 import { formatarData } from '../../../utils/formatters';
@@ -19,11 +20,19 @@ import { getErrorMessage } from '../../../utils/errorHandler';
 import ScreenContainer from '../../../components/ScreenContainer';
 import ScreenHeader from '../../../components/ScreenHeader';
 import PlanoCard, { BENEFICIOS_PRO } from '../../../components/PlanoCard';
+import CancelarAssinaturaSheet from '../../../components/CancelarAssinaturaSheet';
 import AvisoInline from '../../../components/AvisoInline';
 import Skeleton from '../../../components/Skeleton';
 import Button from '../../../components/Button';
 
 const ehPago = (valor) => Number(valor) > 0;
+
+// 'AAAA-MM-DD' → 'DD/MM' sem passar por Date (evita voltar um dia por causa do fuso)
+function diaMes(aaaaMmDd) {
+  if (!aaaaMmDd) return '';
+  const [, mes, dia] = String(aaaaMmDd).slice(0, 10).split('-');
+  return `${dia}/${mes}`;
+}
 
 export default function MinhaAssinaturaScreen({ navigation }) {
   const { colors, fonts, typography, radius } = useTheme();
@@ -36,18 +45,31 @@ export default function MinhaAssinaturaScreen({ navigation }) {
   const [idPlanoProcessando, setIdPlanoProcessando] = useState(null);
   const [verificando, setVerificando] = useState(false);
   const [abrindoPagamento, setAbrindoPagamento] = useState(false);
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false); // sheet aberto
+  const [cancelando, setCancelando] = useState(false);
   const [erro, setErro] = useState('');
   const conferindoRef = useRef(false);
 
-  const { temPlanoPro, gratuitoAtivo, pendente, planoVencido, diasRestantes, venceEmBreve } =
-    analisarAssinatura(assinatura);
+  const {
+    temPlanoPro, gratuitoAtivo, pendente, planoVencido, diasRestantes, venceEmBreve,
+    podeRenovar, podeCancelar, renovacaoLiberadaEm, renovacaoPendente, renovacaoPaga, reembolsoEstimado,
+  } = analisarAssinatura(assinatura);
+
+  // PIX aguardando: o 1º pagamento (PENDENTE) ou uma renovação do Pro
+  const pixAguardando = pendente
+    ? { idAssinatura: assinatura?.IdAssinatura, idPlano: assinatura?.IdPlano }
+    : renovacaoPendente
+      ? { idAssinatura: renovacaoPendente.IdAssinatura, idPlano: renovacaoPendente.IdPlano }
+      : null;
+
+  // Mostra os planos quando dá para assinar/renovar
+  const deveMostrarPlanos = (a) => (!a.temPlanoPro && !a.pendente) || (a.temPlanoPro && a.podeRenovar && !a.renovacaoPendente);
 
   async function carregar() {
     try {
       const minha = await buscarMinhaAssinatura();
       setAssinatura(minha);
-      const a = analisarAssinatura(minha);
-      setPlanos(!a.temPlanoPro && !a.pendente ? await listarPlanos() : []);
+      setPlanos(deveMostrarPlanos(analisarAssinatura(minha)) ? await listarPlanos() : []);
       setErro('');
       return minha;
     } catch (e) {
@@ -56,6 +78,11 @@ export default function MinhaAssinaturaScreen({ navigation }) {
     } finally {
       setCarregando(false);
     }
+  }
+
+  function idDoPixAguardando(minha) {
+    if (minha?.Status === 'PENDENTE') return minha.IdAssinatura;
+    return minha?.renovacaoPendente?.IdAssinatura || null;
   }
 
   // Confere o PIX no AbacatePay. Silencioso por padrão; devolve true se ativou.
@@ -67,7 +94,11 @@ export default function MinhaAssinaturaScreen({ navigation }) {
       if (r.status === 'ATIVA') {
         await verificarAssinatura();
         await carregar();
-        mostrar('Pagamento confirmado! Seu plano Pro está ativo.');
+        mostrar(
+          r.renovacao
+            ? `Renovação confirmada! Seu Pro vai até ${formatarData(r.dataFim)}.`
+            : 'Pagamento confirmado! Seu plano Pro está ativo.'
+        );
         return true;
       }
       if (avisarSePendente) mostrar('Pagamento ainda não identificado. Tente de novo em alguns instantes.', 'info');
@@ -84,36 +115,37 @@ export default function MinhaAssinaturaScreen({ navigation }) {
     useCallback(() => {
       (async () => {
         const minha = await carregar();
-        if (minha?.Status === 'PENDENTE') conferirPagamento(minha.IdAssinatura);
+        const id = idDoPixAguardando(minha);
+        if (id) conferirPagamento(id);
       })();
     }, [])
   );
 
   // Voltou ao app (ex.: depois de pagar no banco): confere sozinho
   useEffect(() => {
-    if (!pendente) return undefined;
+    if (!pixAguardando?.idAssinatura) return undefined;
     const sub = AppState.addEventListener('change', (estado) => {
-      if (estado === 'active') conferirPagamento(assinatura?.IdAssinatura);
+      if (estado === 'active') conferirPagamento(pixAguardando.idAssinatura);
     });
     return () => sub.remove();
-  }, [pendente, assinatura?.IdAssinatura]);
+  }, [pixAguardando?.idAssinatura]);
 
   async function handleVerificarManual() {
     setErro('');
     setVerificando(true);
-    await conferirPagamento(assinatura?.IdAssinatura, { avisarSePendente: true });
+    await conferirPagamento(pixAguardando?.idAssinatura, { avisarSePendente: true });
     setVerificando(false);
   }
 
-  // PIX pendente: o backend devolve o MESMO link se ainda estiver aguardando
+  // PIX pendente (1º ou renovação): o backend devolve o MESMO link se ainda estiver aguardando
   async function handleAbrirPagamento() {
-    if (!assinatura?.IdPlano) return;
+    if (!pixAguardando?.idPlano) return;
     setErro('');
     setAbrindoPagamento(true);
     try {
-      const r = await iniciarCheckout(assinatura.IdPlano);
+      const r = await iniciarCheckout(pixAguardando.idPlano);
       await abrirCheckout(r.checkoutUrl);
-      await conferirPagamento(r.idAssinatura || assinatura.IdAssinatura);
+      await conferirPagamento(r.idAssinatura || pixAguardando.idAssinatura);
     } catch (e) {
       // 409 pode significar que já estava pago: o backend ativa e avisa
       await verificarAssinatura();
@@ -124,6 +156,7 @@ export default function MinhaAssinaturaScreen({ navigation }) {
     }
   }
 
+  // Assinar (gratuito/Pro) ou renovar o Pro antecipadamente
   async function handleAssinar(plano) {
     setErro('');
     setIdPlanoProcessando(plano.IdPlano);
@@ -142,8 +175,28 @@ export default function MinhaAssinaturaScreen({ navigation }) {
       }
     } catch (e) {
       setErro(getErrorMessage(e));
+      carregar(); // ex.: 409 "Você poderá renovar a partir de..." — atualiza o estado da tela
     } finally {
       setIdPlanoProcessando(null);
+    }
+  }
+
+  // Cancela o Pro (volta ao gratuito) ou desiste de um PIX
+  async function executarCancelamento({ apenasRenovacaoPendente = false } = {}) {
+    setErro('');
+    setCancelando(true);
+    try {
+      const r = await cancelarAssinatura({ apenasRenovacaoPendente });
+      setConfirmandoCancelamento(false);
+      await verificarAssinatura();
+      await carregar();
+      mostrar(r.message || 'Cancelamento concluído.');
+    } catch (e) {
+      setConfirmandoCancelamento(false);
+      setErro(getErrorMessage(e));
+      carregar();
+    } finally {
+      setCancelando(false);
     }
   }
 
@@ -165,6 +218,71 @@ export default function MinhaAssinaturaScreen({ navigation }) {
     );
   }
 
+  // Bloco do PIX aguardando (1º pagamento ou renovação)
+  function BotoesPix({ textoCancelar, onCancelar }) {
+    return (
+      <View style={styles.botoes}>
+        {pixAguardando?.idPlano ? (
+          <Button title="Abrir pagamento" onPress={handleAbrirPagamento} loading={abrindoPagamento} disabled={verificando || cancelando} />
+        ) : null}
+        <Button
+          title="Já paguei, verificar"
+          variant="outline"
+          onPress={handleVerificarManual}
+          loading={verificando}
+          disabled={abrindoPagamento || cancelando}
+        />
+        {onCancelar ? (
+          <Button title={textoCancelar} variant="ghost" onPress={onCancelar} loading={cancelando} disabled={abrindoPagamento || verificando} />
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderRenovacao() {
+    if (renovacaoPaga) {
+      return (
+        <CartaoStatus
+          Icone={CalendarCheck}
+          cor={colors.success}
+          fundo={colors.successSoft}
+          borda={colors.success}
+          titulo="Renovação paga"
+          texto={`Seu próximo período (${renovacaoPaga.NomePlano || 'Pro'}) começa em ${formatarData(renovacaoPaga.DataInicio)} e vai até ${formatarData(renovacaoPaga.DataFim)}. Não precisa fazer mais nada.`}
+        />
+      );
+    }
+
+    if (renovacaoPendente) {
+      return (
+        <CartaoStatus
+          Icone={Clock}
+          cor={colors.warning}
+          fundo={colors.warningSoft}
+          borda={colors.warning}
+          titulo={`Renovação: ${renovacaoPendente.NomePlano || 'Pro'}`}
+          texto="Aguardando o PIX da renovação. Seu plano atual continua ativo enquanto isso."
+        >
+          <BotoesPix
+            textoCancelar="Desistir da renovação"
+            onCancelar={() => executarCancelamento({ apenasRenovacaoPendente: true })}
+          />
+        </CartaoStatus>
+      );
+    }
+
+    if (!podeRenovar && renovacaoLiberadaEm) {
+      return (
+        <AvisoInline
+          tipo="info"
+          mensagem={`A renovação antecipada fica disponível a partir de ${diaMes(renovacaoLiberadaEm)}, nos últimos 7 dias do plano.`}
+        />
+      );
+    }
+
+    return null;
+  }
+
   function renderStatus() {
     if (!assinatura) return null;
 
@@ -178,18 +296,10 @@ export default function MinhaAssinaturaScreen({ navigation }) {
           titulo={assinatura.NomePlano || 'Plano Pro'}
           texto="Aguardando a confirmação do PIX. Assim que o pagamento cair, o plano é ativado."
         >
-          <View style={styles.botoes}>
-            {assinatura.IdPlano ? (
-              <Button title="Abrir pagamento" onPress={handleAbrirPagamento} loading={abrindoPagamento} disabled={verificando} />
-            ) : null}
-            <Button
-              title="Já paguei, verificar"
-              variant="outline"
-              onPress={handleVerificarManual}
-              loading={verificando}
-              disabled={abrindoPagamento}
-            />
-          </View>
+          <BotoesPix
+            textoCancelar="Desistir deste pagamento"
+            onCancelar={podeCancelar ? () => executarCancelamento() : null}
+          />
         </CartaoStatus>
       );
     }
@@ -203,7 +313,7 @@ export default function MinhaAssinaturaScreen({ navigation }) {
             Icone={Crown}
             cor={colors.primary}
             fundo={colors.primarySoft}
-            borda={venceEmBreve ? colors.warning : colors.primary}
+            borda={venceEmBreve && !renovacaoPaga ? colors.warning : colors.primary}
             titulo={assinatura.NomePlano || 'Plano Pro'}
             texto={`Válido até ${formatarData(assinatura.DataFim)}${restante}`}
           >
@@ -217,12 +327,7 @@ export default function MinhaAssinaturaScreen({ navigation }) {
               ))}
             </View>
           </CartaoStatus>
-          {venceEmBreve ? (
-            <AvisoInline
-              tipo="info"
-              mensagem={`Seu plano vence em ${formatarData(assinatura.DataFim)}. A renovação fica disponível aqui assim que ele vencer.`}
-            />
-          ) : null}
+          {renderRenovacao()}
         </>
       );
     }
@@ -256,13 +361,24 @@ export default function MinhaAssinaturaScreen({ navigation }) {
     return null;
   }
 
-  const mostrarPlanos = !temPlanoPro && !pendente;
-  // Gratuito: só os pagos (upgrade). Demais casos: pagos primeiro.
-  const planosParaMostrar = gratuitoAtivo
-    ? planos.filter((p) => ehPago(p.Valor))
-    : [...planos.filter((p) => ehPago(p.Valor)), ...planos.filter((p) => !ehPago(p.Valor))];
+  const renovandoAntecipado = temPlanoPro && podeRenovar && !renovacaoPendente;
+  const mostrarPlanos = (!temPlanoPro && !pendente) || renovandoAntecipado;
+  // Gratuito e renovação: só os pagos. Demais casos: pagos primeiro.
+  const planosParaMostrar =
+    gratuitoAtivo || renovandoAntecipado
+      ? planos.filter((p) => ehPago(p.Valor))
+      : [...planos.filter((p) => ehPago(p.Valor)), ...planos.filter((p) => !ehPago(p.Valor))];
 
-  const tituloPlanos = gratuitoAtivo ? 'Faça upgrade para o Pro' : planoVencido ? 'Renove seu plano' : 'Escolha um plano';
+  const tituloPlanos = renovandoAntecipado
+    ? 'Renovar agora'
+    : gratuitoAtivo
+      ? 'Faça upgrade para o Pro'
+      : planoVencido
+        ? 'Renove seu plano'
+        : 'Escolha um plano';
+
+  // Cancelar o Pro (com ou sem renovação paga). PIX pendente tem botão próprio no cartão.
+  const mostrarCancelar = temPlanoPro && podeCancelar;
 
   return (
     <ScreenContainer>
@@ -281,7 +397,15 @@ export default function MinhaAssinaturaScreen({ navigation }) {
 
           {mostrarPlanos && planosParaMostrar.length > 0 ? (
             <>
-              <Text style={[typography.overline, styles.secao, { color: colors.textSecondary }]}>{tituloPlanos}</Text>
+              <View style={styles.secaoTopo}>
+                {renovandoAntecipado ? <RefreshCw size={14} color={colors.textSecondary} strokeWidth={2.5} /> : null}
+                <Text style={[typography.overline, { color: colors.textSecondary }]}>{tituloPlanos}</Text>
+              </View>
+              {renovandoAntecipado ? (
+                <Text style={[typography.caption, styles.secaoTexto, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+                  O novo período começa quando o atual terminar ({formatarData(assinatura?.DataFim)}). Você não perde nenhum dia.
+                </Text>
+              ) : null}
               {planosParaMostrar.map((plano) => (
                 <PlanoCard
                   key={plano.IdPlano}
@@ -295,8 +419,29 @@ export default function MinhaAssinaturaScreen({ navigation }) {
               </Text>
             </>
           ) : null}
+
+          {mostrarCancelar ? (
+            <Pressable
+              onPress={() => setConfirmandoCancelamento(true)}
+              accessibilityRole="button"
+              hitSlop={8}
+              style={({ pressed }) => [styles.cancelar, { opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Text style={[typography.body, { color: colors.danger, fontFamily: fonts.semibold }]}>Cancelar assinatura</Text>
+            </Pressable>
+          ) : null}
         </>
       )}
+
+      <CancelarAssinaturaSheet
+        visivel={confirmandoCancelamento}
+        onFechar={() => setConfirmandoCancelamento(false)}
+        onConfirmar={() => executarCancelamento()}
+        carregando={cancelando}
+        nomePlano={assinatura?.NomePlano}
+        reembolso={reembolsoEstimado}
+        temRenovacaoPaga={!!renovacaoPaga}
+      />
     </ScreenContainer>
   );
 }
@@ -312,6 +457,8 @@ const styles = StyleSheet.create({
   divisor: { height: StyleSheet.hairlineWidth, marginVertical: 14 },
   beneficios: { gap: 10 },
   beneficio: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  secao: { marginTop: 8, marginBottom: 12, marginLeft: 4 },
+  secaoTopo: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 12, marginLeft: 4 },
+  secaoTexto: { marginTop: -6, marginBottom: 12, marginLeft: 4 },
   rodapeTexto: { textAlign: 'center', marginTop: 4 },
+  cancelar: { alignSelf: 'center', marginTop: 28, paddingVertical: 8 },
 });

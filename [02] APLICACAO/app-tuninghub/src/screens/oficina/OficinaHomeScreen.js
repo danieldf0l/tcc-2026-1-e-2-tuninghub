@@ -23,7 +23,9 @@ export default function OficinaHomeScreen({ navigation }) {
   const { colors, fonts, typography, layout, radius } = useTheme();
   const insets = useSafeAreaInsets();
   const { usuario } = useAuth();
-  const { assinatura, temPlanoPro, planoVencido, diasRestantes, venceEmBreve, verificar } = useAssinaturaOficina();
+  const {
+    assinatura, temPlanoPro, planoVencido, diasRestantes, venceEmBreve, podeRenovar, renovacaoPendente, renovacaoPaga, verificar,
+  } = useAssinaturaOficina();
   const idOficina = usuario?.IdOficina;
 
   const [imagens, setImagens] = useState([]);
@@ -93,17 +95,33 @@ export default function OficinaHomeScreen({ navigation }) {
         acao: 'Renovar plano', variante: 'primary',
       };
     } else if (temPlanoPro) {
-      // O backend só aceita novo checkout depois que o Pro vence (409 com Pro ATIVA)
-      const textoVencimento =
-        diasRestantes === 0
-          ? 'Vence hoje. A partir de amanhã você já pode renovar em Meu plano.'
-          : `Vence em ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'} (${formatarData(assinatura?.DataFim)}). Depois disso, é só renovar em Meu plano.`;
+      // Renovação antecipada: o backend libera nos últimos 7 dias (podeRenovar)
+      const quando =
+        diasRestantes === 0 ? 'Vence hoje' : `Vence em ${diasRestantes} ${diasRestantes === 1 ? 'dia' : 'dias'} (${formatarData(assinatura?.DataFim)})`;
+
+      let texto = `Ativo até ${formatarData(assinatura?.DataFim)}`;
+      let acao = null;
+      let alerta = false;
+      if (renovacaoPaga) {
+        texto = `Renovação paga. Seu Pro continua até ${formatarData(renovacaoPaga.DataFim)}.`;
+      } else if (renovacaoPendente) {
+        texto = `${quando}. A renovação está aguardando o pagamento do PIX.`;
+        acao = 'Concluir pagamento';
+        alerta = true;
+      } else if (podeRenovar) {
+        texto = `${quando}. Renove agora: o novo período começa quando este terminar.`;
+        acao = 'Renovar plano';
+        alerta = true;
+      } else if (venceEmBreve) {
+        texto = `${quando}.`;
+        alerta = true;
+      }
+
       c = {
         Icone: Crown, cor: colors.primary, fundo: colors.primarySoft,
-        borda: venceEmBreve ? colors.warning : colors.primary,
+        borda: alerta ? colors.warning : colors.primary,
         titulo: assinatura?.NomePlano || 'Plano Pro',
-        texto: venceEmBreve ? textoVencimento : `Ativo até ${formatarData(assinatura?.DataFim)}`,
-        acao: null, variante: 'primary',
+        texto, acao, variante: 'primary',
       };
     } else {
       c = {

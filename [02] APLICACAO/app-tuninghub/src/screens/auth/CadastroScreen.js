@@ -152,11 +152,11 @@ export default function CadastroScreen({ navigation }) {
         <Checkbox marcado={termosAceitos} onToggle={() => setTermosAceitos((v) => !v)}>
           <Text style={[typography.caption, styles.termos, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
             Li e concordo com os{' '}
-            <Text style={estiloLink} onPress={() => navigation.navigate('Termos')}>
+            <Text style={estiloLink} onPress={() => navigation.navigate('Termos', { tipo: 'usuario' })}>
               Termos de Uso
             </Text>{' '}
             e a{' '}
-            <Text style={estiloLink} onPress={() => navigation.navigate('Privacidade')}>
+            <Text style={estiloLink} onPress={() => navigation.navigate('Privacidade', { tipo: 'usuario' })}>
               Política de Privacidade
             </Text>
           </Text>
