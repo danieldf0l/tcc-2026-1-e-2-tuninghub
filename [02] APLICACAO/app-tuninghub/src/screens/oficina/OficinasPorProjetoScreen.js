@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Car, ListTodo, MapPinOff, WifiOff, SlidersHorizontal } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
@@ -19,7 +19,7 @@ import MenuListItem from '../../components/MenuListItem';
 import EmptyState from '../../components/EmptyState';
 import AvisoInline from '../../components/AvisoInline';
 import Skeleton from '../../components/Skeleton';
-import Chip from '../../components/Chip';
+import AjustarServicosSheet from '../../components/AjustarServicosSheet';
 
 const nomeServico = (s) => s.NomeServico || s.Nome || s.nome || 'Serviço';
 
@@ -45,6 +45,7 @@ export default function OficinasPorProjetoScreen({ route, navigation }) {
   const [carregando, setCarregando] = useState(false);
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [erro, setErro] = useState('');
+  const [ajustando, setAjustando] = useState(false); // bottom sheet de serviços
 
   const paginaRef = useRef(1);
   const requisicaoRef = useRef(0); // descarta respostas antigas (chips clicados rápido)
@@ -122,10 +123,8 @@ export default function OficinasPorProjetoScreen({ route, navigation }) {
   // "todos marcados" vira undefined: o back usa os pendentes do projeto
   const idsParaBusca = (sel) => (sel.length === todosServicos.length ? undefined : sel);
 
-  function alternarServico(id) {
-    const proximos = selecionados.includes(id)
-      ? selecionados.filter((x) => x !== id)
-      : [...selecionados, id];
+  // Recebe a seleção do bottom sheet ("Aplicar") e refaz a busca uma vez só
+  function aplicarSelecao(proximos) {
     setSelecionados(proximos);
 
     if (proximos.length === 0) {
@@ -201,6 +200,22 @@ export default function OficinasPorProjetoScreen({ route, navigation }) {
   const semLocalizacao = statusLocalizacao === 'negada' || statusLocalizacao === 'erro';
   const mostrarContador = !carregando && !erro && selecionados?.length > 0 && oficinas.length > 0;
 
+  // Resumo da seleção: "Buscando por 8 de 12 serviços" + os primeiros nomes
+  const qtdSelecionados = selecionados?.length ?? 0;
+  const nomesSelecionados = todosServicos
+    .filter((s) => selecionados?.includes(s.IdServico))
+    .map(nomeServico);
+  const tituloResumo =
+    qtdSelecionados === todosServicos.length
+      ? `Buscando por ${todosServicos.length === 1 ? 'o serviço pendente' : `todos os ${todosServicos.length} serviços`}`
+      : `Buscando por ${qtdSelecionados} de ${todosServicos.length} serviços`;
+  const linhaResumo =
+    nomesSelecionados.length === 0
+      ? 'Nenhum serviço selecionado'
+      : nomesSelecionados.length <= 2
+        ? nomesSelecionados.join(' e ')
+        : `${nomesSelecionados.slice(0, 2).join(', ')} e mais ${nomesSelecionados.length - 2}`;
+
   function renderCabecalho() {
     return (
       <View>
@@ -216,22 +231,35 @@ export default function OficinasPorProjetoScreen({ route, navigation }) {
 
         {todosServicos.length > 0 ? (
           <View style={styles.blocoServicos}>
-            <Text style={[typography.overline, styles.secao, { color: colors.textSecondary }]}>
-              Serviços que você quer fazer
-            </Text>
-            <View style={styles.chips}>
-              {todosServicos.map((s) => (
-                <Chip
-                  key={s.IdServico}
-                  label={nomeServico(s)}
-                  selected={!!selecionados?.includes(s.IdServico)}
-                  onPress={() => alternarServico(s.IdServico)}
-                />
-              ))}
-            </View>
-            <Text style={[typography.caption, styles.dica, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
-              Toque para incluir ou tirar da busca.
-            </Text>
+            <Pressable
+              onPress={() => setAjustando(true)}
+              accessibilityRole="button"
+              accessibilityLabel={`${tituloResumo}. Ajustar serviços`}
+              style={({ pressed }) => [
+                styles.resumo,
+                {
+                  borderRadius: radius.lg,
+                  borderColor: colors.border,
+                  backgroundColor: pressed ? colors.border : colors.surface,
+                },
+              ]}
+            >
+              <View style={[styles.resumoIcone, { backgroundColor: colors.primarySoft, borderRadius: radius.md }]}>
+                <SlidersHorizontal size={18} color={colors.primary} strokeWidth={2.25} />
+              </View>
+              <View style={styles.flex}>
+                <Text style={[typography.bodyStrong, { color: colors.text }]} numberOfLines={1}>
+                  {tituloResumo}
+                </Text>
+                <Text
+                  style={[typography.caption, styles.resumoLinha, { color: colors.textSecondary, fontFamily: fonts.regular }]}
+                  numberOfLines={1}
+                >
+                  {linhaResumo}
+                </Text>
+              </View>
+              <Text style={[styles.resumoAcao, { color: colors.primary, fontFamily: fonts.semibold }]}>Ajustar</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -299,7 +327,9 @@ export default function OficinasPorProjetoScreen({ route, navigation }) {
           compacto
           Icone={SlidersHorizontal}
           titulo="Selecione ao menos um serviço"
-          descricao="Toque nos serviços acima para incluir na busca."
+          descricao="Toque em Ajustar para escolher os serviços da busca."
+          acaoTitulo="Ajustar serviços"
+          onAcao={() => setAjustando(true)}
         />
       );
     }
@@ -361,17 +391,28 @@ export default function OficinasPorProjetoScreen({ route, navigation }) {
           />
         )}
       />
+
+      <AjustarServicosSheet
+        visivel={ajustando}
+        onFechar={() => setAjustando(false)}
+        servicos={todosServicos}
+        selecionados={selecionados}
+        onAplicar={aplicarSelecao}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  flex: { flex: 1 },
   barraTopo: { paddingBottom: 4 },
   titulo: { marginTop: 4 },
   blocoServicos: { marginTop: 20 },
-  secao: { marginBottom: 10 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 },
+  resumo: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, padding: 12 },
+  resumoIcone: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  resumoLinha: { marginTop: 2 },
+  resumoAcao: { fontSize: 14 },
   dica: { marginTop: 8 },
   contador: { marginTop: 20, marginBottom: 12 },
   espaco: { height: 16 },

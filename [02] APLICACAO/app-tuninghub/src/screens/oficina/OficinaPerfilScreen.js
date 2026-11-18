@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, FlatList, Image, Pressable, Modal, Alert, StatusBar, Animated,
-  StyleSheet, useWindowDimensions,
+  LayoutAnimation, StyleSheet, useWindowDimensions,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ import Skeleton from '../../components/Skeleton';
 import Chip from '../../components/Chip';
 import Button from '../../components/Button';
 import { LogoIcone } from '../../components/Logo';
+import CategoriaAcordeao from '../../components/CategoriaAcordeao';
 
 const ALTURA_CAPA = 240;
 const TAMANHO_LOGO = 88;
@@ -132,6 +133,7 @@ export default function OficinaPerfilScreen({ route, navigation }) {
   const [carregando, setCarregando] = useState(true);
   const [indiceCapa, setIndiceCapa] = useState(0);
   const [fotoAberta, setFotoAberta] = useState(null); // índice da foto no visualizador
+  const [categoriasAbertas, setCategoriasAbertas] = useState({}); // { rotulo: true }
   const montado = useRef(true);
     // A barra do topo ganha fundo e o nome da oficina quando a capa sai da tela
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -169,8 +171,26 @@ export default function OficinaPerfilScreen({ route, navigation }) {
       const cat = s.Categoria || 'Outros';
       (grupos[cat] = grupos[cat] || []).push(s.NomeServico || s.Nome || s.nome);
     });
-    return Object.entries(grupos).map(([cat, nomes]) => ({ ...getCategoriaInfo(cat), nomes }));
+    // Categorias com mais serviços primeiro; dentro de cada uma, ordem alfabética
+    return Object.entries(grupos)
+      .map(([cat, nomes]) => ({ ...getCategoriaInfo(cat), nomes: [...nomes].sort((a, b) => a.localeCompare(b)) }))
+      .sort((a, b) => b.nomes.length - a.nomes.length || a.rotulo.localeCompare(b.rotulo));
   }, [servicos]);
+
+  // Com uma categoria só, ela já vem aberta
+  const estaAberta = (rotulo) => categorias.length === 1 || !!categoriasAbertas[rotulo];
+  const todasAbertas = categorias.length > 0 && categorias.every((c) => estaAberta(c.rotulo));
+
+  function alternarCategoria(rotulo) {
+    setCategoriasAbertas((atual) => ({ ...atual, [rotulo]: !atual[rotulo] }));
+  }
+
+  function alternarTodas() {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCategoriasAbertas(
+      todasAbertas ? {} : Object.fromEntries(categorias.map((c) => [c.rotulo, true]))
+    );
+  }
 
   const linhaEndereco = endereco
     ? [
@@ -328,27 +348,52 @@ export default function OficinaPerfilScreen({ route, navigation }) {
             />
           ) : null}
 
-          <Text style={[typography.overline, styles.secao, { color: colors.textSecondary }]}>Serviços</Text>
+          <View style={styles.secaoTopo}>
+            <Text style={[typography.overline, { color: colors.textSecondary }]}>Serviços</Text>
+            {!carregando && categorias.length > 1 ? (
+              <Pressable onPress={alternarTodas} hitSlop={8} accessibilityRole="button">
+                <Text style={[styles.link, { color: colors.primary, fontFamily: fonts.semibold }]}>
+                  {todasAbertas ? 'Fechar todas' : 'Abrir todas'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           {carregando ? (
-            <View style={styles.chips}>
-              <Skeleton width={90} height={28} borderRadius={radius.pill} />
-              <Skeleton width={120} height={28} borderRadius={radius.pill} />
-              <Skeleton width={70} height={28} borderRadius={radius.pill} />
+            <View style={styles.categoriasSkeleton}>
+              <Skeleton height={52} borderRadius={radius.lg} />
+              <Skeleton height={52} borderRadius={radius.lg} />
             </View>
           ) : categorias.length > 0 ? (
-            categorias.map((cat) => (
-              <View key={cat.rotulo} style={styles.categoria}>
-                <View style={styles.categoriaTopo}>
-                  <cat.Icone size={15} color={colors.text} strokeWidth={2.25} />
-                  <Text style={[typography.bodyStrong, { color: colors.text }]}>{cat.rotulo}</Text>
-                </View>
-                <View style={styles.chips}>
-                  {cat.nomes.map((n) => (
-                    <Chip key={n} label={n} small />
-                  ))}
-                </View>
+            <>
+              <Text style={[typography.caption, styles.resumoServicos, { color: colors.textSecondary, fontFamily: fonts.regular }]}>
+                {servicos.length} {servicos.length === 1 ? 'serviço' : 'serviços'} em {categorias.length}{' '}
+                {categorias.length === 1 ? 'categoria' : 'categorias'}. Toque para ver.
+              </Text>
+              <View
+                style={[
+                  styles.categorias,
+                  { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg },
+                ]}
+              >
+                {categorias.map((cat, i) => (
+                  <CategoriaAcordeao
+                    key={cat.rotulo}
+                    Icone={cat.Icone}
+                    titulo={cat.rotulo}
+                    contador={String(cat.nomes.length)}
+                    aberto={estaAberta(cat.rotulo)}
+                    onAlternar={() => alternarCategoria(cat.rotulo)}
+                    ultimo={i === categorias.length - 1}
+                  >
+                    <View style={styles.chips}>
+                      {cat.nomes.map((n) => (
+                        <Chip key={n} label={n} small />
+                      ))}
+                    </View>
+                  </CategoriaAcordeao>
+                ))}
               </View>
-            ))
+            </>
           ) : (
             <Text style={[typography.body, { color: colors.textSecondary }]}>
               Esta oficina ainda não cadastrou serviços.
@@ -474,8 +519,11 @@ const styles = StyleSheet.create({
   projetoTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 6 },
   secao: { marginTop: 8, marginBottom: 12 },
-  categoria: { marginBottom: 16 },
-  categoriaTopo: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  secaoTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 6 },
+  link: { fontSize: 13 },
+  resumoServicos: { marginBottom: 10 },
+  categorias: { borderWidth: 1, paddingHorizontal: 14, marginBottom: 24 },
+  categoriasSkeleton: { gap: 8, marginBottom: 24 },
   endereco: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 },
   dicaMapa: { textAlign: 'center', marginTop: 8, marginBottom: 8 },
   barraTopo: {
